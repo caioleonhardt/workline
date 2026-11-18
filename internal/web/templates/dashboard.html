@@ -32,22 +32,6 @@
 <div class="tiles">
 {{range .Tiles}}<div class="tile"><div class="tile-label"><span class="dot {{.Class}}" aria-hidden="true"></span>{{.Label}}</div><div class="tile-value mono">{{.Value}}</div></div>
 {{end}}</div>
-{{range .Projects}}
-<section class="card">
-<h2>{{.Name}}</h2>
-{{if .Activities}}
-<ul class="rows">
-{{range .Activities}}
-<li><a href="{{.Href}}"{{if .Selected}} aria-current="true"{{end}}>{{.Name}}</a>
-<span class="chip {{.Status}}">{{.Status}}</span>
-{{if .Priority}}<span class="muted">{{.Priority}}</span>{{end}}
-<span class="muted mono">{{.Open}} / {{.Total}} open · {{.Progress}}% · {{.Start}} → {{.Due}}</span></li>
-{{end}}
-</ul>
-{{else}}<p class="muted">No activities.</p>{{end}}
-</section>
-{{else}}
-<p>No activities match these filters.</p>
-{{end}}
+{{template "timeline" .Timeline}}
 {{with .Panel}}{{template "panel" .}}{{end}}
 {{template "foot" .}}

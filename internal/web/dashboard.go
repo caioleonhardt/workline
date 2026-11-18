@@ -7,20 +7,6 @@ import (
 	"workline/internal/domain"
 )
 
-type activityRow struct {
-	ID                     int64
-	Name, Status, Priority string
-	Start, Due             string
-	Open, Total, Progress  int
-	Href                   string
-	Selected               bool
-}
-
-type projectView struct {
-	Name       string
-	Activities []activityRow
-}
-
 type tileView struct {
 	Label, Class string
 	Value        int
@@ -41,10 +27,10 @@ type dashboardView struct {
 	ShowForm    bool
 	Today       string
 	AllProjects []domain.Project // choices in the form
-	Projects    []projectView
-	Panel       *panelView // nil unless sel names an existing activity
+	Panel       *panelView       // nil unless sel names an existing activity
 	Controls    controlsView
 	Tiles       []tileView
+	Timeline    timelineView
 }
 
 func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
@@ -81,6 +67,7 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	var panel *panelView
 	var tileItems []domain.ActivityWithSubtasks // the project filter only, not period or status
+	creeps := map[int64]domain.Creep{}
 	counts := map[domain.Status]int{}
 	creepCount := 0
 	byProject := map[int64][]domain.Activity{}
@@ -107,6 +94,7 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		creep := domain.ScopeCreep(a, it.Subtasks, it.Ack, today)
+		creeps[a.ID] = creep
 		counts[a.Status]++
 		if creep.Flagged {
 			creepCount++
@@ -131,21 +119,8 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 		ShowForm:   f.New,
 		Today:      today.String(), AllProjects: projects, Panel: panel,
 		Controls: buildControls(f, projects, counts, creepCount),
+		Timeline: buildTimeline(f, today, groups, itemOf, creeps),
 		Tiles:    buildTiles(domain.ComputeTiles(tileItems, f.Year, today)),
-	}
-	for _, g := range groups {
-		pv := projectView{Name: g.Project.Name}
-		for _, a := range g.Activities {
-			it := itemOf[a.ID]
-			pv.Activities = append(pv.Activities, activityRow{
-				ID: a.ID, Name: a.Name, Status: string(a.Status), Priority: string(a.Priority),
-				Start: a.Start.String(), Due: a.Due.String(),
-				Open: domain.OpenAt(it.Subtasks, today), Total: len(it.Subtasks),
-				Progress: domain.Progress(a.Status, it.Subtasks),
-				Selected: a.ID == f.Sel, Href: f.WithSel(a.ID).URL(),
-			})
-		}
-		v.Projects = append(v.Projects, pv)
 	}
 	s.render(w, http.StatusOK, "dashboard.html", v)
 }

@@ -1,0 +1,39 @@
+{{define "timeline"}}
+<section class="card timeline" aria-label="Timeline">
+<div class="tl-scroll"><div class="tl">
+<div class="tl-row tl-head">
+<div class="tl-label"><strong>Project · activity</strong><span class="muted small">{{.ShownLabel}}</span></div>
+<div class="tl-track head-track">
+{{range .Columns}}<div class="col {{.Class}}" style="left:{{.Left}}%;width:{{.Width}}%"><span class="col-title">{{.Label}} <span class="muted">{{.Sub}}</span></span><span class="mono small">{{.Load}}</span></div>
+{{end}}
+{{range .Ticks}}<span class="tick mono" aria-hidden="true" style="left:{{.Left}}%">{{.Label}}</span>{{end}}
+{{if .ShowToday}}<span class="today-flag" style="left:{{.TodayLeft}}%">Today</span>{{end}}
+</div>
+</div>
+<div class="tl-body">
+<div class="overlay" aria-hidden="true">
+{{if .HasBand}}<div class="band" style="left:{{.BandLeft}}%;width:{{.BandWidth}}%"></div>{{end}}
+{{range .Lines}}<div class="gl{{if .Strong}} strong{{end}}" style="left:{{.Left}}%"></div>{{end}}
+{{if .ShowToday}}<div class="today-line" style="left:{{.TodayLeft}}%"></div>{{end}}
+</div>
+{{range .Groups}}
+<div class="grp">
+<div class="proj-row"><span class="proj-name">{{.Name}}</span><span class="small">· {{.CountLabel}}</span><span class="mono small">· {{.PctLabel}}</span>{{if .FlagLabel}}<span class="creep-text small">· {{.FlagLabel}}</span>{{end}}</div>
+{{range .Rows}}
+<div class="tl-row act-row{{if .Selected}} sel{{end}}">
+<a class="tl-label act-label" href="{{.Href}}"{{if .Selected}} aria-current="true"{{end}}>
+<span class="act-name">{{.Name}}</span>
+<span class="act-meta"><span class="chip {{.Status}}">{{.StatusLabel}}</span>{{if .ScopeChip}}<span class="chip creep">{{.ScopeChip}}</span>{{end}}<span class="mono small">{{.OpenLabel}}</span></span>
+<span class="muted small">{{.Dates}}</span>
+</a>
+<div class="tl-track"></div>
+</div>
+{{end}}
+</div>
+{{else}}
+<div class="empty">No activities match these filters.</div>
+{{end}}
+</div>
+</div></div>
+</section>
+{{end}}
