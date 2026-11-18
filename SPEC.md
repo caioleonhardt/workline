@@ -273,7 +273,7 @@ GET    /static/*                           embedded assets
 
 ## 8. Operations
 
-- Flags: `-addr` (default `127.0.0.1:8080`), `-db` (default `$XDG_DATA_HOME/workline/workline.db`, falling back to `~/.local/share/workline/workline.db`).
+- Flags: `-addr` (default `127.0.0.1:8080`), `-port` (overrides the port in `-addr`, e.g. `-port 8081`), `-db` (default `$XDG_DATA_HOME/workline/workline.db`, falling back to `~/.local/share/workline/workline.db`).
 - SQLite pragmas: `foreign_keys=ON`, `journal_mode=WAL`, `busy_timeout=5000`.
 - Migrations: numbered `.sql` files embedded in the binary, tracked with `PRAGMA user_version`, applied at startup in a transaction.
 - `workline backup <path>` subcommand using `VACUUM INTO`.
@@ -358,3 +358,6 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 52. **Timeline dots mark subtask completions, not journal entries.** One dot per activity per day on which at least one subtask was closed. Hovering or keyboard-focusing the dot shows a small popup listing that day's closed subtasks (text and close time when known). Journal entries no longer appear on the timeline; they stay in the panel. The legend says "Subtasks completed".
 53. **Subtask close time**: subtasks also record `closed_at` (local `YYYY-MM-DD HH:MM`), stamped from the clock when toggled closed and cleared on reopen; never editable. Older and seeded subtasks have none. Journal `logged_at` (item 49) stays.
 54. All stored times are local wall-clock time; no UTC conversion.
+55. Completion-dot popups in the first timeline rows open downward so they are not clipped; others open upward and scroll past 150px.
+56. A subtask keeps only its latest close; reopening and closing again moves its dot (no history).
+57. `serve -port N` sets the port; the "listening" log line is written only after the socket is bound.
