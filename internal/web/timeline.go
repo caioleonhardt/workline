@@ -1,7 +1,9 @@
 package web
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -64,10 +66,23 @@ type rowView struct {
 	PctLeft             pct
 	HasPlan             bool
 	PlanLeft, PlanWidth pct
+	Done                []doneDot
 	Bins                []binView
 }
 
 type binView struct{ Left, Width, Height pct }
+
+// doneDot marks a day on which an activity had subtasks closed; its popup lists them.
+type doneDot struct {
+	Left  pct
+	ID    string // of the popup, for aria-describedby
+	Day   string
+	Align string // "left", "center" or "right": which way the popup opens, to stay inside the track
+	Label string
+	Items []doneItem
+}
+
+type doneItem struct{ Time, Text string }
 
 // timelineData is what the dashboard hands to buildTimeline.
 type timelineData struct {
@@ -212,6 +227,7 @@ func buildRow(f Filter, l layout, it domain.ActivityWithSubtasks, c domain.Creep
 		}
 		r.Bins = append(r.Bins, bv)
 	}
+	r.Done = completionDots(l, it)
 	if c.Flagged {
 		r.ScopeChip = "Scope"
 		if c.Added > 0 {
@@ -219,4 +235,43 @@ func buildRow(f Filter, l layout, it domain.ActivityWithSubtasks, c domain.Creep
 		}
 	}
 	return r
+}
+
+// completionDots returns one dot per day in the period on which a subtask of
+// the activity was closed. Within a day, subtasks without a close time come
+// first, then by time, then by id.
+func completionDots(l layout, it domain.ActivityWithSubtasks) []doneDot {
+	byDay := map[domain.Date][]domain.Subtask{}
+	var days []domain.Date
+	for _, st := range it.Subtasks {
+		if st.ClosedOn.IsZero() || st.ClosedOn.Before(l.from) || st.ClosedOn.After(l.to) {
+			continue
+		}
+		if byDay[st.ClosedOn] == nil {
+			days = append(days, st.ClosedOn)
+		}
+		byDay[st.ClosedOn] = append(byDay[st.ClosedOn], st)
+	}
+	slices.Sort(days)
+	var dots []doneDot
+	for _, day := range days {
+		subs := byDay[day]
+		slices.SortFunc(subs, func(a, b domain.Subtask) int {
+			return cmp.Or(strings.Compare(a.ClosedAt, b.ClosedAt), cmp.Compare(a.ID, b.ID))
+		})
+		d := doneDot{
+			Left: l.ax.pos(day), ID: fmt.Sprintf("done-%d-%s", it.ID, day), Day: day.String(), Align: "center",
+			Label: plural(len(subs), "subtask", "subtasks") + " completed on " + day.String(),
+		}
+		if d.Left < 15 {
+			d.Align = "left"
+		} else if d.Left > 85 {
+			d.Align = "right"
+		}
+		for _, st := range subs {
+			d.Items = append(d.Items, doneItem{Time: domain.StampTime(st.ClosedAt), Text: st.Text})
+		}
+		dots = append(dots, d)
+	}
+	return dots
 }

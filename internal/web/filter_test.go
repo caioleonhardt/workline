@@ -40,18 +40,9 @@ func TestParseFilterCanonicalURL(t *testing.T) {
 	}
 }
 
-// bodyOrder reports whether the names occur in the page in the given order.
+// bodyOrder reports whether the names occur in the page's sections in the given order.
 func bodyOrder(body string, names ...string) bool {
-	body = body[strings.Index(body, "<section"):] // skip the controls, which list project names
-	last := -1
-	for _, n := range names {
-		i := strings.Index(body, n)
-		if i <= last {
-			return false
-		}
-		last = i
-	}
-	return true
+	return bodyOrderIn(body[strings.Index(body, "<section"):], names...) // skip the controls, which list project names
 }
 
 func TestDashboardHidesDoneByDefault(t *testing.T) {

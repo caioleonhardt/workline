@@ -271,3 +271,89 @@ func TestQuarterBinsNeverExceedFullHeight(t *testing.T) {
 		t.Errorf("year view bar = %.2f%%, want 0", got)
 	}
 }
+
+func TestCompletionDotsOnePerDay(t *testing.T) {
+	h, st := newApp(t)
+	const name = "Kafka upgrade readiness"
+	row := rowTrack(t, get(h, "/").Body.String(), name)
+	// seeded: one subtask closed on Oct 5 and one on Oct 19, neither with a time
+	if n := strings.Count(row, `class="done-dot center"`); n != 2 {
+		t.Fatalf("dots = %d, want 2:\n%s", n, row)
+	}
+	for _, want := range []string{
+		`class="done-dot center" style="left:75.89%"><button type="button" class="dot" aria-label="1 subtask completed on 2026-10-05" aria-describedby="done-2-2026-10-05">`,
+		`<span class="popup" id="done-2-2026-10-05"><strong>2026-10-05</strong><ul><li>Compatibility matrix</li></ul>`,
+		`style="left:79.73%"`,
+	} {
+		if !strings.Contains(row, want) {
+			t.Errorf("missing %q in:\n%s", want, row)
+		}
+	}
+	// outside the period nothing is drawn; inside, the same dots
+	if n := strings.Count(rowTrack(t, get(h, "/?period=q3").Body.String(), name), "done-dot"); n != 0 {
+		t.Errorf("Q3 dots = %d", n)
+	}
+	if n := strings.Count(rowTrack(t, get(h, "/?period=q4").Body.String(), name), `class="done-dot`); n != 2 {
+		t.Errorf("Q4 dots = %d", n)
+	}
+
+	// a day with several closures is still one dot; the popup lists them by time, then id
+	close := func(text string, created, closedOn string, hour, minute int) {
+		t.Helper()
+		sub, err := st.AddSubtask(ctx, 2, text, date(t, created))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := st.ToggleSubtask(ctx, sub.ID, domain.FixedClock{D: date(t, closedOn), Hour: hour, Minute: minute}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	close("afternoon", "2026-10-01", "2026-10-05", 15, 45)
+	close("morning", "2026-10-01", "2026-10-05", 8, 10)
+	close("same minute, later id", "2026-10-01", "2026-10-05", 8, 10)
+	row = rowTrack(t, get(h, "/").Body.String(), name)
+	if n := strings.Count(row, `class="done-dot`); n != 2 {
+		t.Errorf("dots = %d, want still 2", n)
+	}
+	popup := row[strings.Index(row, `id="done-2-2026-10-05"`):]
+	popup = popup[:strings.Index(popup, "</ul>")]
+	if !bodyOrderIn(popup, "Compatibility matrix", `<span class="mono">08:10</span> morning`, `<span class="mono">08:10</span> same minute, later id`, `<span class="mono">15:45</span> afternoon`) {
+		t.Errorf("popup order: %s", popup)
+	}
+	wantBody(t, get(h, "/"), "4 subtasks completed on 2026-10-05")
+}
+
+func bodyOrderIn(s string, parts ...string) bool {
+	last := -1
+	for _, p := range parts {
+		i := strings.Index(s, p)
+		if i <= last {
+			return false
+		}
+		last = i
+	}
+	return true
+}
+
+func TestCompletionPopupsStayInsideTheTrack(t *testing.T) {
+	h, st := newApp(t)
+	sub, _ := st.AddSubtask(ctx, 2, "early", date(t, "2026-01-02"))
+	if _, err := st.ToggleSubtask(ctx, sub.ID, domain.FixedClock{D: date(t, "2026-01-03")}); err != nil {
+		t.Fatal(err)
+	}
+	sub, _ = st.AddSubtask(ctx, 2, "today", date(t, "2026-11-01"))
+	if _, err := st.ToggleSubtask(ctx, sub.ID, domain.FixedClock{D: date(t, testToday)}); err != nil {
+		t.Fatal(err)
+	}
+	row := rowTrack(t, get(h, "/").Body.String(), "Kafka upgrade readiness")
+	for _, want := range []string{`class="done-dot left" style="left:0.55%"`, `class="done-dot right" style="left:87.95%"`} {
+		if !strings.Contains(row, want) {
+			t.Errorf("missing %q", want)
+		}
+	}
+	// Q4 drops the January dot
+	if q4 := rowTrack(t, get(h, "/?period=q4").Body.String(), "Kafka upgrade readiness"); strings.Contains(q4, "2026-01-03") {
+		t.Error("dot outside the period")
+	}
+	wantBody(t, get(h, "/"), "Subtasks completed")
+}

@@ -104,3 +104,13 @@ textarea { border: 1px solid var(--border); border-radius: 8px; padding: 8px; fo
 .proj-toggle .chevron { flex: none; transform: rotate(90deg); }
 .proj-toggle[aria-expanded="false"] .chevron { transform: none; }
 .act-row[hidden] { display: none; }
+.done-dot { bottom: -7px; width: 0; height: 44px; }
+.done-dot .dot { position: absolute; left: -22px; top: 0; width: 44px; height: 44px; min-height: 0; padding: 0; border: 0; background: transparent; cursor: help; }
+.done-dot .dot::before { content: ""; position: absolute; left: 17px; top: 17px; width: 10px; height: 10px; box-sizing: border-box; border-radius: 5px; border: 2px solid var(--surface); background: #16181D; }
+.popup { display: none; position: absolute; bottom: 38px; left: 0; transform: translateX(-50%); z-index: 6; width: max-content; max-width: 260px; max-height: 150px; overflow-y: auto; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: 0 4px 12px rgba(22, 24, 29, 0.18); font-size: 12px; text-align: left; }
+.popup ul { margin: 4px 0 0; padding-left: 16px; }
+.done-dot.left .popup { transform: none; left: -16px; }
+.done-dot.right .popup { transform: none; left: auto; right: -16px; }
+.done-dot:hover, .done-dot:focus-within { z-index: 6; }
+.done-dot:hover .popup, .done-dot:focus-within .popup { display: block; }
+.dot-sample { width: 10px; height: 10px; border-radius: 5px; background: #16181D; }
