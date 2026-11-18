@@ -306,8 +306,12 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 7. **Acknowledge on an unflagged activity** is refused (`ErrNotFlagged`); no journal entry is written.
 8. **Column load**: both `n` and `open` count visible activities that overlap the column and had started by `min(columnEnd, today)`.
 9. **Weeks** start on Monday; gridlines only on Mondays inside the selected quarter.
-10. **Subtask dates**: `closed_on ≥ created_on` (enforced in Go and by a DB CHECK). `created_on` may precede the activity's `start_date`. Future `closed_on` is not blocked.
+10. **Subtask dates**: `closed_on ≥ created_on` (enforced in Go and by a DB CHECK). `created_on` may precede the activity's `start_date`. A `closed_on` after today is rejected.
 11. **`Activity created`** journal entry: kind `update`, dated today. "+ New project…" creates the project inside the same transaction. Project names are unique, case-insensitive.
 12. **Seed data** comes from `baseline.json` (mockup baseline, as of 2026-11-18), whose `expected` block is a golden test for §4.
 13. **Done activities** do not auto-close subtasks (v1).
 14. **Rounding**: integer half-up everywhere (e.g. 5/8 → 63, 2/3 → 67).
+15. **Detail burndown**: the bin containing today is measured at today and is not "ahead"; only bins starting after today are ahead.
+16. **Journal edits** may change date, text and kind among `update`/`decision`/`blocker`/`meeting`; never to or from `scope_ack`.
+17. **Closing an activity** (`done`) is a manual decision, e.g. the manager drops it, and is allowed with open subtasks. "Done this year" therefore needs the date the activity was closed, which the schema does not store yet (to be added in M2).
+18. **Creating an activity requires at least one subtask** (M2 create form).
