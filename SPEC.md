@@ -184,7 +184,7 @@ Controls, all reflected in the **URL query string** so any view is bookmarkable:
 - Grouped by project. **Project row = one line**: chevron, name, `· N activities`, `· P% done`, and `· K scope flags` if any. No burndown on project rows. Clicking toggles collapse (state kept in a cookie or `localStorage`).
 - **Activity row**:
   - Left: name, status chip, a scope chip (`Scope +N`) when flagged, `open / total`, then dates and requester.
-  - Track: a thin span line from start to due; burndown bins in the status colour; a dashed box from today to due (not for `done`); journal dots coloured by kind; `P%` at the right end.
+  - Track: a thin span line from start to due; burndown bins in the status colour; a dashed box from today to due (not for `done`); completion dots (one per day on which subtasks were closed; hovering or focusing one lists them); `P%` at the right end.
   - Clicking the row or bar selects the activity (`sel=`) and opens the detail panel.
 - **Order.** Activities within a project: not-done before done; then priority `high`, `medium`, `low`, none; then due date; then id. Projects: by the best priority among their shown not-done activities (projects with only done activities last); then name.
 - Empty state: "No activities match these filters."
@@ -353,5 +353,8 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 47. Activity rows are links with `aria-current` for the selected one.
 48. Bar heights are scaled to the tallest bin drawn in the current view (so 2-day bins in Qn can never exceed 100%).
 49. **Journal time**: each entry also records `logged_at`, the local date and time (to the minute) when it was logged, stamped automatically from the clock and never editable. The `date` stays editable for backfilling. Lists order by `date`, then `logged_at`, then id, newest first. Entries that predate this column (including seed data) have no time and show none.
-50. **Timeline journal dots**: every entry gets its own dot in its kind's colour; dots on the same day stack vertically.
+50. ~~Timeline journal dots stack per day.~~ Superseded by item 52.
 51. Filter controls keep `new=1`, so the create form stays open across filter changes.
+52. **Timeline dots mark subtask completions, not journal entries.** One dot per activity per day on which at least one subtask was closed. Hovering or keyboard-focusing the dot shows a small popup listing that day's closed subtasks (text and close time when known). Journal entries no longer appear on the timeline; they stay in the panel. The legend says "Subtasks completed".
+53. **Subtask close time**: subtasks also record `closed_at` (local `YYYY-MM-DD HH:MM`), stamped from the clock when toggled closed and cleared on reopen; never editable. Older and seeded subtasks have none. Journal `logged_at` (item 49) stays.
+54. All stored times are local wall-clock time; no UTC conversion.
