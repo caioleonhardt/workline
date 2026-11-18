@@ -138,16 +138,16 @@ func TestActivityUpdateStatusDeleteList(t *testing.T) {
 	if err := s.UpdateActivity(ctx, missing); !errors.Is(err, ErrNotFound) {
 		t.Errorf("update missing: %v", err)
 	}
-	if err := s.SetActivityStatus(ctx, a.ID, domain.StatusBlocked); err != nil {
+	if err := s.SetActivityStatus(ctx, a.ID, domain.StatusBlocked, date(t, "2026-05-01")); err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := s.GetActivity(ctx, a.ID); got.Status != domain.StatusBlocked {
 		t.Errorf("status: %+v", got)
 	}
-	if err := s.SetActivityStatus(ctx, a.ID, "weird"); !errors.Is(err, domain.ErrInvalid) {
+	if err := s.SetActivityStatus(ctx, a.ID, "weird", date(t, "2026-05-01")); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("bad status: %v", err)
 	}
-	if err := s.SetActivityStatus(ctx, 999, domain.StatusDone); !errors.Is(err, ErrNotFound) {
+	if err := s.SetActivityStatus(ctx, 999, domain.StatusDone, date(t, "2026-05-01")); !errors.Is(err, ErrNotFound) {
 		t.Errorf("status missing: %v", err)
 	}
 	if _, err := s.GetActivity(ctx, 999); !errors.Is(err, ErrNotFound) {
@@ -161,6 +161,42 @@ func TestActivityUpdateStatusDeleteList(t *testing.T) {
 	}
 	if err := s.DeleteActivity(ctx, a.ID); !errors.Is(err, ErrNotFound) {
 		t.Errorf("delete twice: %v", err)
+	}
+}
+
+func TestPriorityAndDoneOn(t *testing.T) {
+	s := newTestStore(t)
+	a := mustActivity(t, s, "P", "2026-01-01", "2026-02-01")
+	if a.Priority != domain.PriorityNone || !a.DoneOn.IsZero() {
+		t.Fatalf("defaults: %+v", a)
+	}
+	a.Priority = domain.PriorityHigh
+	if err := s.UpdateActivity(ctx, a); err != nil {
+		t.Fatal(err)
+	}
+	a.Priority = "urgent"
+	if err := s.UpdateActivity(ctx, a); !errors.Is(err, domain.ErrInvalid) {
+		t.Errorf("bad priority: %v", err)
+	}
+	set := func(st domain.Status, today string) domain.Activity {
+		t.Helper()
+		if err := s.SetActivityStatus(ctx, a.ID, st, date(t, today)); err != nil {
+			t.Fatal(err)
+		}
+		got, _ := s.GetActivity(ctx, a.ID)
+		return got
+	}
+	if got := set(domain.StatusDone, "2026-03-01"); got.DoneOn != date(t, "2026-03-01") || got.Priority != domain.PriorityHigh {
+		t.Errorf("done: %+v", got)
+	}
+	if got := set(domain.StatusDone, "2026-04-01"); got.DoneOn != date(t, "2026-03-01") {
+		t.Errorf("done to done must keep the date: %+v", got)
+	}
+	if got := set(domain.StatusActive, "2026-05-01"); !got.DoneOn.IsZero() {
+		t.Errorf("reopened must clear the date: %+v", got)
+	}
+	if got := set(domain.StatusDone, "2026-06-01"); got.DoneOn != date(t, "2026-06-01") {
+		t.Errorf("done again: %+v", got)
 	}
 }
 

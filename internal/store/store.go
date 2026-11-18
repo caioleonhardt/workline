@@ -202,3 +202,8 @@ func parseOptDate(s sql.NullString) (domain.Date, error) {
 func nullDate(d domain.Date) sql.NullString {
 	return sql.NullString{String: d.String(), Valid: !d.IsZero()}
 }
+
+// nullPriority converts a Priority to a nullable SQL value; none is NULL.
+func nullPriority(p domain.Priority) sql.NullString {
+	return sql.NullString{String: string(p), Valid: p != domain.PriorityNone}
+}

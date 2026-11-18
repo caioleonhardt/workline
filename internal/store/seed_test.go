@@ -186,6 +186,11 @@ func TestSeedPreservesBaselineRows(t *testing.T) {
 			t.Errorf("%s: %d rows, want %d", table, n, want)
 		}
 	}
+	for _, id := range []int64{3, 4, 8} {
+		if a, _ := s.GetActivity(ctx, id); a.DoneOn.IsZero() || a.DoneOn.String() != a.Due.String() {
+			t.Errorf("activity %d: done_on = %v, want its due date", id, a.DoneOn)
+		}
+	}
 	// ids preserved, and activity 9's subtasks predate its start (allowed)
 	a9, err := s.GetActivity(ctx, 9)
 	if err != nil {

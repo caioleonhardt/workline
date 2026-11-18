@@ -16,21 +16,27 @@ type NewActivity struct {
 	NewProjectName string
 	Name           string
 	RequestedBy    string
+	Priority       domain.Priority
 	Start, Due     domain.Date
 }
 
-const activityColumns = `id, project_id, name, requested_by, status, start_date, due_date`
+const activityColumns = `id, project_id, name, requested_by, status, priority, start_date, due_date, done_on`
 
 type scanner interface{ Scan(dest ...any) error }
 
 func scanActivity(r scanner) (domain.Activity, error) {
 	var a domain.Activity
 	var status, start, due string
-	if err := r.Scan(&a.ID, &a.ProjectID, &a.Name, &a.RequestedBy, &status, &start, &due); err != nil {
+	var priority, doneOn sql.NullString
+	if err := r.Scan(&a.ID, &a.ProjectID, &a.Name, &a.RequestedBy, &status, &priority, &start, &due, &doneOn); err != nil {
 		return a, err
 	}
 	a.Status = domain.Status(status)
+	a.Priority = domain.Priority(priority.String)
 	var err error
+	if a.DoneOn, err = parseOptDate(doneOn); err != nil {
+		return a, err
+	}
 	if a.Start, err = parseDate(start); err != nil {
 		return a, err
 	}
@@ -47,7 +53,7 @@ func (s *Store) CreateActivity(ctx context.Context, in NewActivity, today domain
 		return domain.Activity{}, fmt.Errorf("%w: set exactly one of project id and new project name", domain.ErrInvalid)
 	}
 	a := domain.Activity{
-		ProjectID: in.ProjectID, Name: in.Name, RequestedBy: in.RequestedBy,
+		ProjectID: in.ProjectID, Name: in.Name, RequestedBy: in.RequestedBy, Priority: in.Priority,
 		Status: domain.DefaultStatus(in.Start, today), Start: in.Start, Due: in.Due,
 	}
 	if err := a.Validate(); err != nil {
@@ -79,9 +85,9 @@ func (s *Store) CreateActivity(ctx context.Context, in NewActivity, today domain
 
 func insertActivity(ctx context.Context, q queryer, a domain.Activity) (int64, error) {
 	res, err := q.ExecContext(ctx,
-		`INSERT INTO activities (project_id, name, requested_by, status, start_date, due_date)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
-		a.ProjectID, a.Name, a.RequestedBy, string(a.Status), a.Start.String(), a.Due.String())
+		`INSERT INTO activities (project_id, name, requested_by, status, priority, start_date, due_date)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		a.ProjectID, a.Name, a.RequestedBy, string(a.Status), nullPriority(a.Priority), a.Start.String(), a.Due.String())
 	if err != nil {
 		return 0, mapErr(err)
 	}
@@ -123,26 +129,30 @@ func (s *Store) ListActivities(ctx context.Context) ([]domain.Activity, error) {
 	return out, rows.Err()
 }
 
-// UpdateActivity rewrites project, name, requester and dates (not status).
+// UpdateActivity rewrites project, name, requester, priority and dates (not status).
 func (s *Store) UpdateActivity(ctx context.Context, a domain.Activity) error {
 	if err := a.Validate(); err != nil {
 		return err
 	}
 	res, err := s.db.ExecContext(ctx,
-		`UPDATE activities SET project_id = ?, name = ?, requested_by = ?, start_date = ?, due_date = ? WHERE id = ?`,
-		a.ProjectID, a.Name, a.RequestedBy, a.Start.String(), a.Due.String(), a.ID)
+		`UPDATE activities SET project_id = ?, name = ?, requested_by = ?, priority = ?, start_date = ?, due_date = ? WHERE id = ?`,
+		a.ProjectID, a.Name, a.RequestedBy, nullPriority(a.Priority), a.Start.String(), a.Due.String(), a.ID)
 	if err != nil {
 		return fmt.Errorf("update activity %d: %w", a.ID, mapErr(err))
 	}
 	return affected(res, "activity", a.ID)
 }
 
-// SetActivityStatus changes the status.
-func (s *Store) SetActivityStatus(ctx context.Context, id int64, status domain.Status) error {
+// SetActivityStatus changes the status. Entering done records today as the
+// done date (kept if already done); leaving done clears it (SPEC §10 item 21).
+func (s *Store) SetActivityStatus(ctx context.Context, id int64, status domain.Status, today domain.Date) error {
 	if !status.Valid() {
 		return fmt.Errorf("%w: unknown status %q", domain.ErrInvalid, status)
 	}
-	res, err := s.db.ExecContext(ctx, `UPDATE activities SET status = ? WHERE id = ?`, string(status), id)
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE activities SET status = ?1,
+		   done_on = CASE WHEN ?1 = 'done' THEN COALESCE(done_on, ?2) ELSE NULL END
+		 WHERE id = ?3`, string(status), today.String(), id)
 	if err != nil {
 		return fmt.Errorf("set status of activity %d: %w", id, err)
 	}

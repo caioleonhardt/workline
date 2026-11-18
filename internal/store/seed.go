@@ -117,9 +117,9 @@ func insertBaseline(ctx context.Context, tx *sql.Tx, d baselineData, asOf domain
 			return fmt.Errorf("activity %d: %w", a.ID, err)
 		}
 		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO activities (id, project_id, name, requested_by, status, start_date, due_date)
-			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			a.ID, a.ProjectID, a.Name, a.RequestedBy, a.Status, a.StartDate, a.DueDate); err != nil {
+			`INSERT INTO activities (id, project_id, name, requested_by, status, start_date, due_date, done_on)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'done' THEN ? END)`,
+			a.ID, a.ProjectID, a.Name, a.RequestedBy, a.Status, a.StartDate, a.DueDate, a.Status, a.DueDate); err != nil {
 			return fmt.Errorf("activity %d: %w", a.ID, mapErr(err))
 		}
 	}
