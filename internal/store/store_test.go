@@ -62,8 +62,8 @@ func TestOpenAppliesMigrationsAndPragmas(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if v := userVersion(t, s); v != 3 {
-		t.Errorf("user_version = %d, want 3", v)
+	if v := userVersion(t, s); v != 4 {
+		t.Errorf("user_version = %d, want 4", v)
 	}
 	var fk int
 	var mode string
@@ -83,7 +83,7 @@ func TestOpenAppliesMigrationsAndPragmas(t *testing.T) {
 	}
 	defer s2.Close()
 	ps, err := s2.ListProjects(ctx, true)
-	if err != nil || len(ps) != 1 || userVersion(t, s2) != 3 {
+	if err != nil || len(ps) != 1 || userVersion(t, s2) != 4 {
 		t.Errorf("reopen: %v %v", ps, err)
 	}
 }
@@ -100,15 +100,16 @@ func TestMigrateFailureRollsBack(t *testing.T) {
 		"0001_init.sql": {Data: []byte(`;`)},
 		"0002_more.sql": {Data: []byte(`;`)},
 		"0003_more.sql": {Data: []byte(`;`)},
-		"0004_bad.sql":  {Data: []byte(`CREATE TABLE y (a INTEGER); SELECT * FROM nonexistent_table; CREATE TABLE z (b);`)},
+		"0004_more.sql": {Data: []byte(`;`)},
+		"0005_bad.sql":  {Data: []byte(`CREATE TABLE y (a INTEGER); SELECT * FROM nonexistent_table; CREATE TABLE z (b);`)},
 	}
-	// Versions 1 to 3 are already applied, so only 0004 runs.
+	// Versions 1 to 4 are already applied, so only 0005 runs.
 	err := migrate(ctx, s.db, fsys)
 	if err == nil {
 		t.Fatal("expected failure")
 	}
-	if v := userVersion(t, s); v != 3 {
-		t.Errorf("user_version = %d, want 3 (unchanged)", v)
+	if v := userVersion(t, s); v != 4 {
+		t.Errorf("user_version = %d, want 4 (unchanged)", v)
 	}
 	var n int
 	s.db.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_master WHERE name IN ('y','z')`).Scan(&n)
@@ -123,12 +124,13 @@ func TestMigrateAppliesNewFile(t *testing.T) {
 		"0001_init.sql": {Data: []byte(`-- already applied`)},
 		"0002_more.sql": {Data: []byte(`-- already applied`)},
 		"0003_more.sql": {Data: []byte(`-- already applied`)},
-		"0004_more.sql": {Data: []byte(`CREATE TABLE extra (a INTEGER);`)},
+		"0004_more.sql": {Data: []byte(`-- already applied`)},
+		"0005_more.sql": {Data: []byte(`CREATE TABLE extra (a INTEGER);`)},
 	}
 	if err := migrate(ctx, s.db, fsys); err != nil {
 		t.Fatal(err)
 	}
-	if v := userVersion(t, s); v != 4 {
+	if v := userVersion(t, s); v != 5 {
 		t.Errorf("user_version = %d", v)
 	}
 }
@@ -138,11 +140,11 @@ func TestMigrateRefusals(t *testing.T) {
 	if err := migrate(ctx, s.db, fstest.MapFS{}); err == nil || !strings.Contains(err.Error(), "newer") {
 		t.Errorf("newer DB: %v", err)
 	}
-	gap := fstest.MapFS{"0001_a.sql": {Data: []byte(`;`)}, "0005_c.sql": {Data: []byte(`;`)}}
+	gap := fstest.MapFS{"0001_a.sql": {Data: []byte(`;`)}, "0006_c.sql": {Data: []byte(`;`)}}
 	if err := migrate(ctx, s.db, gap); err == nil || !strings.Contains(err.Error(), "numbering") {
 		t.Errorf("gap: %v", err)
 	}
-	ignored := fstest.MapFS{"0001_a.sql": {Data: []byte(`;`)}, "0002_b.sql": {Data: []byte(`;`)}, "0003_c.sql": {Data: []byte(`;`)}, "README.md": {Data: []byte(`x`)}}
+	ignored := fstest.MapFS{"0001_a.sql": {Data: []byte(`;`)}, "0002_b.sql": {Data: []byte(`;`)}, "0003_c.sql": {Data: []byte(`;`)}, "0004_d.sql": {Data: []byte(`;`)}, "README.md": {Data: []byte(`x`)}}
 	if err := migrate(ctx, s.db, ignored); err != nil {
 		t.Errorf("non-migration file should be ignored: %v", err)
 	}

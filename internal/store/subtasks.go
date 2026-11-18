@@ -9,15 +9,16 @@ import (
 	"workline/internal/domain"
 )
 
-const subtaskColumns = `id, activity_id, text, created_on, closed_on`
+const subtaskColumns = `id, activity_id, text, created_on, closed_on, closed_at`
 
 func scanSubtask(r scanner) (domain.Subtask, error) {
 	var s domain.Subtask
 	var created string
-	var closed sql.NullString
-	if err := r.Scan(&s.ID, &s.ActivityID, &s.Text, &created, &closed); err != nil {
+	var closed, closedAt sql.NullString
+	if err := r.Scan(&s.ID, &s.ActivityID, &s.Text, &created, &closed, &closedAt); err != nil {
 		return s, err
 	}
+	s.ClosedAt = closedAt.String
 	var err error
 	if s.CreatedOn, err = parseDate(created); err != nil {
 		return s, err
@@ -78,15 +79,18 @@ func (s *Store) ListAllSubtasks(ctx context.Context) ([]domain.Subtask, error) {
 	return querySubtasks(ctx, s.db, `SELECT `+subtaskColumns+` FROM subtasks ORDER BY activity_id, id`)
 }
 
-// ToggleSubtask closes an open subtask on today, or reopens a closed one, and
-// returns the result.
-func (s *Store) ToggleSubtask(ctx context.Context, id int64, today domain.Date) (domain.Subtask, error) {
+// ToggleSubtask closes an open subtask, recording the clock's date and time,
+// or reopens a closed one, clearing both, and returns the result.
+func (s *Store) ToggleSubtask(ctx context.Context, id int64, clock domain.Clock) (domain.Subtask, error) {
+	today := clock.Today()
 	if today.IsZero() {
 		return domain.Subtask{}, fmt.Errorf("%w: today is required", domain.ErrInvalid)
 	}
 	st, err := scanSubtask(s.db.QueryRowContext(ctx,
-		`UPDATE subtasks SET closed_on = CASE WHEN closed_on IS NULL THEN ? ELSE NULL END
-		 WHERE id = ? RETURNING `+subtaskColumns, today.String(), id))
+		`UPDATE subtasks SET
+		   closed_on = CASE WHEN closed_on IS NULL THEN ?1 ELSE NULL END,
+		   closed_at = CASE WHEN closed_on IS NULL THEN ?2 ELSE NULL END
+		 WHERE id = ?3 RETURNING `+subtaskColumns, today.String(), domain.Stamp(clock.Now()), id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return st, fmt.Errorf("subtask %d: %w", id, ErrNotFound)
 	}

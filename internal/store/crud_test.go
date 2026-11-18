@@ -298,26 +298,26 @@ func TestSubtasks(t *testing.T) {
 		t.Errorf("pre-start subtask: %v", err)
 	}
 
-	closed, err := s.ToggleSubtask(ctx, st.ID, d2)
-	if err != nil || closed.ClosedOn != d2 || closed.Text != "one" {
+	closed, err := s.ToggleSubtask(ctx, st.ID, fixed(d2))
+	if err != nil || closed.ClosedOn != d2 || closed.Text != "one" || closed.ClosedAt != "2026-02-10 09:30" {
 		t.Errorf("close: %+v %v", closed, err)
 	}
-	reopened, err := s.ToggleSubtask(ctx, st.ID, d2)
-	if err != nil || !reopened.ClosedOn.IsZero() {
+	reopened, err := s.ToggleSubtask(ctx, st.ID, fixed(d2))
+	if err != nil || !reopened.ClosedOn.IsZero() || reopened.ClosedAt != "" {
 		t.Errorf("reopen: %+v %v", reopened, err)
 	}
-	if _, err := s.ToggleSubtask(ctx, 999, d2); !errors.Is(err, ErrNotFound) {
+	if _, err := s.ToggleSubtask(ctx, 999, fixed(d2)); !errors.Is(err, ErrNotFound) {
 		t.Errorf("toggle missing: %v", err)
 	}
-	if _, err := s.ToggleSubtask(ctx, st.ID, 0); !errors.Is(err, domain.ErrInvalid) {
+	if _, err := s.ToggleSubtask(ctx, st.ID, fixed(0)); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("toggle zero today: %v", err)
 	}
 	// closing before creation violates closed_on >= created_on
-	if _, err := s.ToggleSubtask(ctx, st.ID, date(t, "2026-01-01")); !errors.Is(err, domain.ErrInvalid) {
+	if _, err := s.ToggleSubtask(ctx, st.ID, fixed(date(t, "2026-01-01"))); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("close before created: %v", err)
 	}
 
-	if _, err := s.ToggleSubtask(ctx, st.ID, d2); err != nil { // closed again
+	if _, err := s.ToggleSubtask(ctx, st.ID, fixed(d2)); err != nil { // closed again
 		t.Fatal(err)
 	}
 	if err := s.EditSubtask(ctx, st.ID, "one!", date(t, "2026-03-01")); !errors.Is(err, domain.ErrInvalid) {

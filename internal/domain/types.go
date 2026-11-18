@@ -98,6 +98,7 @@ type Subtask struct {
 	Text       string
 	CreatedOn  Date
 	ClosedOn   Date
+	ClosedAt   string // "YYYY-MM-DD HH:MM" local time it was closed; empty if open or unknown
 }
 
 // JournalEntry is a dated note on an activity.
@@ -186,6 +187,10 @@ func (s Subtask) Validate() error {
 		return invalid("subtask created date is required")
 	case !s.ClosedOn.IsZero() && s.ClosedOn.Before(s.CreatedOn):
 		return invalid("closed date %s is before created date %s", s.ClosedOn, s.CreatedOn)
+	case s.ClosedAt != "" && !validStamp(s.ClosedAt):
+		return invalid("closed time %q is not YYYY-MM-DD HH:MM", s.ClosedAt)
+	case s.ClosedAt != "" && (s.ClosedOn.IsZero() || s.ClosedAt[:10] != s.ClosedOn.String()):
+		return invalid("closed time %q does not match closed date %q", s.ClosedAt, s.ClosedOn)
 	}
 	return nil
 }

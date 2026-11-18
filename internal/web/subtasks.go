@@ -38,7 +38,7 @@ func (s *Server) addSubtask(w http.ResponseWriter, r *http.Request) {
 func (s *Server) toggleSubtask(w http.ResponseWriter, r *http.Request) {
 	id, err := pathID(r)
 	if err == nil {
-		_, err = s.store.ToggleSubtask(r.Context(), id, s.clock.Today())
+		_, err = s.store.ToggleSubtask(r.Context(), id, s.clock)
 	}
 	if err != nil {
 		s.fail(w, r, err)

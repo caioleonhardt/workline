@@ -261,7 +261,7 @@ func TestQuarterBinsNeverExceedFullHeight(t *testing.T) {
 		t.Fatal(err)
 	}
 	subs, _ := st.ListSubtasks(ctx, a.ID)
-	if _, err := st.ToggleSubtask(ctx, subs[0].ID, date(t, "2026-11-02")); err != nil {
+	if _, err := st.ToggleSubtask(ctx, subs[0].ID, domain.FixedClock{D: date(t, "2026-11-02")}); err != nil {
 		t.Fatal(err)
 	}
 	for i := 0; i < 6; i++ {
@@ -269,7 +269,7 @@ func TestQuarterBinsNeverExceedFullHeight(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := st.ToggleSubtask(ctx, s.ID, date(t, "2026-11-06")); err != nil { // Friday
+		if _, err := st.ToggleSubtask(ctx, s.ID, domain.FixedClock{D: date(t, "2026-11-06")}); err != nil { // Friday
 			t.Fatal(err)
 		}
 	}

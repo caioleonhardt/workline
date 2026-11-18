@@ -45,6 +45,10 @@ func TestValidate(t *testing.T) {
 		{"blank", func(s *Subtask) { s.Text = "" }, true},
 		{"no created", func(s *Subtask) { s.CreatedOn = 0 }, true},
 		{"closed before created", func(s *Subtask) { s.ClosedOn = d(t, "2026-01-01") }, true},
+		{"closed at", func(s *Subtask) { s.ClosedOn, s.ClosedAt = d(t, "2026-02-03"), "2026-02-03 17:40" }, false},
+		{"closed at on another day", func(s *Subtask) { s.ClosedOn, s.ClosedAt = d(t, "2026-02-03"), "2026-02-04 17:40" }, true},
+		{"closed at while open", func(s *Subtask) { s.ClosedAt = "2026-02-03 17:40" }, true},
+		{"closed at malformed", func(s *Subtask) { s.ClosedOn, s.ClosedAt = d(t, "2026-02-03"), "2026-02-03" }, true},
 	}
 	for _, c := range subs {
 		s := st
