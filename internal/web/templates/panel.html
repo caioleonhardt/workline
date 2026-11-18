@@ -1,0 +1,36 @@
+{{define "panel"}}
+<section class="card" id="panel">
+<p class="muted mono">{{.ProjectName}}</p>
+<h2>{{.Name}}</h2>
+<p class="muted">Requested by {{if .RequestedBy}}{{.RequestedBy}}{{else}}—{{end}} · <span class="mono">{{.Start}} → {{.Due}}</span></p>
+<form class="inline" method="post" action="/activities/{{.ID}}">
+<input type="hidden" name="next" value="{{.Next}}">
+<label>Status<select name="status">{{range .Statuses}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+<button>Save status</button>
+</form>
+<p><strong>{{.Progress}}%</strong> · {{.Closed}} of {{.Total}} subtasks done</p>
+
+<details>
+<summary>Edit activity</summary>
+<form method="post" action="/activities/{{.ID}}" class="stack">
+<input type="hidden" name="next" value="{{.Next}}">
+<label>Project<select name="project">{{range .ProjectChoices}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+<label>Name<input name="name" value="{{.Name}}" required></label>
+<label>Requested by<input name="requested_by" value="{{.RequestedBy}}"></label>
+<label>Priority<select name="priority">{{range .Priorities}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+<label>Start<input type="date" name="start" value="{{.Start}}" required></label>
+<label>Due<input type="date" name="due" value="{{.Due}}" required></label>
+<p><button>Save</button></p>
+</form>
+</details>
+
+<details>
+<summary>Delete…</summary>
+<form method="post" action="/activities/{{.ID}}/delete">
+<input type="hidden" name="next" value="{{.Next}}">
+<p class="muted">Deletes the activity with its subtasks and journal.</p>
+<button>Confirm delete</button>
+</form>
+</details>
+</section>
+{{end}}

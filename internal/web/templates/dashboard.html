@@ -28,7 +28,7 @@
 {{if .Activities}}
 <ul class="rows">
 {{range .Activities}}
-<li><a href="{{.Href}}">{{.Name}}</a>
+<li><a href="{{.Href}}"{{if .Selected}} aria-current="true"{{end}}>{{.Name}}</a>
 <span class="chip {{.Status}}">{{.Status}}</span>
 {{if .Priority}}<span class="muted">{{.Priority}}</span>{{end}}
 <span class="muted mono">{{.Open}} / {{.Total}} open · {{.Progress}}% · {{.Start}} → {{.Due}}</span></li>
@@ -39,4 +39,5 @@
 {{else}}
 <p>No activities match these filters.</p>
 {{end}}
+{{with .Panel}}{{template "panel" .}}{{end}}
 {{template "foot" .}}

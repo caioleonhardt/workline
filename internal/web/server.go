@@ -38,6 +38,8 @@ func New(st *store.Store, clock domain.Clock) (http.Handler, error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.dashboard)
 	mux.HandleFunc("POST /activities", s.createActivity)
+	mux.HandleFunc("POST /activities/{id}", s.updateActivity)
+	mux.HandleFunc("POST /activities/{id}/delete", s.deleteActivity)
 	mux.HandleFunc("GET /projects", s.projects)
 	mux.HandleFunc("POST /projects/{id}", s.updateProject)
 	mux.HandleFunc("POST /projects/{id}/delete", s.deleteProject)

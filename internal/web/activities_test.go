@@ -100,3 +100,74 @@ func TestCreateActivityRejections(t *testing.T) {
 		t.Errorf("rejected forms wrote projects: %+v", ps)
 	}
 }
+
+func TestPanelShownForSel(t *testing.T) {
+	h, _ := newApp(t)
+	rec := get(h, "/?sel=2")
+	wantStatus(t, rec, http.StatusOK)
+	wantBody(t, rec, `id="panel"`, "Kafka upgrade readiness", "2 of 6 subtasks done", "33%", `aria-current="true"`)
+	for _, target := range []string{"/?sel=999", "/?sel=abc", "/?sel="} {
+		if body := get(h, target).Body.String(); strings.Contains(body, `id="panel"`) {
+			t.Errorf("%s shows a panel", target)
+		}
+	}
+}
+
+func TestUpdateActivityFields(t *testing.T) {
+	h, st := newApp(t)
+	f := url.Values{
+		"next": {"/?sel=2&status=blocked&status=done"}, "project": {"3"}, "name": {"Kafka 4 readiness"},
+		"requested_by": {"CTO"}, "priority": {"low"}, "start": {"2026-09-01"}, "due": {"2026-12-15"},
+	}
+	rec := post(h, "/activities/2", f)
+	wantStatus(t, rec, http.StatusSeeOther)
+	if loc := rec.Header().Get("Location"); loc != "/?sel=2&status=blocked&status=done" {
+		t.Errorf("Location = %q", loc)
+	}
+	a, _ := st.GetActivity(ctx, 2)
+	if a.ProjectID != 3 || a.Name != "Kafka 4 readiness" || a.Priority != domain.PriorityLow || a.Status != domain.StatusBlocked || a.Due != date(t, "2026-12-15") {
+		t.Errorf("activity: %+v", a)
+	}
+	for name, over := range map[string]string{"due": "2026-08-01", "start": "x", "project": "999", "priority": "urgent"} {
+		bad := url.Values{}
+		for k, v := range f {
+			bad[k] = v
+		}
+		bad.Set(name, over)
+		if rec := post(h, "/activities/2", bad); rec.Code != http.StatusUnprocessableEntity {
+			t.Errorf("bad %s: status %d", name, rec.Code)
+		}
+	}
+	wantStatus(t, post(h, "/activities/999", f), http.StatusNotFound)
+}
+
+func TestUpdateActivityStatusSetsDoneDate(t *testing.T) {
+	h, st := newApp(t)
+	wantStatus(t, post(h, "/activities/2", url.Values{"status": {"done"}}), http.StatusSeeOther)
+	if a, _ := st.GetActivity(ctx, 2); a.Status != domain.StatusDone || a.DoneOn != date(t, testToday) {
+		t.Errorf("done: %+v", a)
+	}
+	// a done activity with open subtasks shows its subtask ratio
+	wantBody(t, get(h, "/?sel=2"), "33%", "2 of 6 subtasks done")
+	wantStatus(t, post(h, "/activities/2", url.Values{"status": {"active"}}), http.StatusSeeOther)
+	if a, _ := st.GetActivity(ctx, 2); !a.DoneOn.IsZero() {
+		t.Errorf("reopened: %+v", a)
+	}
+	wantStatus(t, post(h, "/activities/2", url.Values{"status": {"weird"}}), http.StatusUnprocessableEntity)
+}
+
+func TestDeleteActivity(t *testing.T) {
+	h, st := newApp(t)
+	rec := post(h, "/activities/2/delete", url.Values{"next": {"/?sel=2&new=1"}})
+	wantStatus(t, rec, http.StatusSeeOther)
+	if loc := rec.Header().Get("Location"); loc != "/?new=1" {
+		t.Errorf("Location = %q", loc)
+	}
+	if _, err := st.GetActivity(ctx, 2); err == nil {
+		t.Error("still there")
+	}
+	if subs, _ := st.ListSubtasks(ctx, 2); len(subs) != 0 {
+		t.Error("subtasks survived")
+	}
+	wantStatus(t, post(h, "/activities/2/delete", nil), http.StatusNotFound)
+}
