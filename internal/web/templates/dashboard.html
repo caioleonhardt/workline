@@ -33,5 +33,6 @@
 {{range .Tiles}}<div class="tile"><div class="tile-label"><span class="dot {{.Class}}" aria-hidden="true"></span>{{.Label}}</div><div class="tile-value mono">{{.Value}}</div></div>
 {{end}}</div>
 {{template "timeline" .Timeline}}
+<script src="/static/app.js"></script>
 {{with .Panel}}{{template "panel" .}}{{end}}
 {{template "foot" .}}

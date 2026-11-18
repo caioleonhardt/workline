@@ -17,8 +17,8 @@
 {{if .ShowToday}}<div class="today-line" style="left:{{.TodayLeft}}%"></div>{{end}}
 </div>
 {{range .Groups}}
-<div class="grp">
-<div class="proj-row"><span class="proj-name">{{.Name}}</span><span class="small">· {{.CountLabel}}</span><span class="mono small">· {{.PctLabel}}</span>{{if .FlagLabel}}<span class="creep-text small">· {{.FlagLabel}}</span>{{end}}</div>
+<div class="grp" data-project="{{.ID}}">
+<button type="button" class="proj-row proj-toggle" aria-expanded="true"><svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg><span class="proj-name">{{.Name}}</span><span class="small">· {{.CountLabel}}</span><span class="mono small">· {{.PctLabel}}</span>{{if .FlagLabel}}<span class="creep-text small">· {{.FlagLabel}}</span>{{end}}</button>
 {{range .Rows}}{{$st := .Status}}
 <div class="tl-row act-row{{if .Selected}} sel{{end}}">
 <a class="tl-label act-label" href="{{.Href}}"{{if .Selected}} aria-current="true"{{end}}>

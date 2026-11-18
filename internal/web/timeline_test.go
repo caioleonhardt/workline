@@ -1,6 +1,7 @@
 package web
 
 import (
+	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
@@ -215,4 +216,27 @@ func TestTimelineJournalDotsAndLegend(t *testing.T) {
 		t.Error("scope_ack dot missing")
 	}
 	wantBody(t, get(h, "/"), "Activity: open subtasks (taller = more open)", "Until due date", "Journal entry")
+}
+
+func TestProjectRowIsAnExpandedToggle(t *testing.T) {
+	h, _ := newApp(t)
+	body := get(h, "/").Body.String()
+	for _, want := range []string{
+		`<div class="grp" data-project="1">`,
+		`<button type="button" class="proj-row proj-toggle" aria-expanded="true">`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("missing %q", want)
+		}
+	}
+	// the script follows the timeline so the stored state applies before first paint
+	script := strings.Index(body, `<script src="/static/app.js"></script>`)
+	if script < strings.Index(body, `class="legend`) || strings.Count(body, "<script") != 1 {
+		t.Error("app.js must be the only script, loaded right after the timeline")
+	}
+	js := get(h, "/static/app.js")
+	wantStatus(t, js, http.StatusOK)
+	if got := strings.Count(js.Body.String(), "localStorage."); got != 2 {
+		t.Errorf("localStorage used %d times; each access must sit in a try block", got)
+	}
 }

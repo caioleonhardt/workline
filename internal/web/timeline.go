@@ -93,6 +93,7 @@ type layout struct {
 }
 
 type groupView struct {
+	ID                                    int64
 	Name, CountLabel, PctLabel, FlagLabel string
 	Rows                                  []rowView
 }
@@ -170,7 +171,7 @@ func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 	}
 
 	for _, g := range d.Groups {
-		gv := groupView{Name: g.Project.Name, CountLabel: plural(len(g.Activities), "activity", "activities")}
+		gv := groupView{ID: g.Project.ID, Name: g.Project.Name, CountLabel: plural(len(g.Activities), "activity", "activities")}
 		var subs []domain.Subtask
 		flags := 0
 		for _, a := range g.Activities {
