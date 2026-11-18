@@ -144,6 +144,8 @@ func (a Activity) Validate() error {
 		return invalid("start and due dates are required")
 	case a.Due.Before(a.Start):
 		return invalid("due date %s is before start date %s", a.Due, a.Start)
+	case a.Due.Sub(a.Start) > maxSpanDays:
+		return invalid("an activity can span at most %d days", maxSpanDays)
 	}
 	return nil
 }
