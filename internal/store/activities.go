@@ -10,7 +10,7 @@ import (
 )
 
 // NewActivity is the input of CreateActivity. Exactly one of ProjectID and
-// NewProjectName must be set.
+// NewProjectName must be set, and Subtasks needs at least one text.
 type NewActivity struct {
 	ProjectID      int64
 	NewProjectName string
@@ -18,6 +18,7 @@ type NewActivity struct {
 	RequestedBy    string
 	Priority       domain.Priority
 	Start, Due     domain.Date
+	Subtasks       []string
 }
 
 const activityColumns = `id, project_id, name, requested_by, status, priority, start_date, due_date, done_on`
@@ -47,10 +48,19 @@ func scanActivity(r scanner) (domain.Activity, error) {
 }
 
 // CreateActivity creates the activity (and the project, if NewProjectName is
-// set) plus the "Activity created" journal entry, in one transaction.
+// set), its first subtasks and the "Activity created" journal entry in one
+// transaction. The subtasks are dated min(today, start) so they count as
+// kickoff scope (SPEC §10 item 22).
 func (s *Store) CreateActivity(ctx context.Context, in NewActivity, today domain.Date) (domain.Activity, error) {
 	if (in.ProjectID == 0) == (in.NewProjectName == "") {
 		return domain.Activity{}, fmt.Errorf("%w: set exactly one of project id and new project name", domain.ErrInvalid)
+	}
+	if len(in.Subtasks) == 0 {
+		return domain.Activity{}, fmt.Errorf("%w: an activity needs at least one subtask", domain.ErrInvalid)
+	}
+	created := in.Start
+	if today.Before(created) {
+		created = today
 	}
 	a := domain.Activity{
 		ProjectID: in.ProjectID, Name: in.Name, RequestedBy: in.RequestedBy, Priority: in.Priority,
@@ -72,6 +82,11 @@ func (s *Store) CreateActivity(ctx context.Context, in NewActivity, today domain
 			return err
 		}
 		a.ID = id
+		for _, text := range in.Subtasks {
+			if _, err := insertSubtask(ctx, tx, domain.Subtask{ActivityID: id, Text: text, CreatedOn: created}); err != nil {
+				return err
+			}
+		}
 		_, err = insertJournal(ctx, tx, domain.JournalEntry{
 			ActivityID: id, Date: today, Kind: domain.KindUpdate, Text: "Activity created",
 		})

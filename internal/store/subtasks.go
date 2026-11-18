@@ -43,21 +43,27 @@ func querySubtasks(ctx context.Context, q queryer, query string, args ...any) ([
 	return out, rows.Err()
 }
 
+func insertSubtask(ctx context.Context, q queryer, st domain.Subtask) (int64, error) {
+	if err := st.Validate(); err != nil {
+		return 0, err
+	}
+	res, err := q.ExecContext(ctx,
+		`INSERT INTO subtasks (activity_id, text, created_on) VALUES (?, ?, ?)`,
+		st.ActivityID, st.Text, st.CreatedOn.String())
+	if err != nil {
+		return 0, mapErr(err)
+	}
+	return res.LastInsertId()
+}
+
 // AddSubtask adds an open subtask created on createdOn.
 func (s *Store) AddSubtask(ctx context.Context, activityID int64, text string, createdOn domain.Date) (domain.Subtask, error) {
 	st := domain.Subtask{ActivityID: activityID, Text: text, CreatedOn: createdOn}
-	if err := st.Validate(); err != nil {
-		return st, err
-	}
-	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO subtasks (activity_id, text, created_on) VALUES (?, ?, ?)`,
-		activityID, text, createdOn.String())
+	id, err := insertSubtask(ctx, s.db, st)
 	if err != nil {
-		return st, fmt.Errorf("add subtask to activity %d: %w", activityID, mapErr(err))
+		return st, fmt.Errorf("add subtask to activity %d: %w", activityID, err)
 	}
-	if st.ID, err = res.LastInsertId(); err != nil {
-		return st, err
-	}
+	st.ID = id
 	return st, nil
 }
 

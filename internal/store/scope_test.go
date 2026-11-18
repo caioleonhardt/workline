@@ -20,7 +20,7 @@ func TestAckScope(t *testing.T) {
 	s := newTestStore(t)
 	today := date(t, "2026-11-18")
 	a := mustActivity(t, s, "P", "2026-06-01", "2026-12-31") // kickoff cutoff 2026-06-08
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 1; i++ {                                 // plus the subtask made with the activity: baseline 2
 		s.AddSubtask(ctx, a.ID, "base", date(t, "2026-06-01"))
 	}
 
