@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"workline/internal/domain"
+	"workline/internal/store"
 )
 
 // pct is a percentage of the track width; it prints as "12.34" so templates
@@ -64,6 +65,31 @@ type rowView struct {
 	PctLeft             pct
 	HasPlan             bool
 	PlanLeft, PlanWidth pct
+	Bins                []binView
+	Dots                []dotView
+}
+
+type binView struct{ Left, Width, Height pct }
+
+type dotView struct {
+	Left pct
+	Kind string
+}
+
+// timelineData is what the dashboard hands to buildTimeline.
+type timelineData struct {
+	Groups []domain.Group
+	ItemOf map[int64]domain.ActivityWithSubtasks
+	Creeps map[int64]domain.Creep
+	Marks  map[int64][]store.JournalMark
+}
+
+// layout is the geometry shared by all rows of one timeline.
+type layout struct {
+	ax            axis
+	from, to      domain.Date
+	today         domain.Date
+	step, maxOpen int // bin size in days; the tallest weekly open count of any visible activity
 }
 
 type groupView struct {
@@ -93,15 +119,23 @@ func plural(n int, one, many string) string {
 func capitalize(s string) string { return strings.ToUpper(s[:1]) + s[1:] }
 
 // buildTimeline lays out the visible groups on the period's track.
-func buildTimeline(f Filter, today domain.Date, groups []domain.Group, itemOf map[int64]domain.ActivityWithSubtasks, creeps map[int64]domain.Creep) timelineView {
+func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 	from, to := domain.PeriodRange(f.Year, f.Period)
 	ax := newAxis(from, to)
+	l := layout{ax: ax, from: from, to: to, today: today, step: domain.WeekStep}
+	if f.Period != domain.PeriodYear {
+		l.step = 2
+	}
 	var visible []domain.ActivityWithSubtasks
-	for _, g := range groups {
+	var weekly [][]domain.Bin
+	for _, g := range d.Groups {
 		for _, a := range g.Activities {
-			visible = append(visible, itemOf[a.ID])
+			it := d.ItemOf[a.ID]
+			visible = append(visible, it)
+			weekly = append(weekly, domain.Burndown(it.Activity, it.Subtasks, domain.WeekStep, today))
 		}
 	}
+	l.maxOpen = domain.GlobalMax(weekly)
 	v := timelineView{ShownLabel: plural(len(visible), "activity", "activities") + " shown"}
 
 	for _, c := range domain.Columns(f.Year, f.Period, f.Scale) {
@@ -135,18 +169,18 @@ func buildTimeline(f Filter, today domain.Date, groups []domain.Group, itemOf ma
 		v.BandLeft, v.BandWidth = ax.span(ms, me)
 	}
 
-	for _, g := range groups {
+	for _, g := range d.Groups {
 		gv := groupView{Name: g.Project.Name, CountLabel: plural(len(g.Activities), "activity", "activities")}
 		var subs []domain.Subtask
 		flags := 0
 		for _, a := range g.Activities {
-			it := itemOf[a.ID]
+			it := d.ItemOf[a.ID]
 			subs = append(subs, it.Subtasks...)
-			c := creeps[a.ID]
+			c := d.Creeps[a.ID]
 			if c.Flagged {
 				flags++
 			}
-			gv.Rows = append(gv.Rows, buildRow(f, ax, today, it, c))
+			gv.Rows = append(gv.Rows, buildRow(f, l, it, c, d.Marks[a.ID]))
 		}
 		gv.PctLabel = strconv.Itoa(domain.ProjectProgress(subs)) + "% done"
 		if flags > 0 {
@@ -157,7 +191,8 @@ func buildTimeline(f Filter, today domain.Date, groups []domain.Group, itemOf ma
 	return v
 }
 
-func buildRow(f Filter, ax axis, today domain.Date, it domain.ActivityWithSubtasks, c domain.Creep) rowView {
+func buildRow(f Filter, l layout, it domain.ActivityWithSubtasks, c domain.Creep, marks []store.JournalMark) rowView {
+	ax, today := l.ax, l.today
 	r := rowView{
 		ID: it.ID, Name: it.Name, Href: f.WithSel(it.ID).URL(), Selected: it.ID == f.Sel,
 		Status: string(it.Status), StatusLabel: capitalize(string(it.Status)),
@@ -173,6 +208,19 @@ func buildRow(f Filter, ax axis, today domain.Date, it domain.ActivityWithSubtas
 	if planFrom := max(it.Start, today); it.Status != domain.StatusDone && !planFrom.After(it.Due) {
 		r.PlanLeft, r.PlanWidth = ax.span(planFrom, it.Due)
 		r.HasPlan = r.PlanWidth > 0
+	}
+	for _, b := range domain.ClipBins(domain.Burndown(it.Activity, it.Subtasks, l.step, today), l.from, l.to) {
+		left, width := ax.span(b.Start, b.End)
+		bv := binView{Left: left, Width: max(width, 0.15)}
+		if l.maxOpen > 0 {
+			bv.Height = pct(float64(b.Open) / float64(l.maxOpen) * 100)
+		}
+		r.Bins = append(r.Bins, bv)
+	}
+	for _, m := range marks {
+		if !m.Date.Before(l.from) && !m.Date.After(l.to) {
+			r.Dots = append(r.Dots, dotView{Left: ax.pos(m.Date), Kind: string(m.Kind)})
+		}
 	}
 	if c.Flagged {
 		r.ScopeChip = "Scope"

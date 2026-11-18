@@ -19,7 +19,7 @@
 {{range .Groups}}
 <div class="grp">
 <div class="proj-row"><span class="proj-name">{{.Name}}</span><span class="small">· {{.CountLabel}}</span><span class="mono small">· {{.PctLabel}}</span>{{if .FlagLabel}}<span class="creep-text small">· {{.FlagLabel}}</span>{{end}}</div>
-{{range .Rows}}
+{{range .Rows}}{{$st := .Status}}
 <div class="tl-row act-row{{if .Selected}} sel{{end}}">
 <a class="tl-label act-label" href="{{.Href}}"{{if .Selected}} aria-current="true"{{end}}>
 <span class="act-name">{{.Name}}</span>
@@ -29,6 +29,8 @@
 <div class="tl-track">
 <span class="span-line {{.Status}}" aria-hidden="true" style="left:{{.SpanLeft}}%;width:{{.SpanWidth}}%"></span>
 {{if .HasPlan}}<span class="plan {{.Status}}" aria-hidden="true" style="left:{{.PlanLeft}}%;width:{{.PlanWidth}}%"></span>{{end}}
+<span class="bins" aria-hidden="true">{{range .Bins}}<span class="bin {{$st}}" style="left:{{.Left}}%;width:{{.Width}}%;height:{{.Height}}%"></span>{{end}}</span>
+{{range .Dots}}<span class="dot-mark kind-{{.Kind}}" aria-hidden="true" style="left:{{.Left}}%"></span>{{end}}
 <span class="pct mono small" aria-hidden="true" style="left:{{.PctLeft}}%">{{.PctLabel}}</span>
 <a class="bar-link" href="{{.Href}}" aria-label="{{.Tip}}" style="left:{{.SpanLeft}}%;width:{{.SpanWidth}}%"></a>
 </div>
@@ -40,5 +42,11 @@
 {{end}}
 </div>
 </div></div>
+<div class="legend small">
+<span><i class="swatch bin-sample"></i>Activity: open subtasks (taller = more open)</span>
+<span><i class="swatch plan-sample"></i>Until due date</span>
+<span><i class="swatch dot-sample"></i>Journal entry</span>
+<span><i class="swatch today-sample"></i>Today</span>
+</div>
 </section>
 {{end}}

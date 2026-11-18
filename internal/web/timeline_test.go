@@ -2,6 +2,7 @@ package web
 
 import (
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -152,4 +153,66 @@ func TestTimelineRowSpanPlanAndLabel(t *testing.T) {
 	if body := get(h, "/?period=q1&status=active&status=done").Body.String(); strings.Contains(body, "Hire senior ML") {
 		t.Error("activity outside the period listed")
 	}
+}
+
+func TestTimelineBinsUseGlobalMax(t *testing.T) {
+	h, _ := newApp(t)
+	body := get(h, "/").Body.String()
+	// the tallest weekly open count among visible activities is 5 (activity 1)
+	if !strings.Contains(body, "height:100.00%") {
+		t.Error("no bin reaches the global maximum")
+	}
+	for _, m := range regexp.MustCompile(`height:(\d+\.\d+)%`).FindAllStringSubmatch(body, -1) {
+		if h, _ := strconv.ParseFloat(m[1], 64); h > 100 {
+			t.Errorf("bin taller than the maximum: %s", m[1])
+		}
+	}
+	kafka := rowTrack(t, body, "Kafka upgrade readiness")
+	if n := strings.Count(kafka, `class="bin blocked"`); n != 11 {
+		t.Errorf("year view: %d weekly bins, want 11", n)
+	}
+	// the last, partial week (Nov 16-18) has 4 open of 5
+	if !strings.Contains(kafka, `style="left:87.40%;width:0.82%;height:80.00%"`) {
+		t.Errorf("last bin: %s", kafka)
+	}
+
+	// quarter view: 2-day bins clipped to the quarter, same global maximum
+	q4 := rowTrack(t, get(h, "/?period=q4").Body.String(), "Kafka upgrade readiness")
+	if n := strings.Count(q4, `class="bin blocked"`); n != 25 {
+		t.Errorf("quarter view: %d bins, want 25", n)
+	}
+	if !strings.Contains(q4, `height:80.00%"`) {
+		t.Error("quarter bins use another maximum")
+	}
+	// done activities stop at their done date: seeded done_on is the due date, so
+	// Postmortem (Jun 8 - Jun 26) has 3 weekly bins
+	post := rowTrack(t, get(h, "/?status=done").Body.String(), "Postmortem: inference latency incident")
+	if n := strings.Count(post, `class="bin done"`); n != 3 {
+		t.Errorf("done activity bins = %d, want 3", n)
+	}
+}
+
+func TestTimelineJournalDotsAndLegend(t *testing.T) {
+	h, st := newApp(t)
+	body := get(h, "/").Body.String()
+	kafka := rowTrack(t, body, "Kafka upgrade readiness")
+	if n := strings.Count(kafka, `class="dot-mark`); n != 4 {
+		t.Errorf("dots = %d, want 4", n)
+	}
+	if !strings.Contains(kafka, `class="dot-mark kind-blocker" aria-hidden="true" style="left:83.84%"`) { // Nov 3
+		t.Errorf("blocker dot missing: %s", kafka)
+	}
+	// dots outside the period are dropped
+	q4 := rowTrack(t, get(h, "/?period=q4").Body.String(), "Kafka upgrade readiness")
+	if n := strings.Count(q4, `class="dot-mark`); n != 3 {
+		t.Errorf("q4 dots = %d, want 3 (Sep 7 is before the quarter)", n)
+	}
+	// an acknowledgement adds a scope_ack dot
+	if _, err := st.AckScope(ctx, 2, date(t, testToday)); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(get(h, "/").Body.String(), "kind-scope_ack") {
+		t.Error("scope_ack dot missing")
+	}
+	wantBody(t, get(h, "/"), "Activity: open subtasks (taller = more open)", "Until due date", "Journal entry")
 }
