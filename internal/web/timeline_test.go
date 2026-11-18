@@ -177,13 +177,10 @@ func TestTimelineBinsUseGlobalMax(t *testing.T) {
 		t.Errorf("last bin: %s", kafka)
 	}
 
-	// quarter view: 2-day bins clipped to the quarter, same global maximum
+	// quarter view: 2-day bins clipped to the quarter
 	q4 := rowTrack(t, get(h, "/?period=q4").Body.String(), "Kafka upgrade readiness")
 	if n := strings.Count(q4, `class="bin blocked"`); n != 25 {
 		t.Errorf("quarter view: %d bins, want 25", n)
-	}
-	if !strings.Contains(q4, `height:80.00%"`) {
-		t.Error("quarter bins use another maximum")
 	}
 	// done activities stop at their done date: seeded done_on is the due date, so
 	// Postmortem (Jun 8 - Jun 26) has 3 weekly bins
@@ -238,5 +235,54 @@ func TestProjectRowIsAnExpandedToggle(t *testing.T) {
 	wantStatus(t, js, http.StatusOK)
 	if got := strings.Count(js.Body.String(), "localStorage."); got != 2 {
 		t.Errorf("localStorage used %d times; each access must sit in a try block", got)
+	}
+}
+
+func maxBinHeight(t *testing.T, body string) float64 {
+	t.Helper()
+	top := 0.0
+	for _, m := range regexp.MustCompile(`height:(\d+\.\d+)%`).FindAllStringSubmatch(body, -1) {
+		h, _ := strconv.ParseFloat(m[1], 64)
+		top = max(top, h)
+	}
+	return top
+}
+
+// A subtask open from Tuesday to Friday is invisible in weekly samples but
+// shows in 2-day bins; heights must be scaled to the bins drawn (SPEC §10 item 48).
+func TestQuarterBinsNeverExceedFullHeight(t *testing.T) {
+	h, st := newApp(t)
+	a, err := st.CreateActivity(ctx, store.NewActivity{
+		NewProjectName: "Short work", Name: "Tue to Fri", Start: date(t, "2026-11-02"), Due: date(t, "2026-12-31"),
+		Subtasks: []string{"closed at once"}, // created Mon Nov 2
+	}, date(t, testToday))
+	if err != nil {
+		t.Fatal(err)
+	}
+	subs, _ := st.ListSubtasks(ctx, a.ID)
+	if _, err := st.ToggleSubtask(ctx, subs[0].ID, date(t, "2026-11-02")); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 6; i++ {
+		s, err := st.AddSubtask(ctx, a.ID, "tue-fri", date(t, "2026-11-03")) // Tuesday
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := st.ToggleSubtask(ctx, s.ID, date(t, "2026-11-06")); err != nil { // Friday
+			t.Fatal(err)
+		}
+	}
+	// alone in its project, the 2-day bins reach 6 open while every weekly sample is 0
+	solo := get(h, "/?period=q4&project=5").Body.String()
+	if got := maxBinHeight(t, solo); got != 100 {
+		t.Errorf("tallest quarter bin = %.2f%%, want 100", got)
+	}
+	// next to the seeded activities the bins still never exceed the maximum
+	if got := maxBinHeight(t, get(h, "/?period=q4").Body.String()); got != 100 {
+		t.Errorf("tallest bin with all activities = %.2f%%, want 100", got)
+	}
+	// the year view samples weekly: nothing is open at any week end, so its bars stay flat
+	if got := maxBinHeight(t, get(h, "/?project=5").Body.String()); got != 0 {
+		t.Errorf("year view bar = %.2f%%, want 0", got)
 	}
 }

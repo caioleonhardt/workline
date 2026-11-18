@@ -89,7 +89,8 @@ type layout struct {
 	ax            axis
 	from, to      domain.Date
 	today         domain.Date
-	step, maxOpen int // bin size in days; the tallest weekly open count of any visible activity
+	step, maxOpen int                    // bin size in days; the tallest drawn bin of any visible activity
+	bins          map[int64][]domain.Bin // the bins drawn per activity: clipped to the period
 }
 
 type groupView struct {
@@ -123,20 +124,21 @@ func capitalize(s string) string { return strings.ToUpper(s[:1]) + s[1:] }
 func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 	from, to := domain.PeriodRange(f.Year, f.Period)
 	ax := newAxis(from, to)
-	l := layout{ax: ax, from: from, to: to, today: today, step: domain.WeekStep}
+	l := layout{ax: ax, from: from, to: to, today: today, step: domain.WeekStep, bins: map[int64][]domain.Bin{}}
 	if f.Period != domain.PeriodYear {
 		l.step = 2
 	}
 	var visible []domain.ActivityWithSubtasks
-	var weekly [][]domain.Bin
+	var drawn [][]domain.Bin
 	for _, g := range d.Groups {
 		for _, a := range g.Activities {
 			it := d.ItemOf[a.ID]
 			visible = append(visible, it)
-			weekly = append(weekly, domain.Burndown(it.Activity, it.Subtasks, domain.WeekStep, today))
+			l.bins[it.ID] = domain.ClipBins(domain.Burndown(it.Activity, it.Subtasks, l.step, today), from, to)
+			drawn = append(drawn, l.bins[it.ID])
 		}
 	}
-	l.maxOpen = domain.GlobalMax(weekly)
+	l.maxOpen = domain.GlobalMax(drawn)
 	v := timelineView{ShownLabel: plural(len(visible), "activity", "activities") + " shown"}
 
 	for _, c := range domain.Columns(f.Year, f.Period, f.Scale) {
@@ -210,7 +212,7 @@ func buildRow(f Filter, l layout, it domain.ActivityWithSubtasks, c domain.Creep
 		r.PlanLeft, r.PlanWidth = ax.span(planFrom, it.Due)
 		r.HasPlan = r.PlanWidth > 0
 	}
-	for _, b := range domain.ClipBins(domain.Burndown(it.Activity, it.Subtasks, l.step, today), l.from, l.to) {
+	for _, b := range l.bins[it.ID] {
 		left, width := ax.span(b.Start, b.End)
 		bv := binView{Left: left, Width: max(width, 0.15)}
 		if l.maxOpen > 0 {
