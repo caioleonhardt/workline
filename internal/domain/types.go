@@ -117,10 +117,12 @@ type ScopeAck struct {
 	LastSubtaskID int64
 }
 
-// ActivityWithSubtasks pairs an activity with its subtasks.
+// ActivityWithSubtasks pairs an activity with its subtasks and its latest
+// scope acknowledgement, if any.
 type ActivityWithSubtasks struct {
 	Activity
 	Subtasks []Subtask
+	Ack      *ScopeAck
 }
 
 func invalid(format string, args ...any) error {
