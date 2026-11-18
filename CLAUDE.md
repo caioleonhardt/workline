@@ -3,7 +3,7 @@
 Read `SPEC.md` before any change. It is the source of truth; `docs/mockup.html` is the visual reference.
 
 ## Principles
-- **Standard library first.** Allowed dependencies: `modernc.org/sqlite` and htmx (vendored at `web/static/htmx.min.js`, never loaded from a CDN). Ask before adding anything else, including test helpers.
+- **Standard library first.** Allowed dependencies: `modernc.org/sqlite` and htmx 2.0.11 (vendored at `internal/web/static/htmx.min.js`, never loaded from a CDN). Ask before adding anything else, including test helpers.
 - **Local-first.** Bind to `127.0.0.1` only. No telemetry, no outbound network calls, no web fonts.
 - **Small, boring code.** No frameworks, no ORM, no code generation, no global state.
 
