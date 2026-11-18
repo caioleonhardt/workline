@@ -14,8 +14,8 @@ func insertJournal(ctx context.Context, q queryer, j domain.JournalEntry) (int64
 		return 0, err
 	}
 	res, err := q.ExecContext(ctx,
-		`INSERT INTO journal_entries (activity_id, date, kind, text) VALUES (?, ?, ?, ?)`,
-		j.ActivityID, j.Date.String(), string(j.Kind), j.Text)
+		`INSERT INTO journal_entries (activity_id, date, kind, text, logged_at) VALUES (?, ?, ?, ?, ?)`,
+		j.ActivityID, j.Date.String(), string(j.Kind), j.Text, sql.NullString{String: j.LoggedAt, Valid: j.LoggedAt != ""})
 	if err != nil {
 		return 0, mapErr(err)
 	}
@@ -29,7 +29,7 @@ func userKind(k domain.Kind) error {
 	return nil
 }
 
-// AddJournal adds a user-written entry. Kind scope_ack is refused.
+// AddJournal adds a user-written entry; the caller stamps LoggedAt. Kind scope_ack is refused.
 func (s *Store) AddJournal(ctx context.Context, j domain.JournalEntry) (domain.JournalEntry, error) {
 	if err := userKind(j.Kind); err != nil {
 		return j, err
@@ -45,8 +45,8 @@ func (s *Store) AddJournal(ctx context.Context, j domain.JournalEntry) (domain.J
 // ListJournal returns an activity's entries, newest first.
 func (s *Store) ListJournal(ctx context.Context, activityID int64) ([]domain.JournalEntry, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, activity_id, date, kind, text FROM journal_entries
-		 WHERE activity_id = ? ORDER BY date DESC, id DESC`, activityID)
+		`SELECT id, activity_id, date, kind, text, logged_at FROM journal_entries
+		 WHERE activity_id = ? ORDER BY date DESC, logged_at IS NULL, logged_at DESC, id DESC`, activityID)
 	if err != nil {
 		return nil, fmt.Errorf("list journal: %w", err)
 	}
@@ -55,10 +55,11 @@ func (s *Store) ListJournal(ctx context.Context, activityID int64) ([]domain.Jou
 	for rows.Next() {
 		var j domain.JournalEntry
 		var date, kind string
-		if err := rows.Scan(&j.ID, &j.ActivityID, &date, &kind, &j.Text); err != nil {
+		var loggedAt sql.NullString
+		if err := rows.Scan(&j.ID, &j.ActivityID, &date, &kind, &j.Text, &loggedAt); err != nil {
 			return nil, fmt.Errorf("scan journal: %w", err)
 		}
-		j.Kind = domain.Kind(kind)
+		j.Kind, j.LoggedAt = domain.Kind(kind), loggedAt.String
 		if j.Date, err = parseDate(date); err != nil {
 			return nil, err
 		}

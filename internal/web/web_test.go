@@ -38,7 +38,7 @@ func newApp(t *testing.T) (http.Handler, *store.Store) {
 	if err := st.Seed(ctx); err != nil {
 		t.Fatal(err)
 	}
-	h, err := New(st, domain.FixedClock{D: date(t, testToday)})
+	h, err := New(st, domain.FixedClock{D: date(t, testToday), Hour: 14, Minute: 5})
 	if err != nil {
 		t.Fatal(err)
 	}

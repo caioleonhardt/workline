@@ -186,6 +186,9 @@ func TestSeedPreservesBaselineRows(t *testing.T) {
 			t.Errorf("%s: %d rows, want %d", table, n, want)
 		}
 	}
+	if j, _ := s.ListJournal(ctx, 1); len(j) == 0 || j[0].LoggedAt != "" {
+		t.Errorf("seeded entries must have no logged time: %+v", j)
+	}
 	for _, id := range []int64{3, 4, 8} {
 		if a, _ := s.GetActivity(ctx, id); a.DoneOn.IsZero() || a.DoneOn.String() != a.Due.String() {
 			t.Errorf("activity %d: done_on = %v, want its due date", id, a.DoneOn)

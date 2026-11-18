@@ -51,7 +51,8 @@ func scanActivity(r scanner) (domain.Activity, error) {
 // set), its first subtasks and the "Activity created" journal entry in one
 // transaction. The subtasks are dated min(today, start) so they count as
 // kickoff scope (SPEC §10 item 22).
-func (s *Store) CreateActivity(ctx context.Context, in NewActivity, today domain.Date) (domain.Activity, error) {
+func (s *Store) CreateActivity(ctx context.Context, in NewActivity, clock domain.Clock) (domain.Activity, error) {
+	today := clock.Today()
 	if (in.ProjectID == 0) == (in.NewProjectName == "") {
 		return domain.Activity{}, fmt.Errorf("%w: set exactly one of project id and new project name", domain.ErrInvalid)
 	}
@@ -88,7 +89,7 @@ func (s *Store) CreateActivity(ctx context.Context, in NewActivity, today domain
 			}
 		}
 		_, err = insertJournal(ctx, tx, domain.JournalEntry{
-			ActivityID: id, Date: today, Kind: domain.KindUpdate, Text: "Activity created",
+			ActivityID: id, Date: today, Kind: domain.KindUpdate, Text: "Activity created", LoggedAt: domain.Stamp(clock.Now()),
 		})
 		return err
 	})

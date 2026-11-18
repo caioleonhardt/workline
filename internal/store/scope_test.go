@@ -26,7 +26,7 @@ func TestAckScope(t *testing.T) {
 
 	// not flagged yet: refused, nothing written
 	before := journalCount(t, s, a.ID)
-	if _, err := s.AckScope(ctx, a.ID, today); !errors.Is(err, ErrNotFlagged) {
+	if _, err := s.AckScope(ctx, a.ID, fixed(today)); !errors.Is(err, ErrNotFlagged) {
 		t.Fatalf("unflagged: %v", err)
 	}
 	if journalCount(t, s, a.ID) != before {
@@ -41,7 +41,7 @@ func TestAckScope(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		last, _ = s.AddSubtask(ctx, a.ID, "new", date(t, "2026-11-10"))
 	}
-	ack, err := s.AckScope(ctx, a.ID, today)
+	ack, err := s.AckScope(ctx, a.ID, fixed(today))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func TestAckScope(t *testing.T) {
 	if c := domain.ScopeCreep(act, subs, got, today); c.Flagged {
 		t.Errorf("still flagged after ack: %+v", c)
 	}
-	if _, err := s.AckScope(ctx, a.ID, today); !errors.Is(err, ErrNotFlagged) {
+	if _, err := s.AckScope(ctx, a.ID, fixed(today)); !errors.Is(err, ErrNotFlagged) {
 		t.Errorf("second ack on cleared activity: %v", err)
 	}
 
@@ -72,7 +72,7 @@ func TestAckScope(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		last, _ = s.AddSubtask(ctx, a.ID, "more", date(t, "2026-11-12"))
 	}
-	ack2, err := s.AckScope(ctx, a.ID, today)
+	ack2, err := s.AckScope(ctx, a.ID, fixed(today))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestAckScope(t *testing.T) {
 
 func TestAckScopeMissingActivityWritesNothing(t *testing.T) {
 	s := newTestStore(t)
-	if _, err := s.AckScope(ctx, 999, date(t, "2026-11-18")); !errors.Is(err, ErrNotFound) {
+	if _, err := s.AckScope(ctx, 999, fixed(date(t, "2026-11-18"))); !errors.Is(err, ErrNotFound) {
 		t.Errorf("got %v", err)
 	}
 	var n int
@@ -106,7 +106,7 @@ func TestAckScopeRollsBackWhenJournalFails(t *testing.T) {
 		WHEN NEW.kind = 'scope_ack' BEGIN SELECT RAISE(ABORT, 'boom'); END`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.AckScope(ctx, a.ID, date(t, "2026-11-18")); err == nil {
+	if _, err := s.AckScope(ctx, a.ID, fixed(date(t, "2026-11-18"))); err == nil {
 		t.Fatal("expected failure")
 	}
 	if ack, _ := s.LatestScopeAck(ctx, a.ID); ack != nil {
@@ -126,14 +126,14 @@ func TestListLatestScopeAcks(t *testing.T) {
 		s.AddSubtask(ctx, id, "new", date(t, "2026-11-10"))
 		s.AddSubtask(ctx, id, "new", date(t, "2026-11-10"))
 	}
-	first, err := s.AckScope(ctx, a.ID, today)
+	first, err := s.AckScope(ctx, a.ID, fixed(today))
 	if err != nil {
 		t.Fatal(err)
 	}
 	for i := 0; i < 4; i++ {
 		s.AddSubtask(ctx, a.ID, "more", date(t, "2026-11-12"))
 	}
-	second, err := s.AckScope(ctx, a.ID, today)
+	second, err := s.AckScope(ctx, a.ID, fixed(today))
 	if err != nil {
 		t.Fatal(err)
 	}

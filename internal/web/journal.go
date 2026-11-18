@@ -42,6 +42,7 @@ func (s *Server) addJournal(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		_, err = s.store.AddJournal(r.Context(), domain.JournalEntry{
 			ActivityID: id, Date: day, Kind: domain.Kind(r.PostFormValue("kind")), Text: r.PostFormValue("text"),
+			LoggedAt: domain.Stamp(s.clock.Now()),
 		})
 	}
 	if err != nil {

@@ -51,7 +51,7 @@ func (s *Server) createActivity(w http.ResponseWriter, r *http.Request) {
 	}
 	var a domain.Activity
 	if err == nil {
-		a, err = s.store.CreateActivity(r.Context(), in, s.clock.Today())
+		a, err = s.store.CreateActivity(r.Context(), in, s.clock)
 	}
 	if err != nil {
 		s.fail(w, r, err)

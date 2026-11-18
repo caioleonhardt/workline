@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"workline/internal/domain"
 
 	"workline/internal/store"
 )
@@ -102,7 +103,7 @@ func TestTimelineGroupsAndRows(t *testing.T) {
 
 func TestTimelineColumnLoadFuture(t *testing.T) {
 	h, st := newApp(t)
-	if _, err := st.CreateActivity(ctx, store.NewActivity{ProjectID: 1, Name: "Next year", Start: date(t, "2027-02-01"), Due: date(t, "2027-03-01"), Subtasks: []string{"x"}}, date(t, testToday)); err != nil {
+	if _, err := st.CreateActivity(ctx, store.NewActivity{ProjectID: 1, Name: "Next year", Start: date(t, "2027-02-01"), Due: date(t, "2027-03-01"), Subtasks: []string{"x"}}, domain.FixedClock{D: date(t, testToday)}); err != nil {
 		t.Fatal(err)
 	}
 	wantBody(t, get(h, "/?year=2027"), "1 planned")
@@ -206,7 +207,7 @@ func TestTimelineJournalDotsAndLegend(t *testing.T) {
 		t.Errorf("q4 dots = %d, want 3 (Sep 7 is before the quarter)", n)
 	}
 	// an acknowledgement adds a scope_ack dot
-	if _, err := st.AckScope(ctx, 2, date(t, testToday)); err != nil {
+	if _, err := st.AckScope(ctx, 2, domain.FixedClock{D: date(t, testToday)}); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(get(h, "/").Body.String(), "kind-scope_ack") {
@@ -255,7 +256,7 @@ func TestQuarterBinsNeverExceedFullHeight(t *testing.T) {
 	a, err := st.CreateActivity(ctx, store.NewActivity{
 		NewProjectName: "Short work", Name: "Tue to Fri", Start: date(t, "2026-11-02"), Due: date(t, "2026-12-31"),
 		Subtasks: []string{"closed at once"}, // created Mon Nov 2
-	}, date(t, testToday))
+	}, domain.FixedClock{D: date(t, testToday)})
 	if err != nil {
 		t.Fatal(err)
 	}

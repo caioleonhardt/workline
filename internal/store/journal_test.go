@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"workline/internal/domain"
@@ -89,5 +90,72 @@ func TestListJournalMarks(t *testing.T) {
 	want := JournalMark{ActivityID: a.ID, Date: date(t, "2026-03-01"), Kind: domain.KindBlocker}
 	if marks[2] != want || marks[0].ActivityID != a.ID || marks[1].ActivityID != b.ID {
 		t.Errorf("marks: %+v", marks)
+	}
+}
+
+func TestJournalLoggedAt(t *testing.T) {
+	s := newTestStore(t)
+	a := mustActivity(t, s, "P", "2026-01-01", "2026-12-31")
+	list, _ := s.ListJournal(ctx, a.ID)
+	if list[0].LoggedAt != "2026-01-01 09:30" {
+		t.Errorf("Activity created entry: %q", list[0].LoggedAt)
+	}
+
+	add := func(day, at, text string) int64 {
+		t.Helper()
+		j, err := s.AddJournal(ctx, domain.JournalEntry{ActivityID: a.ID, Date: date(t, day), Kind: domain.KindUpdate, Text: text, LoggedAt: at})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return j.ID
+	}
+	add("2026-03-01", "2026-03-01 09:00", "early")
+	add("2026-03-01", "2026-03-01 17:45", "late")
+	add("2026-03-01", "2026-03-01 17:45", "same time, later id")
+	add("2026-03-01", "", "no time")
+	backfilled := add("2026-02-01", "2026-03-05 08:00", "backfilled, logged later") // lists by its date, not by when it was logged
+	list, _ = s.ListJournal(ctx, a.ID)
+	var got []string
+	for _, j := range list {
+		got = append(got, j.Text)
+	}
+	want := []string{"same time, later id", "late", "early", "no time", "backfilled, logged later", "Activity created"}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Errorf("order:\n got %v\nwant %v", got, want)
+	}
+	if list[3].LoggedAt != "" || list[3].Time() != "" || list[0].Time() != "17:45" {
+		t.Errorf("times: %+v", list)
+	}
+
+	// editing never changes when it was logged
+	if err := s.EditJournal(ctx, backfilled, date(t, "2026-02-02"), domain.KindDecision, "edited"); err != nil {
+		t.Fatal(err)
+	}
+	list, _ = s.ListJournal(ctx, a.ID)
+	for _, j := range list {
+		if j.ID == backfilled && (j.LoggedAt != "2026-03-05 08:00" || j.Text != "edited") {
+			t.Errorf("after edit: %+v", j)
+		}
+	}
+	if _, err := s.AddJournal(ctx, domain.JournalEntry{ActivityID: a.ID, Date: date(t, "2026-03-01"), Kind: domain.KindUpdate, Text: "x", LoggedAt: "yesterday"}); !errors.Is(err, domain.ErrInvalid) {
+		t.Errorf("bad stamp: %v", err)
+	}
+	// the database checks the format as well
+	if _, err := s.db.ExecContext(ctx, `INSERT INTO journal_entries (activity_id, date, kind, text, logged_at) VALUES (?, '2026-03-01', 'update', 'x', '2026-13-45 99:99')`, a.ID); err == nil {
+		t.Error("database accepted an impossible logged_at")
+	}
+}
+
+func TestAckScopeStampsJournalEntry(t *testing.T) {
+	s := newTestStore(t)
+	a := mustActivity(t, s, "P", "2026-06-01", "2026-12-31")
+	s.AddSubtask(ctx, a.ID, "n1", date(t, "2026-11-10"))
+	s.AddSubtask(ctx, a.ID, "n2", date(t, "2026-11-10"))
+	if _, err := s.AckScope(ctx, a.ID, domain.FixedClock{D: date(t, "2026-11-18"), Hour: 16, Minute: 2}); err != nil {
+		t.Fatal(err)
+	}
+	list, _ := s.ListJournal(ctx, a.ID)
+	if list[0].Kind != domain.KindScopeAck || list[0].LoggedAt != "2026-11-18 16:02" {
+		t.Errorf("ack entry: %+v", list[0])
 	}
 }

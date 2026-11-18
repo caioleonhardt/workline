@@ -60,7 +60,8 @@ func (s *Store) ListLatestScopeAcks(ctx context.Context) (map[int64]domain.Scope
 // AckScope acknowledges the activity's scope change (SPEC §5.4) in one
 // transaction: it inserts the ScopeAck and the scope_ack journal entry. It
 // returns ErrNotFlagged, writing nothing, when the activity is not flagged.
-func (s *Store) AckScope(ctx context.Context, activityID int64, today domain.Date) (domain.ScopeAck, error) {
+func (s *Store) AckScope(ctx context.Context, activityID int64, clock domain.Clock) (domain.ScopeAck, error) {
+	today := clock.Today()
 	var ack domain.ScopeAck
 	err := s.inTx(ctx, func(tx *sql.Tx) error {
 		a, err := getActivity(ctx, tx, activityID)
@@ -97,6 +98,7 @@ func (s *Store) AckScope(ctx context.Context, activityID int64, today domain.Dat
 		}
 		_, err = insertJournal(ctx, tx, domain.JournalEntry{
 			ActivityID: activityID, Date: today, Kind: domain.KindScopeAck, Text: domain.AckJournalText(creep),
+			LoggedAt: domain.Stamp(clock.Now()),
 		})
 		return err
 	})

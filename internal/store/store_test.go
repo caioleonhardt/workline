@@ -37,12 +37,15 @@ func newTestStore(t *testing.T) *Store {
 // mustActivity creates a project and an activity in it.
 func mustActivity(t *testing.T, s *Store, project string, start, due string) domain.Activity {
 	t.Helper()
-	a, err := s.CreateActivity(ctx, NewActivity{NewProjectName: project, Name: "act", Start: date(t, start), Due: date(t, due), Subtasks: []string{"first"}}, date(t, "2026-01-01"))
+	a, err := s.CreateActivity(ctx, NewActivity{NewProjectName: project, Name: "act", Start: date(t, start), Due: date(t, due), Subtasks: []string{"first"}}, fixed(date(t, "2026-01-01")))
 	if err != nil {
 		t.Fatal(err)
 	}
 	return a
 }
+
+// fixed returns a clock standing at 09:30 on day d.
+func fixed(d domain.Date) domain.Clock { return domain.FixedClock{D: d, Hour: 9, Minute: 30} }
 
 func userVersion(t *testing.T, s *Store) int {
 	t.Helper()
@@ -59,8 +62,8 @@ func TestOpenAppliesMigrationsAndPragmas(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if v := userVersion(t, s); v != 2 {
-		t.Errorf("user_version = %d, want 2", v)
+	if v := userVersion(t, s); v != 3 {
+		t.Errorf("user_version = %d, want 3", v)
 	}
 	var fk int
 	var mode string
@@ -80,7 +83,7 @@ func TestOpenAppliesMigrationsAndPragmas(t *testing.T) {
 	}
 	defer s2.Close()
 	ps, err := s2.ListProjects(ctx, true)
-	if err != nil || len(ps) != 1 || userVersion(t, s2) != 2 {
+	if err != nil || len(ps) != 1 || userVersion(t, s2) != 3 {
 		t.Errorf("reopen: %v %v", ps, err)
 	}
 }
@@ -96,15 +99,16 @@ func TestMigrateFailureRollsBack(t *testing.T) {
 	fsys := fstest.MapFS{
 		"0001_init.sql": {Data: []byte(`;`)},
 		"0002_more.sql": {Data: []byte(`;`)},
-		"0003_bad.sql":  {Data: []byte(`CREATE TABLE y (a INTEGER); SELECT * FROM nonexistent_table; CREATE TABLE z (b);`)},
+		"0003_more.sql": {Data: []byte(`;`)},
+		"0004_bad.sql":  {Data: []byte(`CREATE TABLE y (a INTEGER); SELECT * FROM nonexistent_table; CREATE TABLE z (b);`)},
 	}
-	// Versions 1 and 2 are already applied, so only 0003 runs.
+	// Versions 1 to 3 are already applied, so only 0004 runs.
 	err := migrate(ctx, s.db, fsys)
 	if err == nil {
 		t.Fatal("expected failure")
 	}
-	if v := userVersion(t, s); v != 2 {
-		t.Errorf("user_version = %d, want 2 (unchanged)", v)
+	if v := userVersion(t, s); v != 3 {
+		t.Errorf("user_version = %d, want 3 (unchanged)", v)
 	}
 	var n int
 	s.db.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_master WHERE name IN ('y','z')`).Scan(&n)
@@ -118,12 +122,13 @@ func TestMigrateAppliesNewFile(t *testing.T) {
 	fsys := fstest.MapFS{
 		"0001_init.sql": {Data: []byte(`-- already applied`)},
 		"0002_more.sql": {Data: []byte(`-- already applied`)},
-		"0003_more.sql": {Data: []byte(`CREATE TABLE extra (a INTEGER);`)},
+		"0003_more.sql": {Data: []byte(`-- already applied`)},
+		"0004_more.sql": {Data: []byte(`CREATE TABLE extra (a INTEGER);`)},
 	}
 	if err := migrate(ctx, s.db, fsys); err != nil {
 		t.Fatal(err)
 	}
-	if v := userVersion(t, s); v != 3 {
+	if v := userVersion(t, s); v != 4 {
 		t.Errorf("user_version = %d", v)
 	}
 }
@@ -133,11 +138,11 @@ func TestMigrateRefusals(t *testing.T) {
 	if err := migrate(ctx, s.db, fstest.MapFS{}); err == nil || !strings.Contains(err.Error(), "newer") {
 		t.Errorf("newer DB: %v", err)
 	}
-	gap := fstest.MapFS{"0001_a.sql": {Data: []byte(`;`)}, "0003_c.sql": {Data: []byte(`;`)}}
+	gap := fstest.MapFS{"0001_a.sql": {Data: []byte(`;`)}, "0005_c.sql": {Data: []byte(`;`)}}
 	if err := migrate(ctx, s.db, gap); err == nil || !strings.Contains(err.Error(), "numbering") {
 		t.Errorf("gap: %v", err)
 	}
-	ignored := fstest.MapFS{"0001_a.sql": {Data: []byte(`;`)}, "0002_b.sql": {Data: []byte(`;`)}, "README.md": {Data: []byte(`x`)}}
+	ignored := fstest.MapFS{"0001_a.sql": {Data: []byte(`;`)}, "0002_b.sql": {Data: []byte(`;`)}, "0003_c.sql": {Data: []byte(`;`)}, "README.md": {Data: []byte(`x`)}}
 	if err := migrate(ctx, s.db, ignored); err != nil {
 		t.Errorf("non-migration file should be ignored: %v", err)
 	}

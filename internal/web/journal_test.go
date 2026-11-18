@@ -32,6 +32,9 @@ func TestJournalFlows(t *testing.T) {
 		t.Errorf("newest first, default date today: %+v", list[0])
 	}
 	wantBody(t, get(h, "/?sel=2"), "Ship it", "Sync", "kind-decision")
+	if list[0].LoggedAt != "2026-11-18 14:05" {
+		t.Errorf("entry stamped %q, want the clock's time", list[0].LoggedAt)
+	}
 
 	for name, f := range map[string]url.Values{
 		"scope_ack kind": form("kind", "scope_ack", "text", "x"),
@@ -67,7 +70,7 @@ func TestJournalFlows(t *testing.T) {
 func TestScopeAckEntriesAreReadOnly(t *testing.T) {
 	h, st := newApp(t)
 	// an acknowledged entry, written the way Acknowledge writes it
-	if _, err := st.AckScope(ctx, 1, date(t, testToday)); err != nil {
+	if _, err := st.AckScope(ctx, 1, domain.FixedClock{D: date(t, testToday)}); err != nil {
 		t.Fatal(err)
 	}
 	list, _ := st.ListJournal(ctx, 1)

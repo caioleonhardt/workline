@@ -65,7 +65,7 @@ func TestCreateActivity(t *testing.T) {
 	p, _ := s.CreateProject(ctx, "P")
 
 	a, err := s.CreateActivity(ctx, NewActivity{ProjectID: p.ID, Name: "A", RequestedBy: "Me",
-		Start: date(t, "2026-12-01"), Due: date(t, "2026-12-31"), Subtasks: []string{"one"}}, today)
+		Start: date(t, "2026-12-01"), Due: date(t, "2026-12-31"), Subtasks: []string{"one"}}, fixed(today))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,13 +81,13 @@ func TestCreateActivity(t *testing.T) {
 		t.Errorf("journal: %+v", j)
 	}
 
-	cur, _ := s.CreateActivity(ctx, NewActivity{ProjectID: p.ID, Name: "B", Start: today, Due: today, Subtasks: []string{"one"}}, today)
+	cur, _ := s.CreateActivity(ctx, NewActivity{ProjectID: p.ID, Name: "B", Start: today, Due: today, Subtasks: []string{"one"}}, fixed(today))
 	if cur.Status != domain.StatusActive {
 		t.Errorf("start today should be active: %+v", cur)
 	}
 
 	// new project path creates the project in the same transaction
-	n, err := s.CreateActivity(ctx, NewActivity{NewProjectName: "Fresh", Name: "C", Start: today, Due: today, Subtasks: []string{"one"}}, today)
+	n, err := s.CreateActivity(ctx, NewActivity{NewProjectName: "Fresh", Name: "C", Start: today, Due: today, Subtasks: []string{"one"}}, fixed(today))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,14 +104,14 @@ func TestCreateActivity(t *testing.T) {
 		"dup name": {NewProjectName: "fresh", Name: "x", Start: today, Due: today, Subtasks: []string{"x"}},
 		"bad proj": {ProjectID: 999, Name: "x", Start: today, Due: today, Subtasks: []string{"x"}},
 	} {
-		if _, err := s.CreateActivity(ctx, in, today); err == nil {
+		if _, err := s.CreateActivity(ctx, in, fixed(today)); err == nil {
 			t.Errorf("%s: expected error", name)
 		}
 	}
 	if ps, _ := s.ListProjects(ctx, true); len(ps) != 2 {
 		t.Errorf("failed creations leaked a project: %+v", ps)
 	}
-	if _, err := s.CreateActivity(ctx, NewActivity{ProjectID: 999, Name: "x", Start: today, Due: today, Subtasks: []string{"x"}}, today); !errors.Is(err, domain.ErrInvalid) {
+	if _, err := s.CreateActivity(ctx, NewActivity{ProjectID: 999, Name: "x", Start: today, Due: today, Subtasks: []string{"x"}}, fixed(today)); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("FK failure should be ErrInvalid")
 	}
 }
@@ -120,7 +120,7 @@ func TestCreateActivitySubtasks(t *testing.T) {
 	s := newTestStore(t)
 	today := date(t, "2026-11-18")
 	mk := func(start string, subtasks ...string) (domain.Activity, error) {
-		return s.CreateActivity(ctx, NewActivity{NewProjectName: start, Name: "A", Start: date(t, start), Due: date(t, "2027-12-31"), Subtasks: subtasks}, today)
+		return s.CreateActivity(ctx, NewActivity{NewProjectName: start, Name: "A", Start: date(t, start), Due: date(t, "2027-12-31"), Subtasks: subtasks}, fixed(today))
 	}
 	// started in the past: subtasks dated at start so they count as kickoff scope
 	a, err := mk("2026-06-01", "one", "two")
