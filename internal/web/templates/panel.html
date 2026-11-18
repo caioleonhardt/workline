@@ -68,7 +68,7 @@
 <ul class="rows">
 {{range .Journal}}
 <li>
-<span class="muted mono">{{.Date}}</span> <span class="chip kind-{{.Kind}}">{{.Kind}}</span> <span>{{.Text}}</span>
+<span class="muted mono">{{.Date}}{{if .Time}} {{.Time}}{{end}}</span> <span class="chip kind-{{.Kind}}">{{.Kind}}</span> <span>{{.Text}}</span>
 {{if not .ReadOnly}}
 <details>
 <summary>Edit</summary>

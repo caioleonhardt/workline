@@ -8,10 +8,10 @@ import (
 )
 
 type journalRow struct {
-	ID               int64
-	Date, Kind, Text string
-	ReadOnly         bool // scope_ack entries cannot be edited
-	Kinds            []option
+	ID                     int64
+	Date, Time, Kind, Text string // Time is empty for entries without a logged time
+	ReadOnly               bool   // scope_ack entries cannot be edited
+	Kinds                  []option
 }
 
 func kindOptions(cur domain.Kind) []option {
@@ -26,7 +26,7 @@ func journalRows(entries []domain.JournalEntry) []journalRow {
 	var rows []journalRow
 	for _, j := range entries {
 		rows = append(rows, journalRow{
-			ID: j.ID, Date: j.Date.String(), Kind: string(j.Kind), Text: j.Text,
+			ID: j.ID, Date: j.Date.String(), Time: j.Time(), Kind: string(j.Kind), Text: j.Text,
 			ReadOnly: j.Kind == domain.KindScopeAck, Kinds: kindOptions(j.Kind),
 		})
 	}

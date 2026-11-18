@@ -89,3 +89,19 @@ func TestScopeAckEntriesAreReadOnly(t *testing.T) {
 		t.Error("scope_ack entry should be listed without edit controls")
 	}
 }
+
+func TestPanelJournalShowsLoggedTime(t *testing.T) {
+	h, _ := newApp(t)
+	wantStatus(t, post(h, "/activities/2/journal", url.Values{"kind": {"update"}, "text": {"Fresh note"}}), http.StatusSeeOther)
+	wantStatus(t, post(h, "/activities/2/journal", url.Values{"kind": {"update"}, "text": {"Backfilled"}, "date": {"2026-11-12"}}), http.StatusSeeOther)
+	rec := get(h, "/?sel=2")
+	body := rec.Body.String()
+	// new entries show the date and the time they were logged, even when backfilled
+	wantBody(t, rec, `2026-11-18 14:05</span>`, `2026-11-12 14:05</span>`)
+	// seeded entries have no time
+	wantBody(t, rec, `<span class="muted mono">2026-11-03</span>`)
+	// newest date first; within a date the later time first, entries without time last
+	if !bodyOrder(body, "Fresh note", "Backfilled", "Client upgrades pulled into this activity") {
+		t.Error("journal order")
+	}
+}
