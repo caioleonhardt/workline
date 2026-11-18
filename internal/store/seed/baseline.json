@@ -1,0 +1,837 @@
+{
+  "version": 1,
+  "description": "Workline baseline from the design mockup: seed data (SPEC §3) plus values the SPEC §4 rules must produce on the given date.",
+  "as_of": "2026-11-18",
+  "rules": {
+    "growth_threshold_pct": 75,
+    "window_days": 30,
+    "kickoff_grace_days": 7
+  },
+  "data": {
+    "projects": [
+      {
+        "id": 1,
+        "name": "Order platform modernisation",
+        "archived": false
+      },
+      {
+        "id": 2,
+        "name": "Platform and tooling",
+        "archived": false
+      },
+      {
+        "id": 3,
+        "name": "Team and people",
+        "archived": false
+      },
+      {
+        "id": 4,
+        "name": "Operations and planning",
+        "archived": false
+      }
+    ],
+    "activities": [
+      {
+        "id": 1,
+        "project_id": 1,
+        "name": "Consolidate order services into one Go service",
+        "requested_by": "Manager",
+        "status": "active",
+        "start_date": "2026-03-02",
+        "due_date": "2026-12-18"
+      },
+      {
+        "id": 2,
+        "project_id": 1,
+        "name": "Kafka upgrade readiness",
+        "requested_by": "Platform team",
+        "status": "blocked",
+        "start_date": "2026-09-07",
+        "due_date": "2026-11-27"
+      },
+      {
+        "id": 3,
+        "project_id": 2,
+        "name": "Move build logic off Jenkins into CLI engine",
+        "requested_by": "Self",
+        "status": "done",
+        "start_date": "2026-01-12",
+        "due_date": "2026-05-29"
+      },
+      {
+        "id": 4,
+        "project_id": 2,
+        "name": "Observability vendor review",
+        "requested_by": "Director",
+        "status": "done",
+        "start_date": "2026-02-02",
+        "due_date": "2026-04-10"
+      },
+      {
+        "id": 5,
+        "project_id": 3,
+        "name": "Hire senior ML engineer",
+        "requested_by": "Director",
+        "status": "active",
+        "start_date": "2026-08-17",
+        "due_date": "2026-12-11"
+      },
+      {
+        "id": 6,
+        "project_id": 3,
+        "name": "Mentoring plan for two juniors",
+        "requested_by": "Self",
+        "status": "active",
+        "start_date": "2026-04-06",
+        "due_date": "2026-12-31"
+      },
+      {
+        "id": 7,
+        "project_id": 3,
+        "name": "Team onboarding guide refresh",
+        "requested_by": "Self",
+        "status": "active",
+        "start_date": "2026-10-05",
+        "due_date": "2026-12-04"
+      },
+      {
+        "id": 8,
+        "project_id": 4,
+        "name": "Postmortem: inference latency incident",
+        "requested_by": "Manager",
+        "status": "done",
+        "start_date": "2026-06-08",
+        "due_date": "2026-06-26"
+      },
+      {
+        "id": 9,
+        "project_id": 4,
+        "name": "2027 capacity and budget plan",
+        "requested_by": "Manager",
+        "status": "planned",
+        "start_date": "2026-11-23",
+        "due_date": "2026-12-31"
+      }
+    ],
+    "subtasks": [
+      {
+        "id": 1,
+        "activity_id": 1,
+        "text": "Map service boundaries",
+        "created_on": "2026-03-02",
+        "closed_on": "2026-03-27"
+      },
+      {
+        "id": 2,
+        "activity_id": 1,
+        "text": "Strangler-fig routing layer",
+        "created_on": "2026-03-02",
+        "closed_on": "2026-05-08"
+      },
+      {
+        "id": 3,
+        "activity_id": 1,
+        "text": "Migrate order intake",
+        "created_on": "2026-03-02",
+        "closed_on": "2026-07-14"
+      },
+      {
+        "id": 4,
+        "activity_id": 1,
+        "text": "Decommission old services",
+        "created_on": "2026-03-02",
+        "closed_on": null
+      },
+      {
+        "id": 5,
+        "activity_id": 1,
+        "text": "Migrate pricing",
+        "created_on": "2026-04-20",
+        "closed_on": "2026-09-30"
+      },
+      {
+        "id": 6,
+        "activity_id": 1,
+        "text": "Remove Kafka topic dependencies",
+        "created_on": "2026-04-20",
+        "closed_on": "2026-11-10"
+      },
+      {
+        "id": 7,
+        "activity_id": 1,
+        "text": "Migrate notifications",
+        "created_on": "2026-07-14",
+        "closed_on": null
+      },
+      {
+        "id": 8,
+        "activity_id": 1,
+        "text": "Load test single service",
+        "created_on": "2026-09-30",
+        "closed_on": null
+      },
+      {
+        "id": 9,
+        "activity_id": 2,
+        "text": "Compatibility matrix",
+        "created_on": "2026-09-07",
+        "closed_on": "2026-10-05"
+      },
+      {
+        "id": 10,
+        "activity_id": 2,
+        "text": "Client library audit",
+        "created_on": "2026-09-07",
+        "closed_on": "2026-10-19"
+      },
+      {
+        "id": 11,
+        "activity_id": 2,
+        "text": "Book maintenance window",
+        "created_on": "2026-09-07",
+        "closed_on": null
+      },
+      {
+        "id": 12,
+        "activity_id": 2,
+        "text": "Staging upgrade",
+        "created_on": "2026-10-05",
+        "closed_on": null
+      },
+      {
+        "id": 13,
+        "activity_id": 2,
+        "text": "Rollback plan",
+        "created_on": "2026-10-05",
+        "closed_on": null
+      },
+      {
+        "id": 14,
+        "activity_id": 2,
+        "text": "Upgrade clients in four services",
+        "created_on": "2026-11-12",
+        "closed_on": null
+      },
+      {
+        "id": 15,
+        "activity_id": 3,
+        "text": "Inventory Jenkins jobs",
+        "created_on": "2026-01-12",
+        "closed_on": "2026-01-30"
+      },
+      {
+        "id": 16,
+        "activity_id": 3,
+        "text": "CLI skeleton",
+        "created_on": "2026-01-12",
+        "closed_on": "2026-02-13"
+      },
+      {
+        "id": 17,
+        "activity_id": 3,
+        "text": "Go builds",
+        "created_on": "2026-01-12",
+        "closed_on": "2026-03-06"
+      },
+      {
+        "id": 18,
+        "activity_id": 3,
+        "text": "Deploy step",
+        "created_on": "2026-01-12",
+        "closed_on": "2026-04-17"
+      },
+      {
+        "id": 19,
+        "activity_id": 3,
+        "text": "Python builds",
+        "created_on": "2026-02-13",
+        "closed_on": "2026-03-06"
+      },
+      {
+        "id": 20,
+        "activity_id": 3,
+        "text": "Migrate last pipelines",
+        "created_on": "2026-03-06",
+        "closed_on": "2026-05-29"
+      },
+      {
+        "id": 21,
+        "activity_id": 4,
+        "text": "Requirements",
+        "created_on": "2026-02-02",
+        "closed_on": "2026-02-20"
+      },
+      {
+        "id": 22,
+        "activity_id": 4,
+        "text": "Shortlist",
+        "created_on": "2026-02-02",
+        "closed_on": "2026-03-02"
+      },
+      {
+        "id": 23,
+        "activity_id": 4,
+        "text": "Vendor demos",
+        "created_on": "2026-02-20",
+        "closed_on": "2026-03-12"
+      },
+      {
+        "id": 24,
+        "activity_id": 4,
+        "text": "Recommendation",
+        "created_on": "2026-03-02",
+        "closed_on": "2026-04-10"
+      },
+      {
+        "id": 25,
+        "activity_id": 5,
+        "text": "Write role profile",
+        "created_on": "2026-08-17",
+        "closed_on": "2026-08-28"
+      },
+      {
+        "id": 26,
+        "activity_id": 5,
+        "text": "Screening rubric",
+        "created_on": "2026-08-17",
+        "closed_on": "2026-09-08"
+      },
+      {
+        "id": 27,
+        "activity_id": 5,
+        "text": "Offer and close",
+        "created_on": "2026-08-17",
+        "closed_on": null
+      },
+      {
+        "id": 28,
+        "activity_id": 5,
+        "text": "First-round interviews",
+        "created_on": "2026-09-08",
+        "closed_on": "2026-10-23"
+      },
+      {
+        "id": 29,
+        "activity_id": 5,
+        "text": "Technical panel",
+        "created_on": "2026-09-08",
+        "closed_on": null
+      },
+      {
+        "id": 30,
+        "activity_id": 6,
+        "text": "Goals per person",
+        "created_on": "2026-04-06",
+        "closed_on": "2026-04-24"
+      },
+      {
+        "id": 31,
+        "activity_id": 6,
+        "text": "Pairing schedule",
+        "created_on": "2026-04-06",
+        "closed_on": "2026-05-15"
+      },
+      {
+        "id": 32,
+        "activity_id": 6,
+        "text": "Mid-year check-in",
+        "created_on": "2026-04-06",
+        "closed_on": "2026-06-30"
+      },
+      {
+        "id": 33,
+        "activity_id": 6,
+        "text": "Code review rotation",
+        "created_on": "2026-04-06",
+        "closed_on": "2026-08-14"
+      },
+      {
+        "id": 34,
+        "activity_id": 6,
+        "text": "Year-end review",
+        "created_on": "2026-04-06",
+        "closed_on": null
+      },
+      {
+        "id": 35,
+        "activity_id": 6,
+        "text": "One tech talk each",
+        "created_on": "2026-06-30",
+        "closed_on": null
+      },
+      {
+        "id": 36,
+        "activity_id": 7,
+        "text": "Audit current guide",
+        "created_on": "2026-10-05",
+        "closed_on": "2026-10-16"
+      },
+      {
+        "id": 37,
+        "activity_id": 7,
+        "text": "Local environment section",
+        "created_on": "2026-10-05",
+        "closed_on": "2026-10-29"
+      },
+      {
+        "id": 38,
+        "activity_id": 7,
+        "text": "Access and permissions",
+        "created_on": "2026-10-05",
+        "closed_on": null
+      },
+      {
+        "id": 39,
+        "activity_id": 7,
+        "text": "First-week checklist",
+        "created_on": "2026-10-29",
+        "closed_on": null
+      },
+      {
+        "id": 40,
+        "activity_id": 8,
+        "text": "Incident timeline",
+        "created_on": "2026-06-08",
+        "closed_on": "2026-06-12"
+      },
+      {
+        "id": 41,
+        "activity_id": 8,
+        "text": "Root cause analysis",
+        "created_on": "2026-06-08",
+        "closed_on": "2026-06-15"
+      },
+      {
+        "id": 42,
+        "activity_id": 8,
+        "text": "Action items assigned",
+        "created_on": "2026-06-15",
+        "closed_on": "2026-06-26"
+      },
+      {
+        "id": 43,
+        "activity_id": 9,
+        "text": "Collect team requests",
+        "created_on": "2026-11-16",
+        "closed_on": null
+      },
+      {
+        "id": 44,
+        "activity_id": 9,
+        "text": "Cost model",
+        "created_on": "2026-11-16",
+        "closed_on": null
+      },
+      {
+        "id": 45,
+        "activity_id": 9,
+        "text": "Draft plan",
+        "created_on": "2026-11-16",
+        "closed_on": null
+      },
+      {
+        "id": 46,
+        "activity_id": 9,
+        "text": "Review with manager",
+        "created_on": "2026-11-16",
+        "closed_on": null
+      }
+    ],
+    "journal_entries": [
+      {
+        "id": 1,
+        "activity_id": 1,
+        "date": "2026-03-02",
+        "kind": "meeting",
+        "text": "Kick-off with manager, scope agreed"
+      },
+      {
+        "id": 2,
+        "activity_id": 1,
+        "date": "2026-04-20",
+        "kind": "decision",
+        "text": "Strangler-fig over big-bang rewrite; two tasks added"
+      },
+      {
+        "id": 3,
+        "activity_id": 1,
+        "date": "2026-07-14",
+        "kind": "update",
+        "text": "Order intake live behind the router"
+      },
+      {
+        "id": 4,
+        "activity_id": 1,
+        "date": "2026-09-30",
+        "kind": "update",
+        "text": "Pricing migrated, latency flat"
+      },
+      {
+        "id": 5,
+        "activity_id": 1,
+        "date": "2026-11-10",
+        "kind": "update",
+        "text": "Kafka dependencies removed"
+      },
+      {
+        "id": 6,
+        "activity_id": 2,
+        "date": "2026-09-07",
+        "kind": "update",
+        "text": "Started"
+      },
+      {
+        "id": 7,
+        "activity_id": 2,
+        "date": "2026-10-05",
+        "kind": "update",
+        "text": "Compatibility matrix done; two tasks added"
+      },
+      {
+        "id": 8,
+        "activity_id": 2,
+        "date": "2026-11-03",
+        "kind": "blocker",
+        "text": "Waiting on platform team for a maintenance window"
+      },
+      {
+        "id": 9,
+        "activity_id": 2,
+        "date": "2026-11-12",
+        "kind": "decision",
+        "text": "Client upgrades pulled into this activity"
+      },
+      {
+        "id": 10,
+        "activity_id": 3,
+        "date": "2026-01-12",
+        "kind": "update",
+        "text": "Started"
+      },
+      {
+        "id": 11,
+        "activity_id": 3,
+        "date": "2026-03-06",
+        "kind": "update",
+        "text": "CLI builds Go and Python services"
+      },
+      {
+        "id": 12,
+        "activity_id": 3,
+        "date": "2026-05-29",
+        "kind": "update",
+        "text": "Last pipeline migrated"
+      },
+      {
+        "id": 13,
+        "activity_id": 4,
+        "date": "2026-02-02",
+        "kind": "meeting",
+        "text": "Request from director"
+      },
+      {
+        "id": 14,
+        "activity_id": 4,
+        "date": "2026-03-12",
+        "kind": "meeting",
+        "text": "Demos with two vendors"
+      },
+      {
+        "id": 15,
+        "activity_id": 4,
+        "date": "2026-04-10",
+        "kind": "decision",
+        "text": "Recommendation sent"
+      },
+      {
+        "id": 16,
+        "activity_id": 5,
+        "date": "2026-08-17",
+        "kind": "update",
+        "text": "Headcount approved"
+      },
+      {
+        "id": 17,
+        "activity_id": 5,
+        "date": "2026-09-08",
+        "kind": "decision",
+        "text": "Rubric favours system design over puzzles"
+      },
+      {
+        "id": 18,
+        "activity_id": 5,
+        "date": "2026-10-27",
+        "kind": "meeting",
+        "text": "Calibration with interview panel"
+      },
+      {
+        "id": 19,
+        "activity_id": 6,
+        "date": "2026-04-06",
+        "kind": "update",
+        "text": "Plan agreed with both"
+      },
+      {
+        "id": 20,
+        "activity_id": 6,
+        "date": "2026-06-30",
+        "kind": "meeting",
+        "text": "Mid-year check-in"
+      },
+      {
+        "id": 21,
+        "activity_id": 6,
+        "date": "2026-09-29",
+        "kind": "update",
+        "text": "Both now own a small feature"
+      },
+      {
+        "id": 22,
+        "activity_id": 7,
+        "date": "2026-10-05",
+        "kind": "update",
+        "text": "Started"
+      },
+      {
+        "id": 23,
+        "activity_id": 7,
+        "date": "2026-10-29",
+        "kind": "update",
+        "text": "Local environment section rewritten"
+      },
+      {
+        "id": 24,
+        "activity_id": 8,
+        "date": "2026-06-08",
+        "kind": "blocker",
+        "text": "p95 latency spike on inference"
+      },
+      {
+        "id": 25,
+        "activity_id": 8,
+        "date": "2026-06-15",
+        "kind": "update",
+        "text": "Root cause: node pool autoscaling"
+      },
+      {
+        "id": 26,
+        "activity_id": 8,
+        "date": "2026-06-26",
+        "kind": "decision",
+        "text": "Action items assigned"
+      },
+      {
+        "id": 27,
+        "activity_id": 9,
+        "date": "2026-11-16",
+        "kind": "meeting",
+        "text": "Request received in 1:1"
+      }
+    ],
+    "scope_acks": []
+  },
+  "expected": {
+    "tiles": {
+      "active": 4,
+      "blocked": 1,
+      "planned": 1,
+      "done": 3,
+      "open_subtasks": 17,
+      "scope_flags": 2
+    },
+    "projects": [
+      {
+        "project_id": 1,
+        "name": "Order platform modernisation",
+        "activities": 2,
+        "progress": 50,
+        "scope_flags": 2
+      },
+      {
+        "project_id": 2,
+        "name": "Platform and tooling",
+        "activities": 2,
+        "progress": 100,
+        "scope_flags": 0
+      },
+      {
+        "project_id": 3,
+        "name": "Team and people",
+        "activities": 3,
+        "progress": 60,
+        "scope_flags": 0
+      },
+      {
+        "project_id": 4,
+        "name": "Operations and planning",
+        "activities": 2,
+        "progress": 43,
+        "scope_flags": 0
+      }
+    ],
+    "activities": [
+      {
+        "activity_id": 1,
+        "name": "Consolidate order services into one Go service",
+        "total": 8,
+        "closed": 5,
+        "open": 3,
+        "progress": 63,
+        "scope": {
+          "baseline": 4,
+          "added": 4,
+          "growth_pct": 100,
+          "add30": 0,
+          "close30": 1,
+          "growth_flag": true,
+          "outpacing_flag": false,
+          "flagged": true
+        }
+      },
+      {
+        "activity_id": 2,
+        "name": "Kafka upgrade readiness",
+        "total": 6,
+        "closed": 2,
+        "open": 4,
+        "progress": 33,
+        "scope": {
+          "baseline": 3,
+          "added": 3,
+          "growth_pct": 100,
+          "add30": 1,
+          "close30": 0,
+          "growth_flag": true,
+          "outpacing_flag": true,
+          "flagged": true
+        }
+      },
+      {
+        "activity_id": 3,
+        "name": "Move build logic off Jenkins into CLI engine",
+        "total": 6,
+        "closed": 6,
+        "open": 0,
+        "progress": 100,
+        "scope": {
+          "baseline": 4,
+          "added": 2,
+          "growth_pct": 50,
+          "add30": 0,
+          "close30": 0,
+          "growth_flag": false,
+          "outpacing_flag": false,
+          "flagged": false
+        }
+      },
+      {
+        "activity_id": 4,
+        "name": "Observability vendor review",
+        "total": 4,
+        "closed": 4,
+        "open": 0,
+        "progress": 100,
+        "scope": {
+          "baseline": 2,
+          "added": 2,
+          "growth_pct": 100,
+          "add30": 0,
+          "close30": 0,
+          "growth_flag": false,
+          "outpacing_flag": false,
+          "flagged": false
+        }
+      },
+      {
+        "activity_id": 5,
+        "name": "Hire senior ML engineer",
+        "total": 5,
+        "closed": 3,
+        "open": 2,
+        "progress": 60,
+        "scope": {
+          "baseline": 3,
+          "added": 2,
+          "growth_pct": 67,
+          "add30": 0,
+          "close30": 1,
+          "growth_flag": false,
+          "outpacing_flag": false,
+          "flagged": false
+        }
+      },
+      {
+        "activity_id": 6,
+        "name": "Mentoring plan for two juniors",
+        "total": 6,
+        "closed": 4,
+        "open": 2,
+        "progress": 67,
+        "scope": {
+          "baseline": 5,
+          "added": 1,
+          "growth_pct": 20,
+          "add30": 0,
+          "close30": 0,
+          "growth_flag": false,
+          "outpacing_flag": false,
+          "flagged": false
+        }
+      },
+      {
+        "activity_id": 7,
+        "name": "Team onboarding guide refresh",
+        "total": 4,
+        "closed": 2,
+        "open": 2,
+        "progress": 50,
+        "scope": {
+          "baseline": 3,
+          "added": 1,
+          "growth_pct": 33,
+          "add30": 1,
+          "close30": 1,
+          "growth_flag": false,
+          "outpacing_flag": false,
+          "flagged": false
+        }
+      },
+      {
+        "activity_id": 8,
+        "name": "Postmortem: inference latency incident",
+        "total": 3,
+        "closed": 3,
+        "open": 0,
+        "progress": 100,
+        "scope": {
+          "baseline": 3,
+          "added": 0,
+          "growth_pct": 0,
+          "add30": 0,
+          "close30": 0,
+          "growth_flag": false,
+          "outpacing_flag": false,
+          "flagged": false
+        }
+      },
+      {
+        "activity_id": 9,
+        "name": "2027 capacity and budget plan",
+        "total": 4,
+        "closed": 0,
+        "open": 4,
+        "progress": 0,
+        "scope": {
+          "baseline": 4,
+          "added": 0,
+          "growth_pct": 0,
+          "add30": 0,
+          "close30": 0,
+          "growth_flag": false,
+          "outpacing_flag": false,
+          "flagged": false
+        }
+      }
+    ]
+  }
+}
