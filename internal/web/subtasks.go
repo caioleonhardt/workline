@@ -32,7 +32,7 @@ func (s *Server) addSubtask(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	redirect(w, r, nextURL(r))
+	s.done(w, r, nextURL(r))
 }
 
 func (s *Server) toggleSubtask(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +44,7 @@ func (s *Server) toggleSubtask(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	redirect(w, r, nextURL(r))
+	s.done(w, r, nextURL(r))
 }
 
 // editSubtask changes text and creation date only; closed_on is set by toggle
@@ -62,7 +62,7 @@ func (s *Server) editSubtask(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	redirect(w, r, nextURL(r))
+	s.done(w, r, nextURL(r))
 }
 
 func (s *Server) deleteSubtask(w http.ResponseWriter, r *http.Request) {
@@ -74,5 +74,5 @@ func (s *Server) deleteSubtask(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	redirect(w, r, nextURL(r))
+	s.done(w, r, nextURL(r))
 }

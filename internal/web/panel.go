@@ -80,7 +80,7 @@ func (s *Server) updateActivity(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	redirect(w, r, nextURL(r))
+	s.done(w, r, nextURL(r))
 }
 
 func (s *Server) saveActivityFields(r *http.Request, id int64) error {
@@ -112,5 +112,5 @@ func (s *Server) deleteActivity(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	redirect(w, r, withParam(nextURL(r), "sel", ""))
+	s.done(w, r, withParam(nextURL(r), "sel", ""))
 }

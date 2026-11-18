@@ -5,3 +5,5 @@
 <p><a href="{{.Back}}">Back</a></p>
 </section>
 {{template "foot" .}}
+
+{{define "error-bar"}}<div class="error-bar" role="alert"><span>{{.}}</span> <button type="button" hx-get="/errors/clear" hx-target="#errors" hx-swap="innerHTML">Dismiss</button></div>{{end}}

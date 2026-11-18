@@ -118,3 +118,5 @@ textarea { border: 1px solid var(--border); border-radius: 8px; padding: 8px; fo
 .work { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
 .work > .timeline { flex: 999 1 720px; min-width: 0; margin: 0; }
 .detail { flex: 1 1 360px; min-width: 0; }
+.error-bar { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--creep-bg); color: var(--creep-fg); font-weight: 600; }
+.error-bar button { min-height: 36px; margin-left: auto; }

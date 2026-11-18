@@ -49,7 +49,7 @@ func (s *Server) addJournal(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	redirect(w, r, nextURL(r))
+	s.done(w, r, nextURL(r))
 }
 
 func (s *Server) editJournal(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +65,7 @@ func (s *Server) editJournal(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	redirect(w, r, nextURL(r))
+	s.done(w, r, nextURL(r))
 }
 
 func (s *Server) deleteJournal(w http.ResponseWriter, r *http.Request) {
@@ -77,5 +77,5 @@ func (s *Server) deleteJournal(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	redirect(w, r, nextURL(r))
+	s.done(w, r, nextURL(r))
 }

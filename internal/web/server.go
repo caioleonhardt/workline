@@ -48,6 +48,7 @@ func New(st *store.Store, clock domain.Clock) (http.Handler, error) {
 	mux.HandleFunc("POST /journal/{id}", s.editJournal)
 	mux.HandleFunc("POST /journal/{id}/delete", s.deleteJournal)
 	mux.HandleFunc("POST /activities/{id}/scope-ack", s.ackScope)
+	mux.HandleFunc("GET /errors/clear", func(http.ResponseWriter, *http.Request) {})
 	mux.HandleFunc("GET /projects", s.projects)
 	mux.HandleFunc("POST /projects/{id}", s.updateProject)
 	mux.HandleFunc("POST /projects/{id}/delete", s.deleteProject)
@@ -98,6 +99,13 @@ func (s *Server) fail(w http.ResponseWriter, r *http.Request, err error) {
 	if status == http.StatusInternalServerError {
 		slog.Error("request failed", "method", r.Method, "path", r.URL.Path, "err", err)
 	}
+	if isHX(r) {
+		// Show the message in the error bar and leave the dashboard as it is.
+		w.Header().Set("HX-Retarget", "#errors")
+		w.Header().Set("HX-Reswap", "innerHTML")
+		s.render(w, status, "error-bar", msg)
+		return
+	}
 	s.render(w, status, "error.html", errorView{Title: "Error", Message: msg, Back: nextURL(r)})
 }
 
@@ -111,6 +119,18 @@ func nextURL(r *http.Request) string {
 		return "/"
 	}
 	return next
+}
+
+// done answers a successful dashboard mutation. An htmx request gets the
+// dashboard fragment for `to` and the address to show in the URL bar; any other
+// request is redirected there with 303 See Other.
+func (s *Server) done(w http.ResponseWriter, r *http.Request, to string) {
+	if !isHX(r) {
+		redirect(w, r, to)
+		return
+	}
+	w.Header().Set("HX-Push-Url", to)
+	s.renderDashboard(w, r, to)
 }
 
 // redirect answers a successful mutation with 303 See Other.

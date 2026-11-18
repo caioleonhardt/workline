@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -67,4 +68,117 @@ func TestDashboardControlsStayPlainLinksAndForms(t *testing.T) {
 	if strings.Contains(body, "hx-get") || strings.Contains(body, "hx-post") {
 		t.Error("controls must work through hx-boost alone")
 	}
+}
+
+func hxPost(h http.Handler, target string, form url.Values) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodPost, target, strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("HX-Request", "true")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+// Every dashboard mutation redirects without JS and answers htmx with the
+// fragment for the same address (SPEC §10 item 59).
+func TestMutationsAnswerHXWithTheFragment(t *testing.T) {
+	next := "/?sel=2&status=active&status=blocked"
+	for _, c := range []struct {
+		name, target string
+		form         url.Values
+		want         string // the address both paths end up at
+	}{
+		{"add subtask", "/activities/2/subtasks", url.Values{"text": {"x"}}, next},
+		{"toggle subtask", "/subtasks/1/toggle", nil, next},
+		{"edit subtask", "/subtasks/1", url.Values{"text": {"y"}, "created_on": {"2026-03-01"}}, next},
+		{"delete subtask", "/subtasks/1/delete", nil, next},
+		{"add journal", "/activities/2/journal", url.Values{"kind": {"update"}, "text": {"z"}}, next},
+		{"edit journal", "/journal/1", url.Values{"kind": {"update"}, "text": {"z"}, "date": {"2026-03-01"}}, next},
+		{"delete journal", "/journal/1/delete", nil, next},
+		{"status", "/activities/2", url.Values{"status": {"active"}}, next},
+		{"edit activity", "/activities/2", url.Values{"project": {"1"}, "name": {"n"}, "start": {"2026-09-01"}, "due": {"2026-12-01"}}, next},
+		{"acknowledge", "/activities/1/scope-ack", nil, next},
+		{"delete activity", "/activities/2/delete", nil, "/?status=active&status=blocked"},
+	} {
+		form := url.Values{"next": {next}}
+		for k, v := range c.form {
+			form[k] = v
+		}
+		h, _ := newApp(t)
+		rec := post(h, c.target, form)
+		wantStatus(t, rec, http.StatusSeeOther)
+		if loc := rec.Header().Get("Location"); loc != c.want {
+			t.Errorf("%s without JS: Location %q, want %q", c.name, loc, c.want)
+		}
+
+		h, _ = newApp(t)
+		rec = hxPost(h, c.target, form)
+		if rec.Code != http.StatusOK || rec.Header().Get("HX-Push-Url") != c.want ||
+			!strings.HasPrefix(strings.TrimSpace(rec.Body.String()), `<div id="dash"`) ||
+			!strings.Contains(rec.Body.String(), `<div id="errors" aria-live="polite" hx-swap-oob="true"></div>`) {
+			t.Errorf("%s with htmx: status %d, push %q", c.name, rec.Code, rec.Header().Get("HX-Push-Url"))
+		}
+	}
+}
+
+func TestCreateActivityAnswersHXWithTheNewSelection(t *testing.T) {
+	h, _ := newApp(t)
+	rec := hxPost(h, "/activities", newForm(nil))
+	wantStatus(t, rec, http.StatusOK)
+	push, _ := url.Parse(rec.Header().Get("HX-Push-Url"))
+	if push.Query().Get("sel") == "" || push.Query().Has("new") || len(push.Query()["status"]) != 2 {
+		t.Errorf("HX-Push-Url = %s", push)
+	}
+	wantBody(t, rec, "Pilot", `id="panel"`)
+}
+
+func TestHXToggleUpdatesPanelTimelineAndTiles(t *testing.T) {
+	h, _ := newApp(t)
+	before := get(h, "/?sel=1").Body.String()
+	wantStatus(t, hxPost(h, "/subtasks/1/toggle", url.Values{"next": {"/?sel=1"}}), http.StatusOK)
+	rec := hxGet(h, "/?sel=1")
+	body := rec.Body.String()
+	if !strings.Contains(before, "5 of 8 subtasks done") || !strings.Contains(body, "4 of 8 subtasks done") ||
+		!strings.Contains(body, "4 open / 8") || tileValue(t, body, "Open subtasks now") != 18 {
+		t.Error("toggle did not reach the panel, timeline and tiles")
+	}
+}
+
+func TestHXErrorsGoToTheErrorBar(t *testing.T) {
+	h, _ := newApp(t)
+	for name, c := range map[string]struct {
+		target string
+		form   url.Values
+		status int
+		msg    string
+	}{
+		"validation":  {"/activities/2/subtasks", url.Values{"text": {" "}}, http.StatusUnprocessableEntity, "subtask text is required"},
+		"not found":   {"/subtasks/999/toggle", nil, http.StatusNotFound, "Not found."},
+		"not flagged": {"/activities/3/scope-ack", nil, http.StatusUnprocessableEntity, "not flagged"},
+	} {
+		form := url.Values{"next": {"/?sel=2"}}
+		for k, v := range c.form {
+			form[k] = v
+		}
+		rec := hxPost(h, c.target, form)
+		body := rec.Body.String()
+		if rec.Code != c.status || rec.Header().Get("HX-Retarget") != "#errors" || rec.Header().Get("HX-Reswap") != "innerHTML" ||
+			!strings.Contains(body, c.msg) || !strings.Contains(body, `<div class="error-bar" role="alert">`) ||
+			!strings.Contains(body, `hx-get="/errors/clear" hx-target="#errors"`) ||
+			strings.Contains(body, `id="dash"`) || strings.Contains(body, "<html") {
+			t.Errorf("%s: status %d, retarget %q:\n%s", name, rec.Code, rec.Header().Get("HX-Retarget"), body)
+		}
+		// without JS the same request still gets the plain error page with a Back link
+		plain := post(h, c.target, form)
+		if plain.Code != c.status || !strings.Contains(plain.Body.String(), "<!doctype html>") ||
+			!strings.Contains(plain.Body.String(), `<a href="/?sel=2">Back</a>`) || plain.Header().Get("HX-Retarget") != "" {
+			t.Errorf("%s without JS: status %d", name, plain.Code)
+		}
+	}
+	// the error bar can be dismissed, and the page has a place for it
+	clear := get(h, "/errors/clear")
+	if clear.Code != http.StatusOK || clear.Body.Len() != 0 {
+		t.Errorf("clear: %d %q", clear.Code, clear.Body)
+	}
+	wantBody(t, get(h, "/"), `<div id="errors" aria-live="polite"></div>`, `"responseHandling"`)
 }

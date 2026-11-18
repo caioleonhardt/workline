@@ -39,5 +39,5 @@ func (s *Server) ackScope(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	redirect(w, r, nextURL(r))
+	s.done(w, r, nextURL(r))
 }

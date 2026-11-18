@@ -58,5 +58,5 @@ func (s *Server) createActivity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	to := withParam(nextURL(r), "new", "")
-	redirect(w, r, withParam(to, "sel", strconv.FormatInt(a.ID, 10)))
+	s.done(w, r, withParam(to, "sel", strconv.FormatInt(a.ID, 10)))
 }

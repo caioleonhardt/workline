@@ -1,8 +1,9 @@
 {{template "head" .}}
+<div id="errors" aria-live="polite"></div>
 {{template "dash" .}}
 {{template "foot" .}}
 
-{{define "dash-fragment"}}{{template "dash" .}}{{end}}
+{{define "dash-fragment"}}{{template "dash" .}}<div id="errors" aria-live="polite" hx-swap-oob="true"></div>{{end}}
 
 {{define "dash"}}
 <div id="dash" hx-boost="true" hx-target="#dash" hx-swap="outerHTML">
