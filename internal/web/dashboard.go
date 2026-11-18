@@ -30,6 +30,7 @@ type dashboardView struct {
 	AllProjects []domain.Project // choices in the form
 	Projects    []projectView
 	Panel       *panelView // nil unless sel names an existing activity
+	Controls    controlsView
 }
 
 func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
@@ -65,6 +66,8 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 		live[p.ID] = true
 	}
 	var panel *panelView
+	counts := map[domain.Status]int{}
+	creepCount := 0
 	byProject := map[int64][]domain.Activity{}
 	itemOf := map[int64]domain.ActivityWithSubtasks{}
 	for _, a := range acts {
@@ -86,6 +89,10 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		creep := domain.ScopeCreep(a, it.Subtasks, it.Ack, today)
+		counts[a.Status]++
+		if creep.Flagged {
+			creepCount++
+		}
 		if f.shows(a.Status, creep.Flagged) {
 			byProject[a.ProjectID] = append(byProject[a.ProjectID], a)
 		}
@@ -105,6 +112,7 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 		CancelHref: withParam(r.URL.RequestURI(), "new", ""),
 		ShowForm:   f.New,
 		Today:      today.String(), AllProjects: projects, Panel: panel,
+		Controls: buildControls(f, projects, counts, creepCount),
 	}
 	for _, g := range groups {
 		pv := projectView{Name: g.Project.Name}

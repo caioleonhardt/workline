@@ -145,3 +145,51 @@ func (f Filter) inScope(a domain.Activity) bool {
 func (f Filter) shows(st domain.Status, flagged bool) bool {
 	return slices.Contains(f.Statuses, st) && (!f.Creep || flagged)
 }
+
+// WithYear returns f for another year; a month stays, the selection stays.
+func (f Filter) WithYear(y int) Filter {
+	f.Year = y
+	return f
+}
+
+// WithPeriod returns f for another period; the month is cleared (SPEC §5.1).
+func (f Filter) WithPeriod(p domain.Period) Filter {
+	f.Period, f.Month = p, 0
+	return f
+}
+
+// WithScale returns f with the Year view's column scale changed.
+func (f Filter) WithScale(sc domain.Scale) Filter {
+	f.Scale = sc
+	return f
+}
+
+// ToggleStatus returns f with one status pill flipped.
+func (f Filter) ToggleStatus(st domain.Status) Filter {
+	var next []domain.Status
+	for _, s := range allStatuses {
+		if slices.Contains(f.Statuses, s) != (s == st) {
+			next = append(next, s)
+		}
+	}
+	f.Statuses = next
+	return f
+}
+
+// ToggleCreep returns f with the scope-creep filter flipped.
+func (f Filter) ToggleCreep() Filter {
+	f.Creep = !f.Creep
+	return f
+}
+
+// Filtered reports whether any filter that "Clear filters" resets is active.
+func (f Filter) Filtered() bool {
+	return f.Project != 0 || f.Month != 0 || f.Creep || !slices.Equal(f.Statuses, defaultStatuses())
+}
+
+// Cleared resets project, month, statuses and creep; year, period, scale and
+// selection stay (SPEC §10 item 42).
+func (f Filter) Cleared() Filter {
+	f.Project, f.Month, f.Creep, f.Statuses = 0, 0, false, defaultStatuses()
+	return f
+}
