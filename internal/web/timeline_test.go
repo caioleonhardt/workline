@@ -105,3 +105,51 @@ func TestTimelineColumnLoadFuture(t *testing.T) {
 	}
 	wantBody(t, get(h, "/?year=2027"), "1 planned")
 }
+
+// rowTrack returns the markup of an activity's track, from its name to its bar link.
+func rowTrack(t *testing.T, body, name string) string {
+	t.Helper()
+	i := strings.Index(body, `<span class="act-name">`+name)
+	if i < 0 {
+		t.Fatalf("row %q not found", name)
+	}
+	j := strings.Index(body[i:], `class="bar-link"`)
+	return body[i : i+j+250]
+}
+
+func TestTimelineRowSpanPlanAndLabel(t *testing.T) {
+	h, _ := newApp(t)
+	row := rowTrack(t, get(h, "/").Body.String(), "Consolidate order services into one Go service")
+	for _, want := range []string{
+		`class="span-line active" aria-hidden="true" style="left:16.44%;width:80.00%"`,
+		`class="plan active" aria-hidden="true" style="left:87.95%;width:8.49%"`, // today..due
+		`style="left:92.00%">63%`, // label sits at the due date, capped at 92%
+		`aria-label="Consolidate order services into one Go service: 63% done, 3 open subtasks. Show details"`,
+	} {
+		if !strings.Contains(row, want) {
+			t.Errorf("year row lacks %q:\n%s", want, row)
+		}
+	}
+	// a planned activity's box starts at its start date
+	row = rowTrack(t, get(h, "/").Body.String(), "2027 capacity and budget plan")
+	if !strings.Contains(row, `class="plan planned"`) || !strings.Contains(row, "left:89.32%") {
+		t.Errorf("planned row: %s", row)
+	}
+
+	// quarter view: spans are clipped to the quarter, positions use the quarter's 92 days
+	q4 := get(h, "/?period=q4").Body.String()
+	row = rowTrack(t, q4, "Consolidate order services into one Go service")
+	for _, want := range []string{`style="left:0.00%;width:85.87%"`, `class="plan active" aria-hidden="true" style="left:52.17%;width:33.70%"`} {
+		if !strings.Contains(row, want) {
+			t.Errorf("q4 row lacks %q:\n%s", want, row)
+		}
+	}
+	// done activities have no plan box
+	if strings.Contains(get(h, "/?status=done").Body.String(), `class="plan done"`) {
+		t.Error("done activity has a plan box")
+	}
+	// an activity wholly outside the period draws nothing visible
+	if body := get(h, "/?period=q1&status=active&status=done").Body.String(); strings.Contains(body, "Hire senior ML") {
+		t.Error("activity outside the period listed")
+	}
+}

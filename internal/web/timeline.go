@@ -58,6 +58,12 @@ type rowView struct {
 	Status, StatusLabel string
 	ScopeChip           string // empty unless flagged
 	OpenLabel, Dates    string
+	Tip                 string
+	SpanLeft, SpanWidth pct
+	PctLabel            string
+	PctLeft             pct
+	HasPlan             bool
+	PlanLeft, PlanWidth pct
 }
 
 type groupView struct {
@@ -140,7 +146,7 @@ func buildTimeline(f Filter, today domain.Date, groups []domain.Group, itemOf ma
 			if c.Flagged {
 				flags++
 			}
-			gv.Rows = append(gv.Rows, buildRow(f, today, it, c))
+			gv.Rows = append(gv.Rows, buildRow(f, ax, today, it, c))
 		}
 		gv.PctLabel = strconv.Itoa(domain.ProjectProgress(subs)) + "% done"
 		if flags > 0 {
@@ -151,12 +157,22 @@ func buildTimeline(f Filter, today domain.Date, groups []domain.Group, itemOf ma
 	return v
 }
 
-func buildRow(f Filter, today domain.Date, it domain.ActivityWithSubtasks, c domain.Creep) rowView {
+func buildRow(f Filter, ax axis, today domain.Date, it domain.ActivityWithSubtasks, c domain.Creep) rowView {
 	r := rowView{
 		ID: it.ID, Name: it.Name, Href: f.WithSel(it.ID).URL(), Selected: it.ID == f.Sel,
 		Status: string(it.Status), StatusLabel: capitalize(string(it.Status)),
 		OpenLabel: fmt.Sprintf("%d open / %d", domain.OpenAt(it.Subtasks, today), len(it.Subtasks)),
 		Dates:     fmt.Sprintf("%s → %s · %s", it.Start, it.Due, it.RequestedBy),
+	}
+	progress := domain.Progress(it.Status, it.Subtasks)
+	r.PctLabel = strconv.Itoa(progress) + "%"
+	r.Tip = fmt.Sprintf("%s: %s done, %d open subtasks. Show details", it.Name, r.PctLabel, domain.OpenAt(it.Subtasks, today))
+	r.SpanLeft, r.SpanWidth = ax.span(it.Start, it.Due)
+	r.SpanWidth = max(r.SpanWidth, 0.6)
+	r.PctLeft = min(92, ax.pos(it.Due.AddDays(1)))
+	if planFrom := max(it.Start, today); it.Status != domain.StatusDone && !planFrom.After(it.Due) {
+		r.PlanLeft, r.PlanWidth = ax.span(planFrom, it.Due)
+		r.HasPlan = r.PlanWidth > 0
 	}
 	if c.Flagged {
 		r.ScopeChip = "Scope"

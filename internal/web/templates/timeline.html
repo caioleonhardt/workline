@@ -26,7 +26,12 @@
 <span class="act-meta"><span class="chip {{.Status}}">{{.StatusLabel}}</span>{{if .ScopeChip}}<span class="chip creep">{{.ScopeChip}}</span>{{end}}<span class="mono small">{{.OpenLabel}}</span></span>
 <span class="muted small">{{.Dates}}</span>
 </a>
-<div class="tl-track"></div>
+<div class="tl-track">
+<span class="span-line {{.Status}}" aria-hidden="true" style="left:{{.SpanLeft}}%;width:{{.SpanWidth}}%"></span>
+{{if .HasPlan}}<span class="plan {{.Status}}" aria-hidden="true" style="left:{{.PlanLeft}}%;width:{{.PlanWidth}}%"></span>{{end}}
+<span class="pct mono small" aria-hidden="true" style="left:{{.PctLeft}}%">{{.PctLabel}}</span>
+<a class="bar-link" href="{{.Href}}" aria-label="{{.Tip}}" style="left:{{.SpanLeft}}%;width:{{.SpanWidth}}%"></a>
+</div>
 </div>
 {{end}}
 </div>

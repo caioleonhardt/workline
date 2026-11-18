@@ -83,3 +83,12 @@ textarea { border: 1px solid var(--border); border-radius: 8px; padding: 8px; fo
 .act-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .chip.creep { background: var(--creep-bg); color: var(--creep-fg); font-weight: 600; }
 .empty { padding: 48px 16px; text-align: center; color: var(--muted); }
+.act-row .tl-track { height: 84px; }
+.tl-track > * { position: absolute; }
+.span-line { bottom: 14px; height: 2px; background: var(--tint, #D3DDFA); }
+.span-line.planned { --tint: #E1E4EA; --bar: #8B94A5; } .span-line.active { --tint: #D3DDFA; --bar: #2F5BEA; }
+.span-line.blocked { --tint: #FADFC2; --bar: #E07A12; } .span-line.done { --tint: #CFE8DA; --bar: #1F8A5B; }
+.plan { bottom: 14px; height: 14px; border: 1.5px dashed var(--bar); border-radius: 3px; opacity: 0.55; }
+.plan.planned { --bar: #8B94A5; } .plan.active { --bar: #2F5BEA; } .plan.blocked { --bar: #E07A12; } .plan.done { --bar: #1F8A5B; }
+.pct { top: 8px; padding-left: 6px; color: var(--muted); white-space: nowrap; }
+.bar-link { top: 0; bottom: 0; min-width: 12px; }
