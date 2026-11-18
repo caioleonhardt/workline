@@ -277,11 +277,11 @@ func TestCompletionDotsOnePerDay(t *testing.T) {
 	const name = "Kafka upgrade readiness"
 	row := rowTrack(t, get(h, "/").Body.String(), name)
 	// seeded: one subtask closed on Oct 5 and one on Oct 19, neither with a time
-	if n := strings.Count(row, `class="done-dot center"`); n != 2 {
+	if n := strings.Count(row, `class="done-dot center`); n != 2 {
 		t.Fatalf("dots = %d, want 2:\n%s", n, row)
 	}
 	for _, want := range []string{
-		`class="done-dot center" style="left:75.89%"><button type="button" class="dot" aria-label="1 subtask completed on 2026-10-05" aria-describedby="done-2-2026-10-05">`,
+		`class="done-dot center down" style="left:75.89%"><button type="button" class="dot" aria-label="1 subtask completed on 2026-10-05" aria-describedby="done-2-2026-10-05">`,
 		`<span class="popup" id="done-2-2026-10-05"><strong>2026-10-05</strong><ul><li>Compatibility matrix</li></ul>`,
 		`style="left:79.73%"`,
 	} {
@@ -346,7 +346,7 @@ func TestCompletionPopupsStayInsideTheTrack(t *testing.T) {
 		t.Fatal(err)
 	}
 	row := rowTrack(t, get(h, "/").Body.String(), "Kafka upgrade readiness")
-	for _, want := range []string{`class="done-dot left" style="left:0.55%"`, `class="done-dot right" style="left:87.95%"`} {
+	for _, want := range []string{`class="done-dot left down" style="left:0.55%"`, `class="done-dot right down" style="left:87.95%"`} {
 		if !strings.Contains(row, want) {
 			t.Errorf("missing %q", want)
 		}
@@ -356,4 +356,42 @@ func TestCompletionPopupsStayInsideTheTrack(t *testing.T) {
 		t.Error("dot outside the period")
 	}
 	wantBody(t, get(h, "/"), "Subtasks completed")
+}
+
+// Popups open upward and fit above any row; the first two rows open downward
+// instead, but only when two more rows follow to hold them.
+func TestCompletionPopupsOpenDownInTheFirstRows(t *testing.T) {
+	h, _ := newApp(t)
+	downIn := func(body, name string) bool {
+		t.Helper()
+		row := rowTrack(t, body, name)
+		if !strings.Contains(row, "done-dot") {
+			t.Fatalf("%s has no dots", name)
+		}
+		return strings.Contains(row, " down\"")
+	}
+	// all default activities: six rows, so rows 1 and 2 (Kafka, Consolidate) open down
+	body := get(h, "/").Body.String()
+	var order []string
+	for _, m := range regexp.MustCompile(`<span class="act-name">([^<]*)</span>`).FindAllStringSubmatch(body, -1) {
+		order = append(order, m[1])
+	}
+	if len(order) != 6 {
+		t.Fatalf("rows: %v", order)
+	}
+	for i, name := range order {
+		row := rowTrack(t, body, name)
+		if got := strings.Contains(row, " down\""); strings.Contains(row, "done-dot") && got != (i < 2) {
+			t.Errorf("row %d (%s): down = %v", i, name, got)
+		}
+	}
+	// project 3 has three rows: only the first has two rows below it
+	p3 := get(h, "/?project=3").Body.String()
+	if !downIn(p3, "Team onboarding guide refresh") || downIn(p3, "Hire senior ML engineer") || downIn(p3, "Mentoring plan for two juniors") {
+		t.Error("project 3: only its first row opens downward")
+	}
+	// a lone row cannot hold a downward popup
+	if downIn(get(h, "/?project=4&status=done").Body.String(), "Postmortem: inference latency incident") {
+		t.Error("a single row opens downward")
+	}
 }

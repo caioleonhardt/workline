@@ -78,11 +78,22 @@ type doneDot struct {
 	ID    string // of the popup, for aria-describedby
 	Day   string
 	Align string // "left", "center" or "right": which way the popup opens, to stay inside the track
+	Down  bool   // the popup opens downward (first rows)
 	Label string
 	Items []doneItem
 }
 
 type doneItem struct{ Time, Text string }
+
+// Popups open upward and are capped at 150px, which fits above any row
+// (the header and a project row alone leave 200px above the first row's bottom).
+// The first popupDownRows rows open downward instead so a popup never meets the
+// header, but only when popupDownRoom more rows follow it, or it would run past
+// the bottom of the grid.
+const (
+	popupDownRows = 2
+	popupDownRoom = 2 // rows: 2 x 84px holds a 150px popup
+)
 
 // timelineData is what the dashboard hands to buildTimeline.
 type timelineData struct {
@@ -179,6 +190,7 @@ func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 		v.BandLeft, v.BandWidth = ax.span(ms, me)
 	}
 
+	rowNo := 0
 	for _, g := range d.Groups {
 		gv := groupView{ID: g.Project.ID, Name: g.Project.Name, CountLabel: plural(len(g.Activities), "activity", "activities")}
 		var subs []domain.Subtask
@@ -190,7 +202,9 @@ func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 			if c.Flagged {
 				flags++
 			}
-			gv.Rows = append(gv.Rows, buildRow(f, l, it, c))
+			popupsDown := rowNo < popupDownRows && len(visible)-rowNo-1 >= popupDownRoom
+			rowNo++
+			gv.Rows = append(gv.Rows, buildRow(f, l, it, c, popupsDown))
 		}
 		gv.PctLabel = strconv.Itoa(domain.ProjectProgress(subs)) + "% done"
 		if flags > 0 {
@@ -201,7 +215,7 @@ func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 	return v
 }
 
-func buildRow(f Filter, l layout, it domain.ActivityWithSubtasks, c domain.Creep) rowView {
+func buildRow(f Filter, l layout, it domain.ActivityWithSubtasks, c domain.Creep, popupsDown bool) rowView {
 	ax, today := l.ax, l.today
 	r := rowView{
 		ID: it.ID, Name: it.Name, Href: f.WithSel(it.ID).URL(), Selected: it.ID == f.Sel,
@@ -227,7 +241,7 @@ func buildRow(f Filter, l layout, it domain.ActivityWithSubtasks, c domain.Creep
 		}
 		r.Bins = append(r.Bins, bv)
 	}
-	r.Done = completionDots(l, it)
+	r.Done = completionDots(l, it, popupsDown)
 	if c.Flagged {
 		r.ScopeChip = "Scope"
 		if c.Added > 0 {
@@ -240,7 +254,7 @@ func buildRow(f Filter, l layout, it domain.ActivityWithSubtasks, c domain.Creep
 // completionDots returns one dot per day in the period on which a subtask of
 // the activity was closed. Within a day, subtasks without a close time come
 // first, then by time, then by id.
-func completionDots(l layout, it domain.ActivityWithSubtasks) []doneDot {
+func completionDots(l layout, it domain.ActivityWithSubtasks, down bool) []doneDot {
 	byDay := map[domain.Date][]domain.Subtask{}
 	var days []domain.Date
 	for _, st := range it.Subtasks {
@@ -261,7 +275,7 @@ func completionDots(l layout, it domain.ActivityWithSubtasks) []doneDot {
 		})
 		d := doneDot{
 			Left: l.ax.pos(day), ID: fmt.Sprintf("done-%d-%s", it.ID, day), Day: day.String(), Align: "center",
-			Label: plural(len(subs), "subtask", "subtasks") + " completed on " + day.String(),
+			Label: plural(len(subs), "subtask", "subtasks") + " completed on " + day.String(), Down: down,
 		}
 		if d.Left < 15 {
 			d.Align = "left"

@@ -111,6 +111,7 @@ textarea { border: 1px solid var(--border); border-radius: 8px; padding: 8px; fo
 .popup ul { margin: 4px 0 0; padding-left: 16px; }
 .done-dot.left .popup { transform: none; left: -16px; }
 .done-dot.right .popup { transform: none; left: auto; right: -16px; }
+.done-dot.down .popup { bottom: auto; top: 38px; }
 .done-dot:hover, .done-dot:focus-within { z-index: 6; }
 .done-dot:hover .popup, .done-dot:focus-within .popup { display: block; }
 .dot-sample { width: 10px; height: 10px; border-radius: 5px; background: #16181D; }
