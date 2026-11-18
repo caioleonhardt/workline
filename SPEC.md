@@ -361,3 +361,12 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 55. Completion-dot popups in the first timeline rows open downward so they are not clipped; others open upward and scroll past 150px.
 56. A subtask keeps only its latest close; reopening and closing again moves its dot (no history).
 57. `serve -port N` sets the port; the "listening" log line is written only after the socket is bound.
+
+### Decisions (Milestone 4, 2026-11-18)
+58. **htmx 2.0.11**, vendored at `internal/web/static/htmx.min.js` (from the npm registry tarball, integrity `sha512-Thx/WtpeOQqSrqBCw/A1cwGJGg4UrVa3+sW0GmrM3p4gJgO89ecH4qtbnyzDDWFvBTqjnIMCgELTNt636dtamA==`; file sha256 `d6fdc75f204e6bdefa99b69bf1e6d4ac69b8a364f77929f45c13476b4000f717`). Config: `allowEval:false`, `selfRequestsOnly:true`, `historyCacheSize:0`.
+59. **One swap region**: the dashboard lives in `#dash` with `hx-boost`; HX requests get the `#dash` fragment, others the full page or 303. `Vary: HX-Request`; history-restore requests get the full page. Mutations answer HX with the fragment plus `HX-Push-Url`.
+60. Auto-submitting selects and status; subtasks are checkboxes. Apply/Save buttons show only without JS (`html.js`).
+61. Accepted: a swap resets the timeline's horizontal scroll and drops unsent panel text.
+62. Panel burndown heights are relative to the activity's total subtasks (as in the mockup).
+63. **HX validation errors** (422) show in a small error bar above the dashboard (`HX-Retarget`/`HX-Reswap`), leaving the dashboard as it was. Without JS, item 27's error page applies.
+64. With nothing selected, the panel shows "Select an activity to see its burndown, scope, subtasks and journal." 
