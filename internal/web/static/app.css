@@ -1,0 +1,31 @@
+:root {
+  --bg: #F6F6F3; --surface: #FFFFFF; --border: #E3E3DE; --text: #16181D; --muted: #4A505C;
+  --planned-bg: #EEF0F3; --planned-fg: #454C5A;
+  --active-bg: #E6EDFF; --active-fg: #1D43BF;
+  --blocked-bg: #FFEFDD; --blocked-fg: #8F4500;
+  --done-bg: #E2F3EA; --done-fg: #16603E;
+  --creep-bg: #FCE7F0; --creep-fg: #9D1F5F;
+  --today: #C2410C;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main, .top { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.top { display: flex; align-items: center; gap: 24px; }
+.brand { font-weight: 700; font-size: 20px; color: var(--text); text-decoration: none; }
+a { color: var(--active-fg); }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+.muted { color: var(--muted); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin: 0 0 16px; }
+.card h2, .card h3 { margin: 0 0 8px; font-size: 16px; }
+.rows { list-style: none; margin: 0; padding: 0; }
+.rows li { padding: 8px 0; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.chip { border-radius: 999px; padding: 1px 10px; font-size: 12px; }
+.chip.planned { background: var(--planned-bg); color: var(--planned-fg); }
+.chip.active { background: var(--active-bg); color: var(--active-fg); }
+.chip.blocked { background: var(--blocked-bg); color: var(--blocked-fg); }
+.chip.done { background: var(--done-bg); color: var(--done-fg); }
+button, input, select { font: inherit; min-height: 44px; }
+input, select { border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; background: var(--surface); color: var(--text); }
+button { border: 1px solid var(--border); border-radius: 8px; padding: 4px 14px; background: var(--surface); color: var(--text); cursor: pointer; }
+form.inline { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0; }
+label { display: inline-flex; flex-direction: column; font-size: 12px; color: var(--muted); }

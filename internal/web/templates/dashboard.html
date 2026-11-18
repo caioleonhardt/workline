@@ -1,0 +1,19 @@
+{{template "head" .}}
+{{range .Projects}}
+<section class="card">
+<h2>{{.Name}}</h2>
+{{if .Activities}}
+<ul class="rows">
+{{range .Activities}}
+<li><a href="{{.Href}}">{{.Name}}</a>
+<span class="chip {{.Status}}">{{.Status}}</span>
+{{if .Priority}}<span class="muted">{{.Priority}}</span>{{end}}
+<span class="muted mono">{{.Open}} / {{.Total}} open · {{.Progress}}% · {{.Start}} → {{.Due}}</span></li>
+{{end}}
+</ul>
+{{else}}<p class="muted">No activities.</p>{{end}}
+</section>
+{{else}}
+<p>No activities match these filters.</p>
+{{end}}
+{{template "foot" .}}
