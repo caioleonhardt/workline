@@ -21,6 +21,19 @@ type projectView struct {
 	Activities []activityRow
 }
 
+type tileView struct {
+	Label, Class string
+	Value        int
+}
+
+func buildTiles(t domain.Tiles) []tileView {
+	return []tileView{
+		{"Active", "active", t.Active}, {"Blocked", "blocked", t.Blocked}, {"Planned", "planned", t.Planned},
+		{"Done this year", "done", t.DoneThisYear}, {"Open subtasks now", "", t.OpenSubtasks},
+		{"Scope creep flags", "creep", t.ScopeFlags},
+	}
+}
+
 type dashboardView struct {
 	Title, Next string
 	NewHref     string // header link that opens the inline form
@@ -31,6 +44,7 @@ type dashboardView struct {
 	Projects    []projectView
 	Panel       *panelView // nil unless sel names an existing activity
 	Controls    controlsView
+	Tiles       []tileView
 }
 
 func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
@@ -66,6 +80,7 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 		live[p.ID] = true
 	}
 	var panel *panelView
+	var tileItems []domain.ActivityWithSubtasks // the project filter only, not period or status
 	counts := map[domain.Status]int{}
 	creepCount := 0
 	byProject := map[int64][]domain.Activity{}
@@ -84,6 +99,9 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 				s.fail(w, r, err)
 				return
 			}
+		}
+		if f.Project == 0 || a.ProjectID == f.Project {
+			tileItems = append(tileItems, it)
 		}
 		if !f.inScope(a) {
 			continue
@@ -113,6 +131,7 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 		ShowForm:   f.New,
 		Today:      today.String(), AllProjects: projects, Panel: panel,
 		Controls: buildControls(f, projects, counts, creepCount),
+		Tiles:    buildTiles(domain.ComputeTiles(tileItems, f.Year, today)),
 	}
 	for _, g := range groups {
 		pv := projectView{Name: g.Project.Name}

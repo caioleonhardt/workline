@@ -29,6 +29,9 @@
 </section>
 {{end}}
 {{template "controls" .Controls}}
+<div class="tiles">
+{{range .Tiles}}<div class="tile"><div class="tile-label"><span class="dot {{.Class}}" aria-hidden="true"></span>{{.Label}}</div><div class="tile-value mono">{{.Value}}</div></div>
+{{end}}</div>
 {{range .Projects}}
 <section class="card">
 <h2>{{.Name}}</h2>
