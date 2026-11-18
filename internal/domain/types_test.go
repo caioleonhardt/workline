@@ -18,6 +18,10 @@ func TestValidate(t *testing.T) {
 		{"no start", func(a *Activity) { a.Start = 0 }, true},
 		{"no due", func(a *Activity) { a.Due = 0 }, true},
 		{"due before start", func(a *Activity) { a.Due = d(t, "2025-12-31") }, true},
+		{"priority", func(a *Activity) { a.Priority = PriorityHigh }, false},
+		{"bad priority", func(a *Activity) { a.Priority = "urgent" }, true},
+		{"done with done date", func(a *Activity) { a.Status, a.DoneOn = StatusDone, d(t, "2026-01-01") }, false},
+		{"done date on active", func(a *Activity) { a.DoneOn = d(t, "2026-01-01") }, true},
 	}
 	for _, c := range acts {
 		a := ok

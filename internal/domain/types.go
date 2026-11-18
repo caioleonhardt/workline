@@ -50,6 +50,26 @@ func (k Kind) Valid() bool {
 	return false
 }
 
+// Priority orders activities; the empty value means "no priority".
+type Priority string
+
+// Priorities.
+const (
+	PriorityNone   Priority = ""
+	PriorityHigh   Priority = "high"
+	PriorityMedium Priority = "medium"
+	PriorityLow    Priority = "low"
+)
+
+// Valid reports whether p is a known priority or empty.
+func (p Priority) Valid() bool {
+	switch p {
+	case PriorityNone, PriorityHigh, PriorityMedium, PriorityLow:
+		return true
+	}
+	return false
+}
+
 // Project groups activities.
 type Project struct {
 	ID       int64
@@ -64,8 +84,10 @@ type Activity struct {
 	Name        string
 	RequestedBy string
 	Status      Status
+	Priority    Priority
 	Start       Date
 	Due         Date
+	DoneOn      Date // zero unless Status is done
 }
 
 // Subtask is one checkable item of an activity. ClosedOn is zero while open.
@@ -114,6 +136,10 @@ func (a Activity) Validate() error {
 		return invalid("activity name is required")
 	case !a.Status.Valid():
 		return invalid("unknown status %q", a.Status)
+	case !a.Priority.Valid():
+		return invalid("unknown priority %q", a.Priority)
+	case !a.DoneOn.IsZero() && a.Status != StatusDone:
+		return invalid("done date set on a %s activity", a.Status)
 	case a.Start.IsZero() || a.Due.IsZero():
 		return invalid("start and due dates are required")
 	case a.Due.Before(a.Start):
