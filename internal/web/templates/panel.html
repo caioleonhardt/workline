@@ -10,6 +10,39 @@
 </form>
 <p><strong>{{.Progress}}%</strong> · {{.Closed}} of {{.Total}} subtasks done</p>
 
+<h3>Subtasks</h3>
+<ul class="rows">
+{{range .Subtasks}}
+<li>
+<form class="inline" method="post" action="/subtasks/{{.ID}}/toggle">
+<input type="hidden" name="next" value="{{$.Next}}">
+<button{{if .Closed}} aria-pressed="true"{{else}} aria-pressed="false"{{end}}>{{if .Closed}}Reopen{{else}}Close{{end}}</button>
+</form>
+<span>{{.Text}}</span>
+<span class="muted mono">opened {{.Created}}{{if .Closed}} · closed {{.Closed}}{{end}}</span>
+<details>
+<summary>Edit</summary>
+<form class="inline" method="post" action="/subtasks/{{.ID}}">
+<input type="hidden" name="next" value="{{$.Next}}">
+<label>Text<input name="text" value="{{.Text}}" required></label>
+<label>Opened<input type="date" name="created_on" value="{{.Created}}" required></label>
+<button>Save</button>
+</form>
+<form method="post" action="/subtasks/{{.ID}}/delete">
+<input type="hidden" name="next" value="{{$.Next}}">
+<details><summary>Delete…</summary><button>Confirm delete</button></details>
+</form>
+</details>
+</li>
+{{else}}<li class="muted">No subtasks.</li>{{end}}
+</ul>
+<form class="inline" method="post" action="/activities/{{.ID}}/subtasks">
+<input type="hidden" name="next" value="{{.Next}}">
+<label>New subtask<input name="text" required></label>
+<label>Opened<input type="date" name="created_on" value="{{.Today}}"></label>
+<button>Add</button>
+</form>
+
 <details>
 <summary>Edit activity</summary>
 <form method="post" action="/activities/{{.ID}}" class="stack">
