@@ -20,6 +20,8 @@ type panelView struct {
 	Start, Due                           string
 	Today                                string
 	Subtasks                             []subtaskRow
+	Journal                              []journalRow
+	NewKinds                             []option
 	Progress, Closed, Total              int
 	Statuses, Priorities, ProjectChoices []option
 }
@@ -40,10 +42,11 @@ func priorityOptions(cur domain.Priority) []option {
 	return out
 }
 
-func buildPanel(a domain.Activity, projects []domain.Project, subs []domain.Subtask, today domain.Date, next string) *panelView {
+func buildPanel(a domain.Activity, projects []domain.Project, subs []domain.Subtask, journal []domain.JournalEntry, today domain.Date, next string) *panelView {
 	p := &panelView{
 		Next: next, ID: a.ID, Name: a.Name, RequestedBy: a.RequestedBy,
 		Start: a.Start.String(), Due: a.Due.String(), Today: today.String(), Subtasks: subtaskRows(subs),
+		Journal: journalRows(journal), NewKinds: kindOptions(domain.KindUpdate),
 		Progress: domain.Progress(a.Status, subs), Total: len(subs),
 		Statuses: statusOptions(a.Status), Priorities: priorityOptions(a.Priority),
 	}

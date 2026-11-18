@@ -59,7 +59,12 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 	var panel *panelView
 	for _, a := range acts {
 		if a.ID == sel {
-			panel = buildPanel(a, projects, subsOf[a.ID], today, r.URL.RequestURI())
+			journal, err := s.store.ListJournal(ctx, a.ID)
+			if err != nil {
+				s.fail(w, r, err)
+				return
+			}
+			panel = buildPanel(a, projects, subsOf[a.ID], journal, today, r.URL.RequestURI())
 		}
 		rows[a.ProjectID] = append(rows[a.ProjectID], activityRow{
 			ID: a.ID, Name: a.Name, Status: string(a.Status), Priority: string(a.Priority),

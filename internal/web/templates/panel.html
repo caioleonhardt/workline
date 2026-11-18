@@ -43,6 +43,38 @@
 <button>Add</button>
 </form>
 
+<h3>Journal</h3>
+<form class="inline" method="post" action="/activities/{{.ID}}/journal">
+<input type="hidden" name="next" value="{{.Next}}">
+<label>Kind<select name="kind">{{range .NewKinds}}<option value="{{.Value}}">{{.Label}}</option>{{end}}</select></label>
+<label>Entry<input name="text" required></label>
+<label>Date<input type="date" name="date" value="{{.Today}}"></label>
+<button>Log</button>
+</form>
+<ul class="rows">
+{{range .Journal}}
+<li>
+<span class="muted mono">{{.Date}}</span> <span class="chip kind-{{.Kind}}">{{.Kind}}</span> <span>{{.Text}}</span>
+{{if not .ReadOnly}}
+<details>
+<summary>Edit</summary>
+<form class="inline" method="post" action="/journal/{{.ID}}">
+<input type="hidden" name="next" value="{{$.Next}}">
+<label>Kind<select name="kind">{{range .Kinds}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+<label>Entry<input name="text" value="{{.Text}}" required></label>
+<label>Date<input type="date" name="date" value="{{.Date}}" required></label>
+<button>Save</button>
+</form>
+<form method="post" action="/journal/{{.ID}}/delete">
+<input type="hidden" name="next" value="{{$.Next}}">
+<details><summary>Delete…</summary><button>Confirm delete</button></details>
+</form>
+</details>
+{{end}}
+</li>
+{{else}}<li class="muted">No entries.</li>{{end}}
+</ul>
+
 <details>
 <summary>Edit activity</summary>
 <form method="post" action="/activities/{{.ID}}" class="stack">
