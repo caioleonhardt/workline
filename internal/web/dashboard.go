@@ -46,7 +46,12 @@ func (s *Server) renderDashboard(w http.ResponseWriter, r *http.Request, uri str
 		s.fail(w, r, err)
 		return
 	}
-	s.render(w, http.StatusOK, "dashboard.html", v)
+	w.Header().Set("Vary", "HX-Request")
+	name := "dashboard.html"
+	if isHX(r) {
+		name = "dash-fragment"
+	}
+	s.render(w, http.StatusOK, name, v)
 }
 
 // buildDashboard loads everything the dashboard shows for the given path and query.

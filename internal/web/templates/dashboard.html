@@ -2,8 +2,10 @@
 {{template "dash" .}}
 {{template "foot" .}}
 
+{{define "dash-fragment"}}{{template "dash" .}}{{end}}
+
 {{define "dash"}}
-<div id="dash">
+<div id="dash" hx-boost="true" hx-target="#dash" hx-swap="outerHTML">
 <header class="dash">
 <div>
 <div class="eyebrow mono">{{.Controls.Eyebrow}}</div>

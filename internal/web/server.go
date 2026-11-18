@@ -69,6 +69,12 @@ func (s *Server) render(w http.ResponseWriter, status int, name string, data any
 	buf.WriteTo(w)
 }
 
+// isHX reports whether the request came from htmx and wants a fragment. A
+// history restore needs the whole page.
+func isHX(r *http.Request) bool {
+	return r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-History-Restore-Request") != "true"
+}
+
 type errorView struct {
 	Title, Message, Back string
 }
