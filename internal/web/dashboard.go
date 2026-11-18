@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"workline/internal/domain"
-	"workline/internal/store"
 )
 
 type tileView struct {
@@ -57,15 +56,6 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.fail(w, r, err)
 		return
-	}
-	journalMarks, err := s.store.ListJournalMarks(ctx)
-	if err != nil {
-		s.fail(w, r, err)
-		return
-	}
-	marks := map[int64][]store.JournalMark{}
-	for _, m := range journalMarks {
-		marks[m.ActivityID] = append(marks[m.ActivityID], m)
 	}
 	subsOf := map[int64][]domain.Subtask{}
 	for _, st := range subs {
@@ -129,7 +119,7 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 		ShowForm:   f.New,
 		Today:      today.String(), AllProjects: projects, Panel: panel,
 		Controls: buildControls(f, projects, counts, creepCount),
-		Timeline: buildTimeline(f, today, timelineData{Groups: groups, ItemOf: itemOf, Creeps: creeps, Marks: marks}),
+		Timeline: buildTimeline(f, today, timelineData{Groups: groups, ItemOf: itemOf, Creeps: creeps}),
 		Tiles:    buildTiles(domain.ComputeTiles(tileItems, f.Year, today)),
 	}
 	s.render(w, http.StatusOK, "dashboard.html", v)

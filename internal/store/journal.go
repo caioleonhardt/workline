@@ -68,40 +68,6 @@ func (s *Store) ListJournal(ctx context.Context, activityID int64) ([]domain.Jou
 	return out, rows.Err()
 }
 
-// JournalMark is the part of a journal entry the timeline draws as a dot.
-type JournalMark struct {
-	ActivityID int64
-	Date       domain.Date
-	Kind       domain.Kind
-	Text       string
-	LoggedAt   string // empty for entries without a logged time
-}
-
-// ListJournalMarks returns every entry's activity, date and kind.
-func (s *Store) ListJournalMarks(ctx context.Context) ([]JournalMark, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT activity_id, date, kind, text, logged_at FROM journal_entries
-		 ORDER BY date, logged_at IS NOT NULL, logged_at, id`)
-	if err != nil {
-		return nil, fmt.Errorf("list journal marks: %w", err)
-	}
-	defer rows.Close()
-	var out []JournalMark
-	for rows.Next() {
-		var m JournalMark
-		var date, kind string
-		var loggedAt sql.NullString
-		if err := rows.Scan(&m.ActivityID, &date, &kind, &m.Text, &loggedAt); err != nil {
-			return nil, fmt.Errorf("scan journal mark: %w", err)
-		}
-		m.Kind, m.LoggedAt = domain.Kind(kind), loggedAt.String
-		if m.Date, err = parseDate(date); err != nil {
-			return nil, err
-		}
-		out = append(out, m)
-	}
-	return out, rows.Err()
-}
-
 // EditJournal rewrites date, kind and text. scope_ack entries are read-only.
 func (s *Store) EditJournal(ctx context.Context, id int64, date domain.Date, kind domain.Kind, text string) error {
 	j := domain.JournalEntry{ActivityID: id, Date: date, Kind: kind, Text: text}

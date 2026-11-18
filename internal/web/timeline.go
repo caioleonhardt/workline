@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"workline/internal/domain"
-	"workline/internal/store"
 )
 
 // pct is a percentage of the track width; it prints as "12.34" so templates
@@ -66,33 +65,15 @@ type rowView struct {
 	HasPlan             bool
 	PlanLeft, PlanWidth pct
 	Bins                []binView
-	Dots                []dotView
 }
 
 type binView struct{ Left, Width, Height pct }
-
-// Journal dots sit on the row's baseline; dots of the same day stack upward.
-// The stack stops growing after dotStackMax dots, which then overlap on the top
-// slot: each keeps its own label.
-const (
-	dotBase     = 10 // px above the row's bottom edge
-	dotStep     = 9  // px between stacked dots
-	dotStackMax = 6
-)
-
-type dotView struct {
-	Left   pct
-	Bottom int // px
-	Kind   string
-	Label  string // date, time if any, kind and text
-}
 
 // timelineData is what the dashboard hands to buildTimeline.
 type timelineData struct {
 	Groups []domain.Group
 	ItemOf map[int64]domain.ActivityWithSubtasks
 	Creeps map[int64]domain.Creep
-	Marks  map[int64][]store.JournalMark
 }
 
 // layout is the geometry shared by all rows of one timeline.
@@ -194,7 +175,7 @@ func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 			if c.Flagged {
 				flags++
 			}
-			gv.Rows = append(gv.Rows, buildRow(f, l, it, c, d.Marks[a.ID]))
+			gv.Rows = append(gv.Rows, buildRow(f, l, it, c))
 		}
 		gv.PctLabel = strconv.Itoa(domain.ProjectProgress(subs)) + "% done"
 		if flags > 0 {
@@ -205,7 +186,7 @@ func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 	return v
 }
 
-func buildRow(f Filter, l layout, it domain.ActivityWithSubtasks, c domain.Creep, marks []store.JournalMark) rowView {
+func buildRow(f Filter, l layout, it domain.ActivityWithSubtasks, c domain.Creep) rowView {
 	ax, today := l.ax, l.today
 	r := rowView{
 		ID: it.ID, Name: it.Name, Href: f.WithSel(it.ID).URL(), Selected: it.ID == f.Sel,
@@ -230,22 +211,6 @@ func buildRow(f Filter, l layout, it domain.ActivityWithSubtasks, c domain.Creep
 			bv.Height = pct(float64(b.Open) / float64(l.maxOpen) * 100)
 		}
 		r.Bins = append(r.Bins, bv)
-	}
-	stacked := map[domain.Date]int{}
-	for _, m := range marks {
-		if m.Date.Before(l.from) || m.Date.After(l.to) {
-			continue
-		}
-		slot := min(stacked[m.Date], dotStackMax-1)
-		stacked[m.Date]++
-		when := m.Date.String()
-		if m.LoggedAt != "" {
-			when += " " + domain.StampTime(m.LoggedAt)
-		}
-		r.Dots = append(r.Dots, dotView{
-			Left: ax.pos(m.Date), Bottom: dotBase + slot*dotStep, Kind: string(m.Kind),
-			Label: fmt.Sprintf("%s, %s: %s", when, m.Kind, m.Text),
-		})
 	}
 	if c.Flagged {
 		r.ScopeChip = "Scope"

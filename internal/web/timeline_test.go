@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"workline/internal/domain"
 
+	"workline/internal/domain"
 	"workline/internal/store"
 )
 
@@ -191,29 +191,13 @@ func TestTimelineBinsUseGlobalMax(t *testing.T) {
 	}
 }
 
-func TestTimelineJournalDotsAndLegend(t *testing.T) {
-	h, st := newApp(t)
+func TestTimelineHasNoJournalDots(t *testing.T) {
+	h, _ := newApp(t)
 	body := get(h, "/").Body.String()
-	kafka := rowTrack(t, body, "Kafka upgrade readiness")
-	if n := strings.Count(kafka, `class="dot-mark`); n != 4 {
-		t.Errorf("dots = %d, want 4", n)
+	if strings.Contains(body, "dot-mark") || strings.Contains(body, "Journal entry") {
+		t.Error("journal entries must not appear on the timeline")
 	}
-	if !strings.Contains(kafka, `class="dot-mark kind-blocker" role="img" aria-label="2026-11-03, blocker: Waiting on platform team for a maintenance window" title="2026-11-03, blocker: Waiting on platform team for a maintenance window" style="left:83.84%;bottom:10px"`) {
-		t.Errorf("blocker dot missing: %s", kafka)
-	}
-	// dots outside the period are dropped
-	q4 := rowTrack(t, get(h, "/?period=q4").Body.String(), "Kafka upgrade readiness")
-	if n := strings.Count(q4, `class="dot-mark`); n != 3 {
-		t.Errorf("q4 dots = %d, want 3 (Sep 7 is before the quarter)", n)
-	}
-	// an acknowledgement adds a scope_ack dot
-	if _, err := st.AckScope(ctx, 2, domain.FixedClock{D: date(t, testToday)}); err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(get(h, "/").Body.String(), "kind-scope_ack") {
-		t.Error("scope_ack dot missing")
-	}
-	wantBody(t, get(h, "/"), "Activity: open subtasks (taller = more open)", "Until due date", "Journal entry")
+	wantBody(t, get(h, "/"), "Activity: open subtasks (taller = more open)", "Until due date")
 }
 
 func TestProjectRowIsAnExpandedToggle(t *testing.T) {
@@ -285,63 +269,5 @@ func TestQuarterBinsNeverExceedFullHeight(t *testing.T) {
 	// the year view samples weekly: nothing is open at any week end, so its bars stay flat
 	if got := maxBinHeight(t, get(h, "/?project=5").Body.String()); got != 0 {
 		t.Errorf("year view bar = %.2f%%, want 0", got)
-	}
-}
-
-func TestJournalDotsStackByDay(t *testing.T) {
-	h, st := newApp(t)
-	add := func(day, at, kind, text string) {
-		t.Helper()
-		if _, err := st.AddJournal(ctx, domain.JournalEntry{ActivityID: 7, Date: date(t, day), Kind: domain.Kind(kind), Text: text, LoggedAt: at}); err != nil {
-			t.Fatal(err)
-		}
-	}
-	// Team onboarding guide (activity 7): two seeded entries on Oct 5 and Oct 29
-	add("2026-10-29", "2026-10-29 15:00", "decision", "second")
-	add("2026-10-29", "2026-10-29 09:30", "blocker", "first")
-	row := rowTrack(t, get(h, "/").Body.String(), "Team onboarding guide refresh")
-	dots := regexp.MustCompile(`class="dot-mark kind-(\w+)" role="img" aria-label="([^"]*)" title="[^"]*" style="left:([\d.]+)%;bottom:(\d+)px"`).FindAllStringSubmatch(row, -1)
-	type dot struct{ kind, label, left, bottom string }
-	var got []dot
-	for _, d := range dots {
-		got = append(got, dot{d[1], d[2], d[3], d[4]})
-	}
-	want := []dot{
-		{"update", "2026-10-05, update: Started", "75.89", "10"},
-		{"update", "2026-10-29, update: Local environment section rewritten", "82.47", "10"}, // no logged time: bottom of the stack
-		{"blocker", "2026-10-29 09:30, blocker: first", "82.47", "19"},                       // oldest logged time lowest
-		{"decision", "2026-10-29 15:00, decision: second", "82.47", "28"},
-	}
-	if len(got) != len(want) {
-		t.Fatalf("dots: %+v", got)
-	}
-	for i := range want {
-		if got[i] != want[i] {
-			t.Errorf("dot %d = %+v, want %+v", i, got[i], want[i])
-		}
-	}
-}
-
-func TestJournalDotStackStopsAtTheRowTop(t *testing.T) {
-	h, st := newApp(t)
-	for i := 0; i < 9; i++ {
-		if _, err := st.AddJournal(ctx, domain.JournalEntry{ActivityID: 7, Date: date(t, "2026-11-02"), Kind: domain.KindUpdate, Text: "n"}); err != nil {
-			t.Fatal(err)
-		}
-	}
-	row := rowTrack(t, get(h, "/").Body.String(), "Team onboarding guide refresh")
-	if n := strings.Count(row, `style="left:83.56%;bottom:`); n != 9 {
-		t.Errorf("every entry keeps its dot: %d", n)
-	}
-	for _, bottom := range []string{"bottom:10px", "bottom:19px", "bottom:28px", "bottom:37px", "bottom:46px", "bottom:55px"} {
-		if !strings.Contains(row, bottom) {
-			t.Errorf("missing slot %s", bottom)
-		}
-	}
-	if strings.Contains(row, "bottom:64px") {
-		t.Error("stack grew past its cap")
-	}
-	if got := strings.Count(row, "left:83.56%;bottom:55px"); got != 4 { // slots 5..8 share the top slot
-		t.Errorf("overflowing dots on the top slot = %d, want 4", got)
 	}
 }
