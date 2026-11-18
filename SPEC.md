@@ -333,3 +333,6 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 29. Mutating forms carry a hidden `next` (the rendering page's path and query); the handler redirects 303 to it only if it is a same-site relative path, else to `/`.
 30. `HX-Request` fragments and their tests start in M4; M2 tests cover full pages.
 31. The mockup lacks priority, the first-subtask field, delete controls and `/projects`; those use the §6 tokens with plain styling. Its web fonts are not used (system fonts, §6).
+32. A 500 shows a plain "Something went wrong." page; details go to the server log.
+33. Activities of archived projects are hidden everywhere on the dashboard, including via `sel=`; unarchive from `/projects` to see them.
+34. Journal lists are newest first by date, then id; future-dated entries sort to the top.
