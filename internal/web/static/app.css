@@ -115,3 +115,6 @@ textarea { border: 1px solid var(--border); border-radius: 8px; padding: 8px; fo
 .done-dot:hover, .done-dot:focus-within { z-index: 6; }
 .done-dot:hover .popup, .done-dot:focus-within .popup { display: block; }
 .dot-sample { width: 10px; height: 10px; border-radius: 5px; background: #16181D; }
+.work { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.work > .timeline { flex: 999 1 720px; min-width: 0; margin: 0; }
+.detail { flex: 1 1 360px; min-width: 0; }

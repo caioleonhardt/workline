@@ -1,4 +1,9 @@
 {{template "head" .}}
+{{template "dash" .}}
+{{template "foot" .}}
+
+{{define "dash"}}
+<div id="dash">
 <header class="dash">
 <div>
 <div class="eyebrow mono">{{.Controls.Eyebrow}}</div>
@@ -32,7 +37,12 @@
 <div class="tiles">
 {{range .Tiles}}<div class="tile"><div class="tile-label"><span class="dot {{.Class}}" aria-hidden="true"></span>{{.Label}}</div><div class="tile-value mono">{{.Value}}</div></div>
 {{end}}</div>
+<div class="work">
 {{template "timeline" .Timeline}}
 <script src="/static/app.js"></script>
-{{with .Panel}}{{template "panel" .}}{{end}}
-{{template "foot" .}}
+<aside class="detail" aria-label="Activity detail">
+{{with .Panel}}{{template "panel" .}}{{else}}<section class="card"><p class="muted">Select an activity to see its burndown, scope, subtasks and journal.</p></section>{{end}}
+</aside>
+</div>
+</div>
+{{end}}

@@ -106,6 +106,7 @@ func TestPanelShownForSel(t *testing.T) {
 	rec := get(h, "/?sel=2")
 	wantStatus(t, rec, http.StatusOK)
 	wantBody(t, rec, `id="panel"`, "Kafka upgrade readiness", "2 of 6 subtasks done", "33%", `aria-current="true"`)
+	wantBody(t, get(h, "/"), `<aside class="detail" aria-label="Activity detail">`, "Select an activity to see its burndown, scope, subtasks and journal.")
 	for _, target := range []string{"/?sel=999", "/?sel=abc", "/?sel="} {
 		if body := get(h, target).Body.String(); strings.Contains(body, `id="panel"`) {
 			t.Errorf("%s shows a panel", target)

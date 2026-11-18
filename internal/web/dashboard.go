@@ -2,7 +2,9 @@ package web
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"net/url"
 
 	"workline/internal/domain"
 )
@@ -34,28 +36,42 @@ type dashboardView struct {
 }
 
 func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	today := s.clock.Today()
-	f := parseFilter(r.URL.Query(), today)
-	projects, err := s.store.ListProjects(ctx, false)
+	s.renderDashboard(w, r, r.URL.RequestURI())
+}
+
+// renderDashboard renders the dashboard for the given path and query.
+func (s *Server) renderDashboard(w http.ResponseWriter, r *http.Request, uri string) {
+	v, err := s.buildDashboard(r.Context(), uri)
 	if err != nil {
 		s.fail(w, r, err)
 		return
+	}
+	s.render(w, http.StatusOK, "dashboard.html", v)
+}
+
+// buildDashboard loads everything the dashboard shows for the given path and query.
+func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView, error) {
+	today := s.clock.Today()
+	u, err := url.Parse(uri)
+	if err != nil {
+		return dashboardView{}, fmt.Errorf("%w: bad dashboard address", domain.ErrInvalid)
+	}
+	f := parseFilter(u.Query(), today)
+	projects, err := s.store.ListProjects(ctx, false)
+	if err != nil {
+		return dashboardView{}, err
 	}
 	acts, err := s.store.ListActivities(ctx)
 	if err != nil {
-		s.fail(w, r, err)
-		return
+		return dashboardView{}, err
 	}
 	subs, err := s.store.ListAllSubtasks(ctx)
 	if err != nil {
-		s.fail(w, r, err)
-		return
+		return dashboardView{}, err
 	}
 	acks, err := s.store.ListLatestScopeAcks(ctx)
 	if err != nil {
-		s.fail(w, r, err)
-		return
+		return dashboardView{}, err
 	}
 	subsOf := map[int64][]domain.Subtask{}
 	for _, st := range subs {
@@ -82,9 +98,8 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 		}
 		itemOf[a.ID] = it
 		if a.ID == f.Sel {
-			if panel, err = s.panel(ctx, it, projects, today, r.URL.RequestURI()); err != nil {
-				s.fail(w, r, err)
-				return
+			if panel, err = s.panel(ctx, it, projects, today, uri); err != nil {
+				return dashboardView{}, err
 			}
 		}
 		if f.Project == 0 || a.ProjectID == f.Project {
@@ -113,16 +128,16 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 	domain.SortGroups(groups)
 
 	v := dashboardView{
-		Title: "Workline", Next: r.URL.RequestURI(),
-		NewHref:    withParam(r.URL.RequestURI(), "new", "1"),
-		CancelHref: withParam(r.URL.RequestURI(), "new", ""),
+		Title: "Workline", Next: uri,
+		NewHref:    withParam(uri, "new", "1"),
+		CancelHref: withParam(uri, "new", ""),
 		ShowForm:   f.New,
 		Today:      today.String(), AllProjects: projects, Panel: panel,
 		Controls: buildControls(f, projects, counts, creepCount),
 		Timeline: buildTimeline(f, today, timelineData{Groups: groups, ItemOf: itemOf, Creeps: creeps}),
 		Tiles:    buildTiles(domain.ComputeTiles(tileItems, f.Year, today)),
 	}
-	s.render(w, http.StatusOK, "dashboard.html", v)
+	return v, nil
 }
 
 // panel loads what the detail panel needs for one activity.
