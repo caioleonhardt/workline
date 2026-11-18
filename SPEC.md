@@ -336,3 +336,18 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 32. A 500 shows a plain "Something went wrong." page; details go to the server log.
 33. Activities of archived projects are hidden everywhere on the dashboard, including via `sel=`; unarchive from `/projects` to see them.
 34. Journal lists are newest first by date, then id; future-dated entries sort to the top.
+
+### Decisions (Milestone 3, 2026-11-18)
+35. **Done this year** counts `done_on` in the selected `year`.
+36. **Open subtasks now** excludes done activities (a dropped activity's leftovers are not open work).
+37. **`status` param**: absent = planned, active, blocked; present = exactly the listed values; `status=` = none.
+38. Pill and creep counts are taken after period/project/month filters, before status/creep filters.
+39. **Project collapse** is client-side: `localStorage` + `web/static/app.js`, toggling `aria-expanded`. Without JS rows stay expanded.
+40. Without JS, filter controls are small GET forms; Project and Month need an Apply button until M4.
+41. **Year navigation**: `‹ year ›` controls in the header.
+42. **Clear filters** resets project, month, status and creep; keeps year, period, scale and `sel`.
+43. Activities may span at most 3660 days (rejected by validation).
+44. A selected activity hidden by filters still shows its panel (only archived projects hide it).
+45. **Burndown bins of a done activity** stop at `min(due, today, done_on)`.
+46. The panel stays below the timeline until M4.
+47. Activity rows are links with `aria-current` for the selected one.
