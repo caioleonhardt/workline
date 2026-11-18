@@ -1,0 +1,28 @@
+{{template "head" .}}
+<h1>Projects</h1>
+{{$next := .Next}}
+{{range .Projects}}
+<section class="card">
+<form class="inline" method="post" action="/projects/{{.ID}}">
+<input type="hidden" name="next" value="{{$next}}">
+<label>Name<input name="name" value="{{.Name}}" required></label>
+<button>Rename</button>
+</form>
+<form class="inline" method="post" action="/projects/{{.ID}}">
+<input type="hidden" name="next" value="{{$next}}">
+{{if .Archived}}<input type="hidden" name="archived" value="0"><button>Restore</button> <span class="muted">archived</span>
+{{else}}<input type="hidden" name="archived" value="1"><button>Archive</button>{{end}}
+</form>
+<details>
+<summary>Delete…</summary>
+<form method="post" action="/projects/{{.ID}}/delete">
+<input type="hidden" name="next" value="{{$next}}">
+<p class="muted">Deletes the project and all its activities.</p>
+<button>Confirm delete</button>
+</form>
+</details>
+</section>
+{{else}}
+<p>No projects yet. Projects are created with their first activity.</p>
+{{end}}
+{{template "foot" .}}
