@@ -65,6 +65,10 @@ func TestValidate(t *testing.T) {
 		{"blank", func(j *JournalEntry) { j.Text = " " }, true},
 		{"no date", func(j *JournalEntry) { j.Date = 0 }, true},
 		{"bad kind", func(j *JournalEntry) { j.Kind = "x" }, true},
+		{"logged at", func(j *JournalEntry) { j.LoggedAt = "2026-11-18 09:05" }, false},
+		{"logged at without minute", func(j *JournalEntry) { j.LoggedAt = "2026-11-18" }, true},
+		{"logged at with seconds", func(j *JournalEntry) { j.LoggedAt = "2026-11-18 09:05:00" }, true},
+		{"logged at impossible", func(j *JournalEntry) { j.LoggedAt = "2026-11-18 25:00" }, true},
 	}
 	for _, c := range js {
 		j := je
@@ -120,5 +124,14 @@ func TestEnumsAndDefaultStatus(t *testing.T) {
 		DefaultStatus(today, today) != StatusActive ||
 		DefaultStatus(d(t, "2026-01-01"), today) != StatusActive {
 		t.Error("DefaultStatus")
+	}
+}
+
+func TestJournalTime(t *testing.T) {
+	if got := (JournalEntry{LoggedAt: "2026-11-18 09:05"}).Time(); got != "09:05" {
+		t.Errorf("Time() = %q", got)
+	}
+	if got := (JournalEntry{}).Time(); got != "" {
+		t.Errorf("Time() of an old entry = %q", got)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 )
 
 // ErrInvalid wraps every validation failure.
@@ -106,6 +107,21 @@ type JournalEntry struct {
 	Date       Date
 	Kind       Kind
 	Text       string
+	LoggedAt   string // "YYYY-MM-DD HH:MM" local time it was logged; empty for older entries
+}
+
+// stampLayout is the format of JournalEntry.LoggedAt.
+const stampLayout = "2006-01-02 15:04"
+
+// Stamp formats the wall-clock fields of t as a LoggedAt value.
+func Stamp(t time.Time) string { return t.Format(stampLayout) }
+
+// Time returns the "HH:MM" part of LoggedAt, or "" when there is none.
+func (j JournalEntry) Time() string {
+	if j.LoggedAt == "" {
+		return ""
+	}
+	return j.LoggedAt[len(stampLayout)-5:]
 }
 
 // ScopeAck records an acknowledged scope change (SPEC §3).
@@ -123,6 +139,11 @@ type ActivityWithSubtasks struct {
 	Activity
 	Subtasks []Subtask
 	Ack      *ScopeAck
+}
+
+func validStamp(s string) bool {
+	_, err := time.Parse(stampLayout, s)
+	return err == nil && len(s) == len(stampLayout)
 }
 
 func invalid(format string, args ...any) error {
@@ -186,6 +207,8 @@ func (j JournalEntry) Validate() error {
 		return invalid("journal date is required")
 	case !j.Kind.Valid():
 		return invalid("unknown journal kind %q", j.Kind)
+	case j.LoggedAt != "" && !validStamp(j.LoggedAt):
+		return invalid("logged time %q is not YYYY-MM-DD HH:MM", j.LoggedAt)
 	}
 	return nil
 }

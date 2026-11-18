@@ -85,22 +85,35 @@ func (d Date) Month() time.Month { return d.time().Month() }
 // Day returns the day of the month.
 func (d Date) Day() int { return d.time().Day() }
 
-// Clock supplies "today". Tests use FixedClock.
+// Clock supplies the current local time and, derived from it, today's date.
+// Tests use FixedClock.
 type Clock interface {
+	Now() time.Time
 	Today() Date
 }
 
-// SystemClock reports today's date in the machine's local time zone.
+func dateOf(t time.Time) Date { return DateOf(t.Year(), t.Month(), t.Day()) }
+
+// SystemClock reads the machine's clock in its local time zone.
 type SystemClock struct{}
 
+// Now implements Clock.
+func (SystemClock) Now() time.Time { return time.Now() }
+
 // Today implements Clock.
-func (SystemClock) Today() Date {
-	n := time.Now()
-	return DateOf(n.Year(), n.Month(), n.Day())
+func (c SystemClock) Today() Date { return dateOf(c.Now()) }
+
+// FixedClock always reports date D at Hour:Minute (midnight by default).
+type FixedClock struct {
+	D            Date
+	Hour, Minute int
 }
 
-// FixedClock always reports D.
-type FixedClock struct{ D Date }
+// Now implements Clock. Only the wall-clock fields are meaningful.
+func (c FixedClock) Now() time.Time {
+	t := c.D.time()
+	return time.Date(t.Year(), t.Month(), t.Day(), c.Hour, c.Minute, 0, 0, time.UTC)
+}
 
 // Today implements Clock.
 func (c FixedClock) Today() Date { return c.D }

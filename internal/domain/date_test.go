@@ -65,11 +65,14 @@ func TestDateRoundTripAndArithmetic(t *testing.T) {
 
 func TestClocks(t *testing.T) {
 	want := d(t, "2026-11-18")
-	var c Clock = FixedClock{D: want}
-	if c.Today() != want {
-		t.Error("FixedClock")
+	var c Clock = FixedClock{D: want, Hour: 9, Minute: 5}
+	if c.Today() != want || Stamp(c.Now()) != "2026-11-18 09:05" {
+		t.Errorf("FixedClock: %v %s", c.Today(), Stamp(c.Now()))
 	}
-	if (SystemClock{}).Today().IsZero() {
-		t.Error("SystemClock returned zero")
+	if got := Stamp(FixedClock{D: want}.Now()); got != "2026-11-18 00:00" {
+		t.Errorf("default time of day: %s", got)
+	}
+	if (SystemClock{}).Today().IsZero() || (SystemClock{}).Now().IsZero() {
+		t.Error("SystemClock returned a zero value")
 	}
 }
