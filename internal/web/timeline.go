@@ -71,9 +71,20 @@ type rowView struct {
 
 type binView struct{ Left, Width, Height pct }
 
+// Journal dots sit on the row's baseline; dots of the same day stack upward.
+// The stack stops growing after dotStackMax dots, which then overlap on the top
+// slot: each keeps its own label.
+const (
+	dotBase     = 10 // px above the row's bottom edge
+	dotStep     = 9  // px between stacked dots
+	dotStackMax = 6
+)
+
 type dotView struct {
-	Left pct
-	Kind string
+	Left   pct
+	Bottom int // px
+	Kind   string
+	Label  string // date, time if any, kind and text
 }
 
 // timelineData is what the dashboard hands to buildTimeline.
@@ -220,10 +231,21 @@ func buildRow(f Filter, l layout, it domain.ActivityWithSubtasks, c domain.Creep
 		}
 		r.Bins = append(r.Bins, bv)
 	}
+	stacked := map[domain.Date]int{}
 	for _, m := range marks {
-		if !m.Date.Before(l.from) && !m.Date.After(l.to) {
-			r.Dots = append(r.Dots, dotView{Left: ax.pos(m.Date), Kind: string(m.Kind)})
+		if m.Date.Before(l.from) || m.Date.After(l.to) {
+			continue
 		}
+		slot := min(stacked[m.Date], dotStackMax-1)
+		stacked[m.Date]++
+		when := m.Date.String()
+		if m.LoggedAt != "" {
+			when += " " + domain.StampTime(m.LoggedAt)
+		}
+		r.Dots = append(r.Dots, dotView{
+			Left: ax.pos(m.Date), Bottom: dotBase + slot*dotStep, Kind: string(m.Kind),
+			Label: fmt.Sprintf("%s, %s: %s", when, m.Kind, m.Text),
+		})
 	}
 	if c.Flagged {
 		r.ScopeChip = "Scope"

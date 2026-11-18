@@ -82,14 +82,23 @@ func TestListJournalMarks(t *testing.T) {
 	s := newTestStore(t)
 	a := mustActivity(t, s, "P", "2026-01-01", "2026-12-31") // "Activity created" dated 2026-01-01
 	b := mustActivity(t, s, "Q", "2026-01-01", "2026-12-31")
-	s.AddJournal(ctx, domain.JournalEntry{ActivityID: a.ID, Date: date(t, "2026-03-01"), Kind: domain.KindBlocker, Text: "x"})
+	s.AddJournal(ctx, domain.JournalEntry{ActivityID: a.ID, Date: date(t, "2026-03-01"), Kind: domain.KindBlocker, Text: "late", LoggedAt: "2026-03-01 18:00"})
+	s.AddJournal(ctx, domain.JournalEntry{ActivityID: a.ID, Date: date(t, "2026-03-01"), Kind: domain.KindUpdate, Text: "early", LoggedAt: "2026-03-01 08:00"})
+	s.AddJournal(ctx, domain.JournalEntry{ActivityID: a.ID, Date: date(t, "2026-03-01"), Kind: domain.KindMeeting, Text: "untimed"})
 	marks, err := s.ListJournalMarks(ctx)
-	if err != nil || len(marks) != 3 {
+	if err != nil || len(marks) != 5 {
 		t.Fatalf("marks: %+v %v", marks, err)
 	}
-	want := JournalMark{ActivityID: a.ID, Date: date(t, "2026-03-01"), Kind: domain.KindBlocker}
-	if marks[2] != want || marks[0].ActivityID != a.ID || marks[1].ActivityID != b.ID {
+	if marks[0].ActivityID != a.ID || marks[1].ActivityID != b.ID { // the creation entries, dated 2026-01-01
 		t.Errorf("marks: %+v", marks)
+	}
+	// within a day: entries without a time first, then by logged time, so a stack grows upward in logging order
+	want := []JournalMark{
+		{a.ID, date(t, "2026-03-01"), domain.KindUpdate, "early", "2026-03-01 08:00"},
+		{a.ID, date(t, "2026-03-01"), domain.KindBlocker, "late", "2026-03-01 18:00"},
+	}
+	if marks[2].Text != "untimed" || marks[2].LoggedAt != "" || marks[3] != want[0] || marks[4] != want[1] {
+		t.Errorf("marks: %+v", marks[2:])
 	}
 }
 

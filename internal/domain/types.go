@@ -116,13 +116,16 @@ const stampLayout = "2006-01-02 15:04"
 // Stamp formats the wall-clock fields of t as a LoggedAt value.
 func Stamp(t time.Time) string { return t.Format(stampLayout) }
 
-// Time returns the "HH:MM" part of LoggedAt, or "" when there is none.
-func (j JournalEntry) Time() string {
-	if j.LoggedAt == "" {
+// StampTime returns the "HH:MM" part of a LoggedAt value, or "" for none.
+func StampTime(stamp string) string {
+	if stamp == "" {
 		return ""
 	}
-	return j.LoggedAt[len(stampLayout)-5:]
+	return stamp[len(stampLayout)-5:]
 }
+
+// Time returns the "HH:MM" part of LoggedAt, or "" when there is none.
+func (j JournalEntry) Time() string { return StampTime(j.LoggedAt) }
 
 // ScopeAck records an acknowledged scope change (SPEC §3).
 type ScopeAck struct {

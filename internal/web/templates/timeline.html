@@ -30,7 +30,7 @@
 <span class="span-line {{.Status}}" aria-hidden="true" style="left:{{.SpanLeft}}%;width:{{.SpanWidth}}%"></span>
 {{if .HasPlan}}<span class="plan {{.Status}}" aria-hidden="true" style="left:{{.PlanLeft}}%;width:{{.PlanWidth}}%"></span>{{end}}
 <span class="bins" aria-hidden="true">{{range .Bins}}<span class="bin {{$st}}" style="left:{{.Left}}%;width:{{.Width}}%;height:{{.Height}}%"></span>{{end}}</span>
-{{range .Dots}}<span class="dot-mark kind-{{.Kind}}" aria-hidden="true" style="left:{{.Left}}%"></span>{{end}}
+{{range .Dots}}<span class="dot-mark kind-{{.Kind}}" role="img" aria-label="{{.Label}}" title="{{.Label}}" style="left:{{.Left}}%;bottom:{{.Bottom}}px"></span>{{end}}
 <span class="pct mono small" aria-hidden="true" style="left:{{.PctLeft}}%">{{.PctLabel}}</span>
 <a class="bar-link" href="{{.Href}}" aria-label="{{.Tip}}" style="left:{{.SpanLeft}}%;width:{{.SpanWidth}}%"></a>
 </div>
