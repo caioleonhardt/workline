@@ -53,6 +53,7 @@ All calendar values are **dates** (`YYYY-MM-DD`, user's local time zone) unless 
 | name | text | required |
 | requested_by | text | free text, e.g. "Manager", "Director", "Self" |
 | status | enum | `planned`, `active`, `blocked`, `done` |
+| priority | enum, nullable | `high`, `medium`, `low`; null = no priority |
 | start_date | date | required |
 | due_date | date | required, ≥ start_date |
 | created_at | timestamp | |
@@ -165,11 +166,12 @@ Controls, all reflected in the **URL query string** so any view is bookmarkable:
 | `scale` | `quarter`, `month` (Year only) | `quarter` |
 | `project` | project id or empty | all |
 | `month` | `1`–`12` or empty; limited to the quarter's months in Qn | all |
-| `status` | `planned`, `active`, `blocked`, `done` or empty | all |
+| `status` | repeatable: `planned`, `active`, `blocked`, `done` | `planned`, `active`, `blocked` (done hidden) |
 | `creep` | `1` or empty | off |
 | `sel` | activity id | none |
 
 - Changing `period` clears `month`.
+- Status pills are multi-select toggles. Done activities are hidden unless the `done` pill is on; then they are shown with the others, sorted last.
 - Status pills show counts (after the period/project/month filters, before the status filter).
 - The scope-creep toggle shows the number of flagged activities in scope.
 - "Clear filters" appears when any filter is active.
@@ -184,6 +186,7 @@ Controls, all reflected in the **URL query string** so any view is bookmarkable:
   - Left: name, status chip, a scope chip (`Scope +N`) when flagged, `open / total`, then dates and requester.
   - Track: a thin span line from start to due; burndown bins in the status colour; a dashed box from today to due (not for `done`); journal dots coloured by kind; `P%` at the right end.
   - Clicking the row or bar selects the activity (`sel=`) and opens the detail panel.
+- **Order.** Activities within a project: not-done before done; then priority `high`, `medium`, `low`, none; then due date; then id. Projects: by the best priority among their shown not-done activities (projects with only done activities last); then name.
 - Empty state: "No activities match these filters."
 - Legend below the timeline.
 
@@ -315,3 +318,5 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 16. **Journal edits** may change date, text and kind among `update`/`decision`/`blocker`/`meeting`; never to or from `scope_ack`.
 17. **Closing an activity** (`done`) is a manual decision, e.g. the manager drops it, and is allowed with open subtasks. "Done this year" therefore needs the date the activity was closed, which the schema does not store yet (to be added in M2).
 18. **Creating an activity requires at least one subtask** (M2 create form).
+19. **Done activities** are hidden by default and shown, last, only when the `done` status pill is on (pills are multi-select). See §5.1.
+20. **Priority**: optional `high`/`medium`/`low` on activities (§3). It orders activities within a project and also orders projects (§5.1). Added by migration `0002` in M2.
