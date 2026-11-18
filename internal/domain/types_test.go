@@ -69,6 +69,32 @@ func TestValidate(t *testing.T) {
 	}
 }
 
+func TestSubtaskValidateAt(t *testing.T) {
+	today := d(t, "2026-11-18")
+	for _, c := range []struct {
+		name   string
+		closed string
+		bad    bool
+	}{
+		{"open", "", false},
+		{"closed today", "2026-11-18", false},
+		{"closed yesterday", "2026-11-17", false},
+		{"closed tomorrow", "2026-11-19", true},
+	} {
+		s := Subtask{Text: "t", CreatedOn: d(t, "2026-01-01")}
+		if c.closed != "" {
+			s.ClosedOn = d(t, c.closed)
+		}
+		err := s.ValidateAt(today)
+		if (err != nil) != c.bad || (err != nil && !errors.Is(err, ErrInvalid)) {
+			t.Errorf("%s: err=%v", c.name, err)
+		}
+	}
+	if err := (Subtask{}).ValidateAt(today); err == nil {
+		t.Error("base validation must still apply")
+	}
+}
+
 func TestEnumsAndDefaultStatus(t *testing.T) {
 	for _, s := range []Status{StatusPlanned, StatusActive, StatusBlocked, StatusDone} {
 		if !s.Valid() {

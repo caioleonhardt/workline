@@ -72,6 +72,10 @@ func (s *Store) Seed(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	asOf, err := domain.ParseDate(b.AsOf)
+	if err != nil {
+		return fmt.Errorf("seed: as_of: %w", err)
+	}
 	err = s.inTx(ctx, func(tx *sql.Tx) error {
 		var n int
 		if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM projects`).Scan(&n); err != nil {
@@ -80,7 +84,7 @@ func (s *Store) Seed(ctx context.Context) error {
 		if n > 0 {
 			return ErrNotEmpty
 		}
-		return insertBaseline(ctx, tx, b.Data)
+		return insertBaseline(ctx, tx, b.Data, asOf)
 	})
 	if err != nil {
 		return fmt.Errorf("seed: %w", err)
@@ -88,7 +92,7 @@ func (s *Store) Seed(ctx context.Context) error {
 	return nil
 }
 
-func insertBaseline(ctx context.Context, tx *sql.Tx, d baselineData) error {
+func insertBaseline(ctx context.Context, tx *sql.Tx, d baselineData, asOf domain.Date) error {
 	for _, p := range d.Projects {
 		if err := validProjectName(p.Name); err != nil {
 			return err
@@ -130,7 +134,7 @@ func insertBaseline(ctx context.Context, tx *sql.Tx, d baselineData) error {
 				return err
 			}
 		}
-		if err := sub.Validate(); err != nil {
+		if err := sub.ValidateAt(asOf); err != nil {
 			return fmt.Errorf("subtask %d: %w", st.ID, err)
 		}
 		if _, err := tx.ExecContext(ctx,

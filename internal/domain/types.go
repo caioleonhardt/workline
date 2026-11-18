@@ -136,6 +136,17 @@ func (s Subtask) Validate() error {
 	return nil
 }
 
+// ValidateAt is Validate plus: a subtask cannot be closed after today.
+func (s Subtask) ValidateAt(today Date) error {
+	if err := s.Validate(); err != nil {
+		return err
+	}
+	if s.ClosedOn.After(today) {
+		return invalid("closed date %s is after today (%s)", s.ClosedOn, today)
+	}
+	return nil
+}
+
 // Validate checks the journal entry's own fields.
 func (j JournalEntry) Validate() error {
 	switch {
