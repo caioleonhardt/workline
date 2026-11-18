@@ -320,3 +320,16 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 18. **Creating an activity requires at least one subtask** (M2 create form).
 19. **Done activities** are hidden by default and shown, last, only when the `done` status pill is on (pills are multi-select). See §5.1.
 20. **Priority**: optional `high`/`medium`/`low` on activities (§3). It orders activities within a project and also orders projects (§5.1). Added by migration `0002` in M2.
+
+### Decisions (Milestone 2, 2026-11-18)
+21. **`done_on`** (activity): set to today when status becomes `done`, cleared when it leaves `done`, kept on done→done; not user-editable. Existing and seeded done activities get `done_on = due_date`. "Done this year" counts `done_on`.
+22. **Initial subtasks** entered on the create form get `created_on = min(today, start_date)` so they count as kickoff scope; later subtasks default to today.
+23. Deleting an activity's last subtask is allowed.
+24. Subtask edits change text and `created_on` only; `closed_on` is set only by toggle. Any future path that sets it must use `ValidateAt(today)`.
+25. **Delete confirmation** without JS: a two-step "Delete…" → "Confirm delete" button (e.g. `<details>`). No inline scripts.
+26. **Routes**: no `POST /projects` (projects are created through the activity form). The new-activity form is inline on the dashboard, shown with `GET /?new=1` (htmx toggles it in M4), as in the mockup.
+27. Rejected forms show a plain error page with a Back link; no sticky re-render in M2.
+28. Future `created_on` (subtasks) and journal dates are allowed.
+29. Mutating forms carry a hidden `next` (the rendering page's path and query); the handler redirects 303 to it only if it is a same-site relative path, else to `/`.
+30. `HX-Request` fragments and their tests start in M4; M2 tests cover full pages.
+31. The mockup lacks priority, the first-subtask field, delete controls and `/projects`; those use the §6 tokens with plain styling. Its web fonts are not used (system fonts, §6).
