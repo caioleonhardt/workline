@@ -7,11 +7,11 @@
 <div class="controls">
 <div role="group" aria-label="Period" class="seg">{{range .Periods}}{{template "toggle" .}}{{end}}</div>
 {{if .Scales}}<div role="group" aria-label="Year columns" class="seg">{{range .Scales}}{{template "toggle" .}}{{end}}</div>{{end}}
-<form method="get" action="/" class="inline">
+<form method="get" action="/" class="inline" hx-trigger="change, submit">
 {{range .SelectPairs}}<input type="hidden" name="{{.Key}}" value="{{.Value}}">{{end}}
 <label>Project<select name="project">{{range .Projects}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
 <label>Month<select name="month">{{range .Months}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
-<button>Apply</button>
+<button class="apply">Apply</button>
 </form>
 </div>
 <div class="controls" role="group" aria-label="Filter by status">

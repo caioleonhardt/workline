@@ -1,6 +1,8 @@
-// Collapses project groups on the timeline; the state lives in the browser's local storage.
-// Without this script every group stays expanded.
+// Marks the page as scripted (hiding buttons that htmx replaces) and collapses
+// project groups on the timeline; the state lives in the browser's local storage.
+// Without this script every group stays expanded and every button shows.
 (function () {
+  document.documentElement.classList.add('js');
   var KEY = 'workline.collapsed';
 
   function load() {

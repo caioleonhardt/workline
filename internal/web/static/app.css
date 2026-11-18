@@ -120,3 +120,7 @@ textarea { border: 1px solid var(--border); border-radius: 8px; padding: 8px; fo
 .detail { flex: 1 1 360px; min-width: 0; }
 .error-bar { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--creep-bg); color: var(--creep-fg); font-weight: 600; }
 .error-bar button { min-height: 36px; margin-left: auto; }
+html.js .apply { display: none; }
+.check { flex-direction: row; align-items: center; gap: 8px; font-size: inherit; color: var(--text); min-height: 44px; }
+.check input { width: 20px; height: 20px; min-height: 0; accent-color: #2F5BEA; }
+.done-text { color: var(--muted); text-decoration: line-through; }

@@ -3,10 +3,10 @@
 <p class="muted mono">{{.ProjectName}}</p>
 <h2>{{.Name}}</h2>
 <p class="muted">Requested by {{if .RequestedBy}}{{.RequestedBy}}{{else}}—{{end}} · <span class="mono">{{.Start}} → {{.Due}}</span></p>
-<form class="inline" method="post" action="/activities/{{.ID}}">
+<form class="inline" method="post" action="/activities/{{.ID}}" hx-trigger="change, submit">
 <input type="hidden" name="next" value="{{.Next}}">
 <label>Status<select name="status">{{range .Statuses}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
-<button>Save status</button>
+<button class="apply">Save status</button>
 </form>
 <p><strong>{{.Progress}}%</strong> · {{.Closed}} of {{.Total}} subtasks done</p>
 
@@ -28,11 +28,11 @@
 <ul class="rows">
 {{range .Subtasks}}
 <li>
-<form class="inline" method="post" action="/subtasks/{{.ID}}/toggle">
+<form class="inline" method="post" action="/subtasks/{{.ID}}/toggle" hx-trigger="change, submit">
 <input type="hidden" name="next" value="{{$.Next}}">
-<button{{if .Closed}} aria-pressed="true"{{else}} aria-pressed="false"{{end}}>{{if .Closed}}Reopen{{else}}Close{{end}}</button>
+<label class="check"><input type="checkbox"{{if .Closed}} checked{{end}}><span{{if .Closed}} class="done-text"{{end}}>{{.Text}}</span></label>
+<button class="apply">{{if .Closed}}Reopen{{else}}Close{{end}}</button>
 </form>
-<span>{{.Text}}</span>
 <span class="muted mono">opened {{.Created}}{{if .Closed}} · closed {{.Closed}}{{end}}</span>
 <details>
 <summary>Edit</summary>
