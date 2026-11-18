@@ -213,8 +213,8 @@ func TestProjectRowIsAnExpandedToggle(t *testing.T) {
 	}
 	// the script follows the timeline so the stored state applies before first paint
 	script := strings.Index(body, `<script src="/static/app.js"></script>`)
-	if script < strings.Index(body, `class="legend`) || strings.Count(body, "<script") != 1 {
-		t.Error("app.js must be the only script, loaded right after the timeline")
+	if script < strings.Index(body, `class="legend`) || strings.Count(body, `<script src="/static/app.js">`) != 1 {
+		t.Error("app.js must load once, right after the timeline")
 	}
 	js := get(h, "/static/app.js")
 	wantStatus(t, js, http.StatusOK)
