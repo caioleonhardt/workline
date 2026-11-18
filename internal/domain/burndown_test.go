@@ -67,6 +67,22 @@ func TestBurndownTimeline(t *testing.T) {
 		t.Errorf("one-day activity: %v", got)
 	}
 
+	// a done activity stops at its done date, but only if that is earlier
+	done := a
+	done.Status, done.DoneOn = StatusDone, d(t, "2026-03-10")
+	got = binStr(Burndown(done, subs, 7, d(t, "2026-12-01")))
+	if len(got) != 2 || got[1][0] != "2026-03-09..2026-03-10" {
+		t.Errorf("stops at done_on: %v", got)
+	}
+	done.DoneOn = d(t, "2026-06-01")
+	if got := Burndown(done, subs, 7, d(t, "2026-12-01")); len(got) != 3 {
+		t.Errorf("done_on after due changes nothing: %v", binStr(got))
+	}
+	done.DoneOn = d(t, "2026-03-10")
+	if got := Burndown(done, subs, 7, d(t, "2026-03-05")); len(got) != 1 {
+		t.Errorf("today before done_on: %v", binStr(got))
+	}
+
 	mustPanic(t, "step 0", func() { Burndown(a, subs, 0, d(t, "2026-03-05")) })
 	mustPanic(t, "inverted", func() { Burndown(act(t, "2026-03-05", "2026-03-04"), nil, 7, d(t, "2026-03-05")) })
 	mustPanic(t, "no dates", func() { Burndown(Activity{}, nil, 7, d(t, "2026-03-05")) })

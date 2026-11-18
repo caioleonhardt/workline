@@ -21,13 +21,17 @@ func checkActivity(a Activity) {
 }
 
 // Burndown returns the timeline series: bins of step days from a.Start to
-// min(a.Due, today) (§4.3). It is empty when the activity starts after today.
+// min(a.Due, today, a.DoneOn) (§4.3, SPEC §10 item 45). It is empty when the
+// activity starts after that end.
 func Burndown(a Activity, subs []Subtask, step int, today Date) []Bin {
 	assert(step > 0, "step must be positive")
 	checkActivity(a)
 	end := a.Due
 	if today.Before(end) {
 		end = today
+	}
+	if !a.DoneOn.IsZero() && a.DoneOn.Before(end) {
+		end = a.DoneOn
 	}
 	var bins []Bin
 	for start := a.Start; !start.After(end); start = start.AddDays(step) {
