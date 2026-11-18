@@ -302,7 +302,7 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 ### Decisions (Milestone 1, 2026-11-18)
 1. **Toolchain.** Module `workline`, Go 1.27 (`/usr/local/go`, go1.27.4).
 2. **Burndown bins** start at `start_date`: bin *i* = `[start + i·step, start + (i+1)·step − 1]`; the last bin is clipped to `min(due, today)`; empty if `start > today`.
-3. **Global max** for bar heights is taken over the weekly series of the *visible* activities (after filters), in every view.
+3. **Global max** for bar heights is taken over the bins actually drawn for the *visible* activities (after filters): weekly in Year view, 2-day in Qn view (superseded by item 48).
 4. **Project progress** = closed / total over subtasks of visible activities, exactly as §4.2 (no fallback). A project is not meant to exist without at least one task; if total is still 0, progress is 0.
 5. **Deletions after an acknowledgement**: keep the §4.4 formula; clamp `added` and `growth%` at ≥ 0.
 6. **Latest ack** = highest ScopeAck id, not latest date.
@@ -351,3 +351,7 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 45. **Burndown bins of a done activity** stop at `min(due, today, done_on)`.
 46. The panel stays below the timeline until M4.
 47. Activity rows are links with `aria-current` for the selected one.
+48. Bar heights are scaled to the tallest bin drawn in the current view (so 2-day bins in Qn can never exceed 100%).
+49. **Journal time**: each entry also records `logged_at`, the local date and time (to the minute) when it was logged, stamped automatically from the clock and never editable. The `date` stays editable for backfilling. Lists order by `date`, then `logged_at`, then id, newest first. Entries that predate this column (including seed data) have no time and show none.
+50. **Timeline journal dots**: every entry gets its own dot in its kind's colour; dots on the same day stack vertically.
+51. Filter controls keep `new=1`, so the create form stays open across filter changes.
