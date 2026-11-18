@@ -1,14 +1,16 @@
 {{define "panel"}}
 <section class="card" id="panel">
-<p class="muted mono">{{.ProjectName}}</p>
+<p class="eyebrow mono">{{.ProjectName}}</p>
 <h2>{{.Name}}</h2>
-<p class="muted">Requested by {{if .RequestedBy}}{{.RequestedBy}}{{else}}—{{end}} · <span class="mono">{{.Start}} → {{.Due}}</span></p>
+<p class="muted small">Requested by <strong>{{if .RequestedBy}}{{.RequestedBy}}{{else}}—{{end}}</strong> · <span class="mono">{{.Start}} → {{.Due}}</span></p>
+<div class="panel-top">
 <form class="inline" method="post" action="/activities/{{.ID}}" hx-trigger="change, submit">
 <input type="hidden" name="next" value="{{.Next}}">
 <label>Status<select name="status">{{range .Statuses}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
 <button class="apply">Save status</button>
 </form>
-<p><strong>{{.Progress}}%</strong> · {{.Closed}} of {{.Total}} subtasks done</p>
+<div class="progress"><strong class="mono">{{.Progress}}%</strong><span class="muted small">{{.Closed}} of {{.Total}} subtasks done</span></div>
+</div>
 
 <h3>Burndown</h3>
 <p class="mono small muted">peak {{.Chart.Peak}} open · weekly</p>
@@ -22,7 +24,11 @@
 {{end}}</tbody></table>
 
 <h3>Scope</h3>
-<p class="mono">{{.Scope.BaselineLabel}}: {{.Scope.Baseline}} · Now: {{.Scope.Total}} (+{{.Scope.GrowthPct}}%) · Last 30 days: +{{.Scope.Add30}} / −{{.Scope.Close30}}</p>
+<div class="stats">
+<div class="stat"><span class="small muted">{{.Scope.BaselineLabel}}</span><strong class="mono">{{.Scope.Baseline}}</strong></div>
+<div class="stat"><span class="small muted">Now</span><strong class="mono">{{.Scope.Total}} <span class="small muted">+{{.Scope.GrowthPct}}%</span></strong></div>
+<div class="stat"><span class="small muted">Last 30 days</span><strong class="mono">+{{.Scope.Add30}} / −{{.Scope.Close30}}</strong></div>
+</div>
 {{if .Scope.Flagged}}
 <div class="warn" role="alert">
 <strong>Scope creep.</strong>
@@ -79,7 +85,7 @@
 <ul class="rows">
 {{range .Journal}}
 <li>
-<span class="muted mono">{{.Date}}{{if .Time}} {{.Time}}{{end}}</span> <span class="chip kind-{{.Kind}}">{{.Kind}}</span> <span>{{.Text}}</span>
+<span class="muted mono">{{.Date}}{{if .Time}} {{.Time}}{{end}}</span> <span class="chip kind-{{.Kind}}">{{.KindLabel}}</span> <span>{{.Text}}</span>
 {{if not .ReadOnly}}
 <details>
 <summary>Edit</summary>

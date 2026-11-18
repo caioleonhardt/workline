@@ -31,7 +31,7 @@ func TestJournalFlows(t *testing.T) {
 	if list[0].Text != "Ship it" || list[0].Date != date(t, testToday) || list[0].Kind != domain.KindDecision {
 		t.Errorf("newest first, default date today: %+v", list[0])
 	}
-	wantBody(t, get(h, "/?sel=2"), "Ship it", "Sync", "kind-decision")
+	wantBody(t, get(h, "/?sel=2"), "Ship it", "Sync", `<span class="chip kind-decision">Decision</span>`, `<span class="chip kind-meeting">Meeting</span>`)
 	if list[0].LoggedAt != "2026-11-18 14:05" {
 		t.Errorf("entry stamped %q, want the clock's time", list[0].LoggedAt)
 	}

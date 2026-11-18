@@ -8,25 +8,32 @@ import (
 )
 
 type journalRow struct {
-	ID                     int64
-	Date, Time, Kind, Text string // Time is empty for entries without a logged time
-	ReadOnly               bool   // scope_ack entries cannot be edited
-	Kinds                  []option
+	ID                                int64
+	Date, Time, Kind, KindLabel, Text string // Time is empty for entries without a logged time
+	ReadOnly                          bool   // scope_ack entries cannot be edited
+	Kinds                             []option
 }
 
 func kindOptions(cur domain.Kind) []option {
 	var out []option
 	for _, k := range []domain.Kind{domain.KindUpdate, domain.KindDecision, domain.KindBlocker, domain.KindMeeting} {
-		out = append(out, option{string(k), strings.ToUpper(string(k)[:1]) + string(k)[1:], k == cur})
+		out = append(out, option{string(k), kindLabel(k), k == cur})
 	}
 	return out
+}
+
+func kindLabel(k domain.Kind) string {
+	if k == domain.KindScopeAck {
+		return "Scope acknowledged"
+	}
+	return strings.ToUpper(string(k)[:1]) + string(k)[1:]
 }
 
 func journalRows(entries []domain.JournalEntry) []journalRow {
 	var rows []journalRow
 	for _, j := range entries {
 		rows = append(rows, journalRow{
-			ID: j.ID, Date: j.Date.String(), Time: j.Time(), Kind: string(j.Kind), Text: j.Text,
+			ID: j.ID, Date: j.Date.String(), Time: j.Time(), Kind: string(j.Kind), KindLabel: kindLabel(j.Kind), Text: j.Text,
 			ReadOnly: j.Kind == domain.KindScopeAck, Kinds: kindOptions(j.Kind),
 		})
 	}
