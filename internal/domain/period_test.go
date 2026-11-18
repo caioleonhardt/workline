@@ -134,3 +134,35 @@ func TestPeriodRange(t *testing.T) {
 		t.Errorf("year range %v..%v", s, e)
 	}
 }
+
+func TestMonthRangeAndOverlaps(t *testing.T) {
+	for _, c := range []struct {
+		year  int
+		month time.Month
+		want  string
+	}{
+		{2026, time.February, "2026-02-01..2026-02-28"},
+		{2024, time.February, "2024-02-01..2024-02-29"},
+		{2026, time.December, "2026-12-01..2026-12-31"},
+	} {
+		s, e := MonthRange(c.year, c.month)
+		if got := s.String() + ".." + e.String(); got != c.want {
+			t.Errorf("MonthRange = %s, want %s", got, c.want)
+		}
+	}
+	a := act(t, "2026-03-10", "2026-03-20")
+	for _, c := range []struct {
+		from, to string
+		want     bool
+	}{
+		{"2026-03-01", "2026-03-09", false},
+		{"2026-03-01", "2026-03-10", true}, // touches the first day
+		{"2026-03-12", "2026-03-14", true},
+		{"2026-03-20", "2026-03-31", true}, // touches the last day
+		{"2026-03-21", "2026-03-31", false},
+	} {
+		if got := a.Overlaps(d(t, c.from), d(t, c.to)); got != c.want {
+			t.Errorf("Overlaps(%s..%s) = %v", c.from, c.to, got)
+		}
+	}
+}

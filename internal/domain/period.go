@@ -38,7 +38,8 @@ type Load struct {
 	Open, Count int
 }
 
-func monthRange(year int, m time.Month) (Date, Date) {
+// MonthRange returns the first and last day of a month.
+func MonthRange(year int, m time.Month) (Date, Date) {
 	start := DateOf(year, m, 1)
 	var next Date
 	if m == time.December {
@@ -56,8 +57,8 @@ func PeriodRange(year int, p Period) (Date, Date) {
 		return DateOf(year, time.January, 1), DateOf(year, time.December, 31)
 	}
 	first := time.Month(3*(int(p)-1) + 1)
-	start, _ := monthRange(year, first)
-	_, end := monthRange(year, first+2)
+	start, _ := MonthRange(year, first)
+	_, end := MonthRange(year, first+2)
 	return start, end
 }
 
@@ -66,7 +67,7 @@ func Columns(year int, p Period, s Scale) []Column {
 	assert(p >= PeriodYear && p <= PeriodQ4, "unknown period")
 	var cols []Column
 	month := func(m time.Month) {
-		st, en := monthRange(year, m)
+		st, en := MonthRange(year, m)
 		cols = append(cols, Column{Label: m.String()[:3], Start: st, End: en})
 	}
 	switch {
@@ -106,6 +107,11 @@ func Gridlines(year int, p Period) []Date {
 	return out
 }
 
+// Overlaps reports whether the activity's start..due span intersects from..to.
+func (a Activity) Overlaps(from, to Date) bool {
+	return !a.Start.After(to) && !a.Due.Before(from)
+}
+
 // IsToday reports whether today falls inside the column.
 func (c Column) IsToday(today Date) bool {
 	return !today.Before(c.Start) && !today.After(c.End)
@@ -113,7 +119,7 @@ func (c Column) IsToday(today Date) bool {
 
 // OverlapsMonth reports whether the column overlaps the given month of year.
 func (c Column) OverlapsMonth(year int, m time.Month) bool {
-	ms, me := monthRange(year, m)
+	ms, me := MonthRange(year, m)
 	return !c.End.Before(ms) && !c.Start.After(me)
 }
 
@@ -127,7 +133,7 @@ func ColumnLoad(c Column, acts []ActivityWithSubtasks, today Date) Load {
 		ref = today
 	}
 	for _, a := range acts {
-		if a.Start.After(c.End) || a.Due.Before(c.Start) {
+		if !a.Overlaps(c.Start, c.End) {
 			continue
 		}
 		if l.Planned {
