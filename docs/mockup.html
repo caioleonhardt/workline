@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Workline — activity timeline</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F6F3}
+a{color:#1D43BF}a:hover{color:#142F86}
+button,input,select{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #F6F6F3; color: #16181D; font-family: Inter, system-ui, sans-serif; font-size: 14px; box-sizing: border-box; padding: 32px 24px 56px">
+<div style="max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px">
+
+<header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.08em; color: #5A606C">{{eyebrow}}</div>
+<h1 style="margin: 0; font-size: 32px; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em">Workline</h1>
+<p style="margin: 0; color: #4A505C; font-size: 15px">Everything you were asked to do, not only what lives in Jira.</p>
+</div>
+<button type="button" onClick="{{toggleNew}}" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: #16181D; color: #FFFFFF; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px">
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg>
+New activity
+</button>
+</header>
+
+<sc-if value="{{showNew}}" hint-placeholder-val="{{ false }}">
+<form onSubmit="{{addActivity}}" style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 16px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: #4A505C">Project
+<select value="{{newProject}}" onChange="{{onNewProject}}" style="height: 44px; border: 1px solid #CFCFC8; border-radius: 8px; padding: 0 10px; background: #FFFFFF; font-size: 14px; font-weight: 400; color: #16181D; max-width: 240px">
+<sc-for list="{{projectOptions}}" as="o" hint-placeholder-count="4">
+<option value="{{o.value}}">{{o.label}}</option>
+</sc-for>
+<option value="__new">+ New project…</option>
+</select></label>
+<sc-if value="{{newProjectMode}}" hint-placeholder-val="{{ false }}">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: #4A505C">New project name
+<input type="text" value="{{newProjectName}}" onChange="{{onNewProjectName}}" placeholder="e.g. Data platform" style="height: 44px; width: 200px; border: 1px solid #CFCFC8; border-radius: 8px; padding: 0 12px; background: #FFFFFF; font-size: 14px; font-weight: 400"></label>
+</sc-if>
+<label style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 260px; font-size: 12px; font-weight: 600; color: #4A505C">Activity
+<input type="text" value="{{newName}}" onChange="{{onNewName}}" placeholder="e.g. Prepare architecture review" style="height: 44px; border: 1px solid #CFCFC8; border-radius: 8px; padding: 0 12px; background: #FFFFFF; font-size: 14px; font-weight: 400"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: #4A505C">Requested by
+<input type="text" value="{{newReq}}" onChange="{{onNewReq}}" style="height: 44px; width: 140px; border: 1px solid #CFCFC8; border-radius: 8px; padding: 0 12px; background: #FFFFFF; font-size: 14px; font-weight: 400"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: #4A505C">Start
+<input type="date" value="{{newStart}}" onChange="{{onNewStart}}" style="height: 44px; border: 1px solid #CFCFC8; border-radius: 8px; padding: 0 10px; background: #FFFFFF; font-size: 14px; font-weight: 400"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: #4A505C">Due
+<input type="date" value="{{newEnd}}" onChange="{{onNewEnd}}" style="height: 44px; border: 1px solid #CFCFC8; border-radius: 8px; padding: 0 10px; background: #FFFFFF; font-size: 14px; font-weight: 400"></label>
+<button type="submit" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: #2F5BEA; color: #FFFFFF; font-weight: 600; cursor: pointer">Add</button>
+<button type="button" onClick="{{toggleNew}}" style="min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid #CFCFC8; background: #FFFFFF; cursor: pointer">Cancel</button>
+</form>
+</sc-if>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px">
+<div role="group" aria-label="Period" style="display: flex; background: #EAEAE5; border-radius: 10px; padding: 3px">
+<sc-for list="{{periods}}" as="v" hint-placeholder-count="5">
+<button type="button" onClick="{{v.pick}}" aria-pressed="{{v.pressed}}" style="min-height: 38px; padding: 0 14px; border: 0; border-radius: 8px; cursor: pointer; font-weight: 600; background: {{v.bg}}; color: {{v.fg}}; box-shadow: {{v.shadow}}">{{v.label}}</button>
+</sc-for>
+</div>
+<sc-if value="{{isYear}}" hint-placeholder-val="{{ true }}">
+<div role="group" aria-label="Year columns" style="display: flex; background: #EAEAE5; border-radius: 10px; padding: 3px">
+<sc-for list="{{scales}}" as="v" hint-placeholder-count="2">
+<button type="button" onClick="{{v.pick}}" aria-pressed="{{v.pressed}}" style="min-height: 38px; padding: 0 14px; border: 0; border-radius: 8px; cursor: pointer; font-weight: 600; background: {{v.bg}}; color: {{v.fg}}; box-shadow: {{v.shadow}}">{{v.label}}</button>
+</sc-for>
+</div>
+</sc-if>
+<label style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: #4A505C">Project
+<select value="{{projectFilter}}" onChange="{{onProjectFilter}}" style="height: 44px; border: 1px solid #CFCFC8; border-radius: 10px; padding: 0 10px; background: #FFFFFF; font-weight: 500; color: #16181D; max-width: 240px">
+<option value="all">All projects</option>
+<sc-for list="{{projectOptions}}" as="o" hint-placeholder-count="4">
+<option value="{{o.value}}">{{o.label}}</option>
+</sc-for>
+</select></label>
+<label style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: #4A505C">Month
+<select value="{{month}}" onChange="{{onMonth}}" style="height: 44px; border: 1px solid #CFCFC8; border-radius: 10px; padding: 0 10px; background: #FFFFFF; font-weight: 500; color: #16181D">
+<sc-for list="{{monthOptions}}" as="o" hint-placeholder-count="13">
+<option value="{{o.value}}">{{o.label}}</option>
+</sc-for>
+</select></label>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<div role="group" aria-label="Filter by status" style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{pills}}" as="p" hint-placeholder-count="5">
+<button type="button" onClick="{{p.pick}}" aria-pressed="{{p.pressed}}" style="min-height: 44px; padding: 0 14px; border-radius: 999px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px; background: {{p.bg}}; color: {{p.fg}}; border: 1px solid {{p.border}}">
+<span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 4px; background: {{p.dot}}"></span>{{p.label}}<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; opacity: 0.8">{{p.count}}</span></button>
+</sc-for>
+</div>
+<span aria-hidden="true" style="width: 1px; height: 28px; background: #D5D5CF; margin: 0 6px"></span>
+<button type="button" onClick="{{toggleCreep}}" aria-pressed="{{creepPressed}}" style="min-height: 44px; padding: 0 14px; border-radius: 999px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px; background: {{creepBtn.bg}}; color: {{creepBtn.fg}}; border: 1px solid {{creepBtn.border}}">
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12l4-4 3 3 5-6"></path><path d="M10 5h4v4"></path></svg>
+Scope creep<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; opacity: 0.8">{{creepCount}}</span></button>
+<sc-if value="{{filtered}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{clearFilters}}" style="min-height: 44px; padding: 0 8px; border: 0; background: transparent; color: #1D43BF; text-decoration: underline; cursor: pointer">Clear filters</button>
+</sc-if>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px">
+<sc-for list="{{tiles}}" as="t" hint-placeholder-count="6">
+<div style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4A505C; font-weight: 500"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 4px; background: {{t.dot}}"></span>{{t.label}}</div>
+<div style="font-size: 28px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{t.value}}</div>
+</div>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+
+<section aria-label="Timeline" style="flex: 999 1 720px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 14px; overflow: hidden">
+<div style="overflow-x: auto">
+<div style="min-width: 1000px; position: relative">
+
+<div style="display: grid; grid-template-columns: 300px minmax(0, 1fr); border-bottom: 1px solid #E3E3DE; background: #FAFAF8">
+<div style="padding: 14px 16px; display: flex; flex-direction: column; justify-content: center; gap: 2px">
+<div style="font-weight: 600">Project · activity</div>
+<div style="font-size: 12px; color: #5A606C">{{shownLabel}}</div>
+</div>
+<div style="position: relative; height: 72px">
+<sc-for list="{{columns}}" as="c" hint-placeholder-count="4">
+<div style="position: absolute; top: 0; bottom: 0; left: {{c.left}}%; width: {{c.width}}%; background: {{c.bg}}; border-left: 1px solid #E3E3DE; box-sizing: border-box; padding: 10px 10px; display: flex; flex-direction: column; gap: 2px; overflow: hidden">
+<div style="font-weight: 600; font-size: 13px; white-space: nowrap">{{c.label}} <span style="font-weight: 400; color: #5A606C">{{c.sub}}</span></div>
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #4A505C; white-space: nowrap">{{c.load}}</div>
+</div>
+</sc-for>
+<sc-for list="{{ticks}}" as="k" hint-placeholder-count="0">
+<div aria-hidden="true" style="position: absolute; bottom: 4px; left: {{k.left}}%; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #5A606C; padding-left: 3px">{{k.label}}</div>
+</sc-for>
+<sc-if value="{{showToday}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; bottom: 18px; left: {{todayLeft}}%; transform: translateX(-50%); background: #C2410C; color: #FFFFFF; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; white-space: nowrap">Today</div>
+</sc-if>
+</div>
+</div>
+
+<div style="position: relative">
+<div aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 300px; right: 0; pointer-events: none">
+<sc-if value="{{hasMonthBand}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; top: 0; bottom: 0; left: {{bandLeft}}%; width: {{bandWidth}}%; background: rgba(47, 91, 234, 0.07)"></div>
+</sc-if>
+<sc-for list="{{gridlines}}" as="g" hint-placeholder-count="11">
+<div style="position: absolute; top: 0; bottom: 0; left: {{g.left}}%; width: 1px; background: {{g.color}}"></div>
+</sc-for>
+<sc-if value="{{showToday}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; top: 0; bottom: 0; left: {{todayLeft}}%; width: 2px; margin-left: -1px; background: #C2410C"></div>
+</sc-if>
+</div>
+
+<sc-for list="{{groups}}" as="grp" hint-placeholder-count="4">
+<div style="position: relative">
+<div style="position: relative; display: grid; grid-template-columns: 300px minmax(0, 1fr); border-bottom: 1px solid #E3E3DE; background: rgba(240, 240, 235, 0.75)">
+<button type="button" onClick="{{grp.toggle}}" aria-expanded="{{grp.expanded}}" style="grid-column: 1 / -1; text-align: left; border: 0; background: transparent; padding: 0 16px; min-height: 44px; cursor: pointer; display: flex; align-items: center; gap: 10px; min-width: 0">
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; transform: {{grp.chevron}}"><path d="M6 4l4 4-4 4"></path></svg>
+<span style="font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0">{{grp.name}}</span>
+<span style="font-size: 12px; color: #4A505C; white-space: nowrap">· {{grp.countLabel}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500; color: #16181D; white-space: nowrap">· {{grp.pctLabel}} done</span>
+<sc-if value="{{grp.hasCreep}}" hint-placeholder-val="{{ false }}">
+<span style="font-size: 12px; color: #9D1F5F; font-weight: 600; white-space: nowrap">· {{grp.creepLabel}}</span>
+</sc-if>
+</button>
+</div>
+
+<sc-if value="{{grp.expandedBool}}" hint-placeholder-val="{{ true }}">
+<div>
+<sc-for list="{{grp.rows}}" as="r" hint-placeholder-count="3">
+<div style="position: relative; display: grid; grid-template-columns: 300px minmax(0, 1fr); border-bottom: 1px solid #EDEDE8; background: {{r.rowBg}}">
+<button type="button" onClick="{{r.select}}" aria-pressed="{{r.pressed}}" style="text-align: left; border: 0; background: transparent; padding: 12px 16px 12px 42px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; min-width: 0; box-shadow: {{r.selBar}}">
+<span style="font-weight: 600; font-size: 14px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%">{{r.name}}</span>
+<span style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: #4A505C">
+<span style="background: {{r.chipBg}}; color: {{r.chipFg}}; font-weight: 600; padding: 2px 8px; border-radius: 999px">{{r.statusLabel}}</span>
+<sc-if value="{{r.creep}}" hint-placeholder-val="{{ false }}">
+<span style="background: #FCE7F0; color: #9D1F5F; font-weight: 600; padding: 2px 8px; border-radius: 999px; display: flex; align-items: center; gap: 4px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12l4-4 3 3 5-6"></path><path d="M10 5h4v4"></path></svg>{{r.creepLabel}}</span>
+</sc-if>
+<span style="font-family: 'JetBrains Mono', monospace">{{r.openLabel}}</span>
+</span>
+<span style="font-size: 12px; color: #5A606C">{{r.dates}}</span>
+</button>
+<div style="position: relative; height: 84px">
+<div aria-hidden="true" style="position: absolute; bottom: 14px; height: 2px; left: {{r.left}}%; width: {{r.width}}%; background: {{r.tint}}"></div>
+<sc-if value="{{r.hasPlan}}" hint-placeholder-val="{{ true }}">
+<div aria-hidden="true" style="position: absolute; bottom: 14px; height: 14px; left: {{r.planLeft}}%; width: {{r.planWidth}}%; border: 1.5px dashed {{r.bar}}; border-radius: 3px; box-sizing: border-box; opacity: 0.55"></div>
+</sc-if>
+<sc-for list="{{r.bins}}" as="b" hint-placeholder-count="20">
+<div aria-hidden="true" style="position: absolute; bottom: 16px; left: {{b.left}}%; width: {{b.width}}%; height: {{b.h}}px; background: {{r.bar}}; opacity: 0.85"></div>
+</sc-for>
+<sc-for list="{{r.marks}}" as="m" hint-placeholder-count="3">
+<div aria-hidden="true" style="position: absolute; bottom: 10px; left: {{m.left}}%; width: 10px; height: 10px; margin-left: -5px; border-radius: 5px; background: {{m.color}}; border: 2px solid #FFFFFF; box-sizing: border-box"></div>
+</sc-for>
+<div style="position: absolute; top: 8px; left: {{r.labelLeft}}%; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #4A505C; white-space: nowrap; padding-left: 6px">{{r.pctLabel}}</div>
+<button type="button" onClick="{{r.select}}" title="{{r.tip}}" aria-label="{{r.tip}}" style="position: absolute; top: 0; bottom: 0; left: {{r.left}}%; width: {{r.width}}%; min-width: 12px; border: 0; background: transparent; cursor: pointer; padding: 0"></button>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+
+<sc-if value="{{noRows}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 48px 16px; text-align: center; color: #4A505C">No activities match these filters.</div>
+</sc-if>
+</div>
+
+</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 18px; padding: 12px 16px; border-top: 1px solid #E3E3DE; font-size: 12px; color: #4A505C; background: #FAFAF8">
+<span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 18px; height: 12px; background: #2F5BEA; opacity: 0.85; border-radius: 2px"></span>Activity: open subtasks (taller = more open)</span>
+<span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 18px; height: 12px; border: 1.5px dashed #2F5BEA; box-sizing: border-box; border-radius: 2px; opacity: 0.6"></span>Until due date</span>
+<span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 5px; background: #16181D"></span>Journal entry</span>
+<span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 2px; height: 14px; background: #C2410C"></span>Today</span>
+</div>
+</section>
+
+<aside aria-label="Activity detail" style="flex: 1 1 360px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 22px">
+<sc-if value="{{noSel}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; color: #4A505C">Select an activity to see its burndown, scope, subtasks and journal.</p>
+</sc-if>
+<sc-if value="{{hasSel}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 22px">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.06em; color: #4A505C">{{d.project}}</div>
+<h2 style="margin: 0; font-size: 21px; line-height: 1.25; letter-spacing: -0.01em">{{d.name}}</h2>
+<div style="font-size: 12px; color: #4A505C">Requested by <strong style="color: #16181D">{{d.requester}}</strong> · {{d.dates}}</div>
+<div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 4px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: #4A505C">Status
+<select value="{{d.status}}" onChange="{{onStatus}}" style="height: 44px; border: 1px solid #CFCFC8; border-radius: 10px; padding: 0 10px; background: #FFFFFF; font-size: 14px; font-weight: 500; color: #16181D">
+<option value="planned">Planned</option>
+<option value="active">Active</option>
+<option value="blocked">Blocked</option>
+<option value="done">Done</option>
+</select></label>
+<div style="text-align: right">
+<div style="font-size: 30px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{d.prog}}%</div>
+<div style="font-size: 12px; color: #4A505C">{{d.subDone}} of {{d.subTotal}} subtasks done</div>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<h3 style="margin: 0; font-size: 14px">Burndown</h3>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #4A505C">peak {{d.peak}} open · weekly</span>
+</div>
+<div style="display: flex; align-items: flex-end; gap: 2px; height: 120px; border-bottom: 1px solid #CFCFC8; position: relative">
+<sc-for list="{{d.bins}}" as="b" hint-placeholder-count="20">
+<div title="{{b.tip}}" style="flex: 1 1 0; height: 100%; position: relative; min-width: 2px">
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: {{b.scopeH}}%; background: {{b.bg}}; border: {{b.planBorder}}; box-sizing: border-box; border-radius: 2px 2px 0 0"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: {{b.openH}}%; background: {{d.bar}}; border-radius: 2px 2px 0 0"></div>
+<sc-if value="{{b.isToday}}" hint-placeholder-val="{{ false }}">
+<div aria-hidden="true" style="position: absolute; top: -4px; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: #C2410C"></div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+<div style="display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #4A505C"><span>{{d.startLabel}}</span><span>{{d.endLabel}}</span></div>
+<div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: #4A505C">
+<span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 2px; background: {{d.bar}}"></span>Open</span>
+<span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 2px; background: {{d.tint}}"></span>Scope (all subtasks)</span>
+<span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 2px; border: 1.5px dashed #8B94A5; box-sizing: border-box"></span>Ahead</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: 14px">Scope</h3>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<div style="background: #FAFAF8; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #4A505C">{{d.cBaseLabel}}</span><span style="font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums">{{d.cInit}}</span></div>
+<div style="background: #FAFAF8; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #4A505C">Now</span><span style="font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums">{{d.cNow}} <span style="font-size: 12px; font-weight: 600; color: {{d.cGrowColor}}">{{d.cGrowth}}</span></span></div>
+<div style="background: #FAFAF8; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #4A505C">Last 30 days</span><span style="font-size: 16px; font-weight: 700; font-family: 'JetBrains Mono', monospace; padding-top: 3px">+{{d.cAdd30}} / −{{d.cClose30}}</span></div>
+</div>
+<sc-if value="{{d.creep}}" hint-placeholder-val="{{ false }}">
+<div role="note" style="display: flex; gap: 10px; align-items: flex-start; background: #FCE7F0; color: #7A1749; border-radius: 10px; padding: 10px 12px; line-height: 1.45">
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 2px"><path d="M2 12l4-4 3 3 5-6"></path><path d="M10 5h4v4"></path></svg>
+<span style="display: flex; flex-direction: column; gap: 10px; align-items: flex-start">
+<span><strong>Scope creep.</strong> {{d.creepText}}</span>
+<button type="button" onClick="{{acknowledge}}" style="min-height: 40px; padding: 0 14px; border-radius: 8px; border: 1px solid #9D1F5F; background: #FFFFFF; color: #7A1749; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px">
+<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg>
+Acknowledge and log to journal</button>
+</span>
+</div>
+</sc-if>
+<sc-if value="{{d.hasAck}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; gap: 8px; align-items: center; font-size: 12px; color: #4A505C">
+<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#16603E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg>
+<span>{{d.ackText}}</span>
+</div>
+</sc-if>
+<div style="font-size: 12px; color: #4A505C">Flagged when scope grows 75%+ over its baseline (kickoff, or the last acknowledgement), or when more subtasks are added than closed over 30 days.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h3 style="margin: 0 0 4px; font-size: 14px">Subtasks</h3>
+<sc-for list="{{d.subtasks}}" as="s" hint-placeholder-count="5">
+<label style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 8px; border-radius: 8px; background: #FAFAF8; cursor: pointer">
+<input type="checkbox" checked="{{s.done}}" onChange="{{s.toggle}}" style="width: 18px; height: 18px; accent-color: #2F5BEA; margin: 0">
+<span style="flex: 1 1 auto; color: {{s.color}}; text-decoration: {{s.deco}}">{{s.text}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #5A606C; white-space: nowrap">{{s.when}}</span>
+</label>
+</sc-for>
+<form onSubmit="{{addSub}}" style="display: flex; gap: 8px; margin-top: 4px">
+<label style="flex: 1 1 auto; display: flex"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">New subtask</span>
+<input type="text" value="{{subText}}" onChange="{{onSubText}}" placeholder="Add a subtask" style="flex: 1 1 auto; height: 44px; border: 1px solid #CFCFC8; border-radius: 8px; padding: 0 12px; background: #FFFFFF; font-size: 14px; min-width: 0"></label>
+<button type="submit" style="min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid #CFCFC8; background: #FFFFFF; font-weight: 600; cursor: pointer">Add</button>
+</form>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: 14px">Journal</h3>
+<form onSubmit="{{addNote}}" style="display: flex; flex-wrap: wrap; gap: 8px">
+<label style="display: flex"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Entry type</span>
+<select value="{{noteKind}}" onChange="{{onNoteKind}}" style="height: 44px; border: 1px solid #CFCFC8; border-radius: 8px; padding: 0 8px; background: #FFFFFF; font-size: 14px">
+<option value="update">Update</option>
+<option value="decision">Decision</option>
+<option value="blocker">Blocker</option>
+<option value="meeting">Meeting</option>
+</select></label>
+<label style="flex: 1 1 160px; display: flex"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Journal entry</span>
+<input type="text" value="{{noteText}}" onChange="{{onNoteText}}" placeholder="What happened today?" style="flex: 1 1 auto; height: 44px; border: 1px solid #CFCFC8; border-radius: 8px; padding: 0 12px; background: #FFFFFF; font-size: 14px; min-width: 0"></label>
+<button type="submit" style="min-height: 44px; padding: 0 14px; border-radius: 10px; border: 0; background: #16181D; color: #FFFFFF; font-weight: 600; cursor: pointer">Log</button>
+</form>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<sc-for list="{{d.journal}}" as="j" hint-placeholder-count="4">
+<li style="display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-top: 1px solid #EDEDE8">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #4A505C; padding-top: 2px">{{j.date}}</span>
+<span style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start">
+<span style="background: {{j.bg}}; color: {{j.fg}}; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px">{{j.kindLabel}}</span>
+<span style="line-height: 1.45">{{j.text}}</span>
+</span>
+</li>
+</sc-for>
+</ol>
+</div>
+
+</div>
+</sc-if>
+</aside>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1280}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const t = this.todayStr();
+    this.state = {
+      period: 'year', scale: 'quarter', status: 'all', month: 'all', projectFilter: 'all', creepOnly: false,
+      collapsed: {}, selectedId: 'a1',
+      projects: [
+        { id: 'p1', name: 'Order platform modernisation' },
+        { id: 'p2', name: 'Platform and tooling' },
+        { id: 'p3', name: 'Team and people' },
+        { id: 'p4', name: 'Operations and planning' }
+      ],
+      items: this.seed(), noteText: '', noteKind: 'update', subText: '',
+      showNew: false, newProject: 'p1', newProjectName: '', newName: '', newReq: 'Manager', newStart: t, newEnd: this.addDays(t, 30)
+    };
+  }
+  pad(n) { return String(n).padStart(2, '0'); }
+  todayStr() { const d = new Date(); return d.getFullYear() + '-' + this.pad(d.getMonth() + 1) + '-' + this.pad(d.getDate()); }
+  toT(s) { const p = String(s).split('-').map(Number); return Date.UTC(p[0], (p[1] || 1) - 1, p[2] || 1); }
+  addDays(s, n) { const d = new Date(this.toT(s) + n * 86400000); return d.getUTCFullYear() + '-' + this.pad(d.getUTCMonth() + 1) + '-' + this.pad(d.getUTCDate()); }
+  fmtT(t) { const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; const d = new Date(t); return d.getUTCDate() + ' ' + M[d.getUTCMonth()]; }
+  fmt(s) { return this.fmtT(this.toT(s)); }
+  st(text, added, doneAt) { return { text: text, added: added, doneAt: doneAt || null }; }
+  j(date, kind, text) { return { date: date, kind: kind, text: text }; }
+  seed() {
+    const s = this.st.bind(this), j = this.j.bind(this);
+    return [
+      { id: 'a1', projectId: 'p1', name: 'Consolidate order services into one Go service', requester: 'Manager', status: 'active', start: '2026-03-02', end: '2026-12-18',
+        subtasks: [s('Map service boundaries','2026-03-02','2026-03-27'), s('Strangler-fig routing layer','2026-03-02','2026-05-08'), s('Migrate order intake','2026-03-02','2026-07-14'), s('Decommission old services','2026-03-02'), s('Migrate pricing','2026-04-20','2026-09-30'), s('Remove Kafka topic dependencies','2026-04-20','2026-11-10'), s('Migrate notifications','2026-07-14'), s('Load test single service','2026-09-30')],
+        journal: [j('2026-03-02','meeting','Kick-off with manager, scope agreed'), j('2026-04-20','decision','Strangler-fig over big-bang rewrite; two tasks added'), j('2026-07-14','update','Order intake live behind the router'), j('2026-09-30','update','Pricing migrated, latency flat'), j('2026-11-10','update','Kafka dependencies removed')] },
+      { id: 'a6', projectId: 'p1', name: 'Kafka upgrade readiness', requester: 'Platform team', status: 'blocked', start: '2026-09-07', end: '2026-11-27',
+        subtasks: [s('Compatibility matrix','2026-09-07','2026-10-05'), s('Client library audit','2026-09-07','2026-10-19'), s('Book maintenance window','2026-09-07'), s('Staging upgrade','2026-10-05'), s('Rollback plan','2026-10-05'), s('Upgrade clients in four services','2026-11-12')],
+        journal: [j('2026-09-07','update','Started'), j('2026-10-05','update','Compatibility matrix done; two tasks added'), j('2026-11-03','blocker','Waiting on platform team for a maintenance window'), j('2026-11-12','decision','Client upgrades pulled into this activity')] },
+      { id: 'a3', projectId: 'p2', name: 'Move build logic off Jenkins into CLI engine', requester: 'Self', status: 'done', start: '2026-01-12', end: '2026-05-29',
+        subtasks: [s('Inventory Jenkins jobs','2026-01-12','2026-01-30'), s('CLI skeleton','2026-01-12','2026-02-13'), s('Go builds','2026-01-12','2026-03-06'), s('Deploy step','2026-01-12','2026-04-17'), s('Python builds','2026-02-13','2026-03-06'), s('Migrate last pipelines','2026-03-06','2026-05-29')],
+        journal: [j('2026-01-12','update','Started'), j('2026-03-06','update','CLI builds Go and Python services'), j('2026-05-29','update','Last pipeline migrated')] },
+      { id: 'a8', projectId: 'p2', name: 'Observability vendor review', requester: 'Director', status: 'done', start: '2026-02-02', end: '2026-04-10',
+        subtasks: [s('Requirements','2026-02-02','2026-02-20'), s('Shortlist','2026-02-02','2026-03-02'), s('Vendor demos','2026-02-20','2026-03-12'), s('Recommendation','2026-03-02','2026-04-10')],
+        journal: [j('2026-02-02','meeting','Request from director'), j('2026-03-12','meeting','Demos with two vendors'), j('2026-04-10','decision','Recommendation sent')] },
+      { id: 'a2', projectId: 'p3', name: 'Hire senior ML engineer', requester: 'Director', status: 'active', start: '2026-08-17', end: '2026-12-11',
+        subtasks: [s('Write role profile','2026-08-17','2026-08-28'), s('Screening rubric','2026-08-17','2026-09-08'), s('Offer and close','2026-08-17'), s('First-round interviews','2026-09-08','2026-10-23'), s('Technical panel','2026-09-08')],
+        journal: [j('2026-08-17','update','Headcount approved'), j('2026-09-08','decision','Rubric favours system design over puzzles'), j('2026-10-27','meeting','Calibration with interview panel')] },
+      { id: 'a9', projectId: 'p3', name: 'Mentoring plan for two juniors', requester: 'Self', status: 'active', start: '2026-04-06', end: '2026-12-31',
+        subtasks: [s('Goals per person','2026-04-06','2026-04-24'), s('Pairing schedule','2026-04-06','2026-05-15'), s('Mid-year check-in','2026-04-06','2026-06-30'), s('Code review rotation','2026-04-06','2026-08-14'), s('Year-end review','2026-04-06'), s('One tech talk each','2026-06-30')],
+        journal: [j('2026-04-06','update','Plan agreed with both'), j('2026-06-30','meeting','Mid-year check-in'), j('2026-09-29','update','Both now own a small feature')] },
+      { id: 'a7', projectId: 'p3', name: 'Team onboarding guide refresh', requester: 'Self', status: 'active', start: '2026-10-05', end: '2026-12-04',
+        subtasks: [s('Audit current guide','2026-10-05','2026-10-16'), s('Local environment section','2026-10-05','2026-10-29'), s('Access and permissions','2026-10-05'), s('First-week checklist','2026-10-29')],
+        journal: [j('2026-10-05','update','Started'), j('2026-10-29','update','Local environment section rewritten')] },
+      { id: 'a5', projectId: 'p4', name: 'Postmortem: inference latency incident', requester: 'Manager', status: 'done', start: '2026-06-08', end: '2026-06-26',
+        subtasks: [s('Incident timeline','2026-06-08','2026-06-12'), s('Root cause analysis','2026-06-08','2026-06-15'), s('Action items assigned','2026-06-15','2026-06-26')],
+        journal: [j('2026-06-08','blocker','p95 latency spike on inference'), j('2026-06-15','update','Root cause: node pool autoscaling'), j('2026-06-26','decision','Action items assigned')] },
+      { id: 'a4', projectId: 'p4', name: '2027 capacity and budget plan', requester: 'Manager', status: 'planned', start: '2026-11-23', end: '2026-12-31',
+        subtasks: [s('Collect team requests','2026-11-16'), s('Cost model','2026-11-16'), s('Draft plan','2026-11-16'), s('Review with manager','2026-11-16')],
+        journal: [j('2026-11-16','meeting','Request received in 1:1')] }
+    ];
+  }
+  openAt(a, t) { return a.subtasks.filter(x => this.toT(x.added) <= t && (!x.doneAt || this.toT(x.doneAt) > t)).length; }
+  scopeAt(a, t) { return a.subtasks.filter(x => this.toT(x.added) <= t).length; }
+  progressOf(a) { const n = a.subtasks.length; if (!n) return a.status === 'done' ? 100 : 0; return Math.round(a.subtasks.filter(x => x.doneAt).length / n * 100); }
+  creepOf(a, nowT) {
+    // baseline = subtasks at kickoff (first week), or at the last acknowledgement
+    const DAY = 86400000, k = this.toT(a.start) + 7 * DAY, w0 = nowT - 30 * DAY, ack = a.creepAck || null;
+    const total = a.subtasks.length;
+    const newer = ack ? a.subtasks.slice(ack.n) : a.subtasks.filter(x => this.toT(x.added) > k);
+    const init = ack ? ack.n : total - newer.length;
+    const added = total - init, pct = init ? Math.round(added / init * 100) : 0;
+    const add30 = newer.filter(x => this.toT(x.added) > w0).length;
+    const close30 = a.subtasks.filter(x => x.doneAt && this.toT(x.doneAt) > w0).length;
+    const growth = a.status !== 'done' && init > 0 && pct >= 75;
+    const outpacing = a.status !== 'done' && add30 > close30;
+    const since = ack ? 'since the acknowledgement on ' + this.fmt(ack.date) : 'since kickoff';
+    const reasons = [];
+    if (growth) reasons.push('Grew from ' + init + ' to ' + total + ' subtasks ' + since + ' (+' + pct + '%).');
+    if (outpacing) reasons.push('In the last 30 days ' + add30 + ' added vs ' + close30 + ' closed: work is arriving faster than it closes.');
+    return { init: init, total: total, added: added, pct: pct, add30: add30, close30: close30, flag: growth || outpacing, text: reasons.join(' '), ack: ack };
+  }
+  patch(id, fn) { this.setState(s => ({ items: s.items.map(a => a.id === id ? fn(a) : a) })); }
+  renderVals() {
+    const S = this.state, Y = 2026, DAY = 86400000, WEEK = 7 * DAY;
+    const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const MF = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const META = {
+      planned: { label: 'Planned', bg: '#EEF0F3', fg: '#454C5A', bar: '#8B94A5', tint: '#E1E4EA' },
+      active: { label: 'Active', bg: '#E6EDFF', fg: '#1D43BF', bar: '#2F5BEA', tint: '#D3DDFA' },
+      blocked: { label: 'Blocked', bg: '#FFEFDD', fg: '#8F4500', bar: '#E07A12', tint: '#FADFC2' },
+      done: { label: 'Done', bg: '#E2F3EA', fg: '#16603E', bar: '#1F8A5B', tint: '#CFE8DA' }
+    };
+    const KIND = {
+      update: { label: 'Update', bg: '#EEF0F3', fg: '#454C5A', dot: '#16181D' },
+      decision: { label: 'Decision', bg: '#EFE8FF', fg: '#5B3AB8', dot: '#5B3AB8' },
+      blocker: { label: 'Blocker', bg: '#FFEFDD', fg: '#8F4500', dot: '#C2410C' },
+      meeting: { label: 'Meeting', bg: '#E1F1F3', fg: '#155E68', dot: '#155E68' },
+      scope: { label: 'Scope acknowledged', bg: '#FCE7F0', fg: '#7A1749', dot: '#9D1F5F' }
+    };
+    const today = this.todayStr(), tT = this.toT(today), nowT = tT + DAY - 1;
+
+    // visible range: whole year or one quarter
+    const isYear = S.period === 'year';
+    const q = isYear ? -1 : +S.period.slice(1) - 1;
+    const r0 = isYear ? Date.UTC(Y, 0, 1) : Date.UTC(Y, q * 3, 1);
+    const r1 = isYear ? Date.UTC(Y + 1, 0, 1) : Date.UTC(Y, q * 3 + 3, 1);
+    const P = t => Math.max(0, Math.min(100, (t - r0) / (r1 - r0) * 100));
+    const step = isYear ? WEEK : 2 * DAY;
+
+    const projName = {}; S.projects.forEach(p => { projName[p.id] = p.name; });
+    const byProject = S.items.filter(a => S.projectFilter === 'all' || a.projectId === S.projectFilter);
+    const all = byProject.slice().sort((a, b) => this.toT(a.start) - this.toT(b.start));
+    const creep = {}; S.items.forEach(a => { creep[a.id] = this.creepOf(a, nowT); });
+
+    let ms = null, me = null;
+    if (S.month !== 'all') { const m = +S.month; ms = Date.UTC(Y, m, 1); me = Date.UTC(Y, m + 1, 1) - 1; }
+    const overlaps = (a, s, e) => this.toT(a.start) < e && this.toT(a.end) + DAY > s;
+    const scoped = all.filter(a => overlaps(a, r0, r1) && (ms === null || overlaps(a, ms, me + 1)));
+    const visible = scoped.filter(a => (S.status === 'all' || a.status === S.status) && (!S.creepOnly || creep[a.id].flag));
+
+    // global scale for activity burndowns
+    let maxOpen = 1;
+    S.items.forEach(a => { for (let t = this.toT(a.start); t < Math.min(this.toT(a.end) + DAY, nowT); t += WEEK) { const o = this.openAt(a, t + WEEK - 1); if (o > maxOpen) maxOpen = o; } });
+    const binsFor = (from, to, openFn) => {
+      const out = []; const stop = Math.min(to, nowT);
+      for (let t0 = from; t0 < stop; t0 += step) {
+        const t1 = Math.min(t0 + step, stop);
+        if (t1 <= r0 || t0 >= r1) continue;
+        out.push({ left: P(t0), width: Math.max(0.15, P(t1) - P(t0)), open: openFn(t1) });
+      }
+      return out;
+    };
+
+    // columns, gridlines, ticks
+    let cols;
+    if (isYear && S.scale === 'month') cols = M.map((l, i) => ({ label: l, sub: '', s: Date.UTC(Y, i, 1), e: Date.UTC(Y, i + 1, 1) }));
+    else if (isYear) cols = [0, 1, 2, 3].map(k => ({ label: 'Q' + (k + 1), sub: M[k * 3] + '–' + M[k * 3 + 2], s: Date.UTC(Y, k * 3, 1), e: Date.UTC(Y, k * 3 + 3, 1) }));
+    else cols = [0, 1, 2].map(k => ({ label: MF[q * 3 + k], sub: '', s: Date.UTC(Y, q * 3 + k, 1), e: Date.UTC(Y, q * 3 + k + 1, 1) }));
+    const columns = cols.map(c => {
+      const future = c.s > nowT, at = Math.min(c.e - 1, nowT);
+      const acts = visible.filter(a => overlaps(a, c.s, c.e));
+      const n = acts.reduce((acc, a) => acc + (this.toT(a.start) <= at ? this.openAt(a, at) : 0), 0);
+      const isNow = tT >= c.s && tT < c.e, isSel = ms !== null && ms < c.e && me >= c.s;
+      return { label: c.label, sub: c.sub, left: P(c.s), width: P(c.e) - P(c.s),
+        load: future ? acts.length + ' planned' : n + ' open · ' + acts.length + ' act.',
+        bg: isSel ? '#EAF0FF' : (isNow ? '#FFF6EE' : 'transparent') };
+    });
+    const gridlines = [], ticks = [];
+    if (isYear) {
+      for (let i = 1; i < 12; i++) gridlines.push({ left: P(Date.UTC(Y, i, 1)), color: i % 3 === 0 ? '#DADAD3' : '#F0F0EB' });
+    } else {
+      for (let k = 1; k < 3; k++) gridlines.push({ left: P(Date.UTC(Y, q * 3 + k, 1)), color: '#DADAD3' });
+      let t = r0; while (new Date(t).getUTCDay() !== 1) t += DAY;
+      for (; t < r1; t += WEEK) { gridlines.push({ left: P(t), color: '#F0F0EB' }); ticks.push({ left: P(t), label: String(new Date(t).getUTCDate()) }); }
+    }
+
+    // rows grouped by project
+    const rowOf = a => {
+      const m = META[a.status], c = creep[a.id];
+      const s0 = this.toT(a.start), e0 = this.toT(a.end) + DAY;
+      const left = P(s0), width = Math.max(0.6, P(e0) - P(s0));
+      const bins = binsFor(s0, e0, t => this.openAt(a, t)).map(b => ({ left: b.left, width: b.width, h: Math.round(b.open / maxOpen * 44) }));
+      const planStart = Math.max(s0, nowT), hasPlan = a.status !== 'done' && e0 > planStart && planStart < r1;
+      const open = a.subtasks.filter(x => !x.doneAt).length, prog = this.progressOf(a), sel = a.id === S.selectedId;
+      return {
+        name: a.name, statusLabel: m.label, chipBg: m.bg, chipFg: m.fg, bar: m.bar, tint: m.tint,
+        left: left, width: width, bins: bins, hasPlan: hasPlan, planLeft: P(planStart), planWidth: Math.max(0, P(e0) - P(planStart)),
+        labelLeft: Math.min(92, P(e0)), pctLabel: prog + '%',
+        creep: c.flag, creepLabel: c.added > 0 ? 'Scope +' + c.added : 'Scope',
+        openLabel: open + ' open / ' + a.subtasks.length,
+        dates: this.fmt(a.start) + ' → ' + this.fmt(a.end) + ' · ' + a.requester,
+        marks: a.journal.filter(x => { const t = this.toT(x.date); return t >= r0 && t < r1; }).map(x => ({ left: P(this.toT(x.date)), color: (KIND[x.kind] || KIND.update).dot })),
+        tip: a.name + ': ' + prog + '% done, ' + open + ' open subtasks. Show details',
+        rowBg: sel ? 'rgba(47, 91, 234, 0.06)' : 'transparent', selBar: sel ? 'inset 3px 0 0 #2F5BEA' : 'none',
+        pressed: sel ? 'true' : 'false',
+        select: () => this.setState({ selectedId: a.id, subText: '', noteText: '' })
+      };
+    };
+    const groupsRaw = S.projects.map(p => {
+      const acts = visible.filter(a => a.projectId === p.id);
+      return acts.length ? { p: p, acts: acts } : null;
+    }).filter(Boolean);
+    const groups = groupsRaw.map(g => {
+      const open = g.acts.reduce((acc, a) => acc + a.subtasks.filter(x => !x.doneAt).length, 0);
+      const total = g.acts.reduce((acc, a) => acc + a.subtasks.length, 0);
+      const flags = g.acts.filter(a => creep[a.id].flag).length;
+      const collapsed = !!S.collapsed[g.p.id];
+      const pid = g.p.id;
+      return {
+        name: g.p.name, countLabel: g.acts.length + (g.acts.length === 1 ? ' activity' : ' activities'),
+        openLabel: open + ' open / ' + total, hasCreep: flags > 0, creepLabel: flags + ' scope ' + (flags === 1 ? 'flag' : 'flags'),
+        pctLabel: (total ? Math.round((total - open) / total * 100) : 0) + '%',
+        expanded: collapsed ? 'false' : 'true', expandedBool: !collapsed, chevron: collapsed ? 'none' : 'rotate(90deg)',
+        toggle: () => this.setState(s => { const c = Object.assign({}, s.collapsed); c[pid] = !c[pid]; return { collapsed: c }; }),
+        rows: g.acts.map(rowOf)
+      };
+    });
+
+    // controls
+    const count = k => scoped.filter(a => a.status === k).length;
+    const pills = [['all','All','#16181D'],['planned','Planned',META.planned.bar],['active','Active',META.active.bar],['blocked','Blocked',META.blocked.bar],['done','Done',META.done.bar]].map(p => {
+      const on = S.status === p[0];
+      return { label: p[1], dot: p[2], count: p[0] === 'all' ? scoped.length : count(p[0]),
+        bg: on ? '#16181D' : '#FFFFFF', fg: on ? '#FFFFFF' : '#16181D', border: on ? '#16181D' : '#CFCFC8',
+        pressed: on ? 'true' : 'false', pick: () => this.setState({ status: p[0] }) };
+    });
+    const seg = (list, cur, key, extra) => list.map(v => {
+      const on = cur === v[0];
+      return { label: v[1], pressed: on ? 'true' : 'false', bg: on ? '#FFFFFF' : 'transparent', fg: on ? '#16181D' : '#4A505C',
+        shadow: on ? '0 1px 2px rgba(22,24,29,0.15)' : 'none', pick: () => { const u = {}; u[key] = v[0]; Object.assign(u, extra || {}); this.setState(u); } };
+    });
+    const periods = seg([['year','Year'],['q1','Q1'],['q2','Q2'],['q3','Q3'],['q4','Q4']], S.period, 'period', { month: 'all' });
+    const scales = seg([['quarter','Quarters'],['month','Months']], S.scale, 'scale');
+    const monthIdx = isYear ? M.map((_, i) => i) : [q * 3, q * 3 + 1, q * 3 + 2];
+    const monthOptions = [{ value: 'all', label: isYear ? 'All of 2026' : 'Whole Q' + (q + 1) }].concat(monthIdx.map(i => ({ value: String(i), label: M[i] + ' 2026' })));
+    const projectOptions = S.projects.map(p => ({ value: p.id, label: p.name }));
+    const creepCount = scoped.filter(a => creep[a.id].flag).length;
+
+    const openNow = all.reduce((acc, a) => acc + a.subtasks.filter(x => !x.doneAt).length, 0);
+    const tiles = [
+      { label: 'Active', value: all.filter(a => a.status === 'active').length, dot: META.active.bar },
+      { label: 'Blocked', value: all.filter(a => a.status === 'blocked').length, dot: META.blocked.bar },
+      { label: 'Planned', value: all.filter(a => a.status === 'planned').length, dot: META.planned.bar },
+      { label: 'Done this year', value: all.filter(a => a.status === 'done').length, dot: META.done.bar },
+      { label: 'Open subtasks now', value: openNow, dot: '#16181D' },
+      { label: 'Scope creep flags', value: all.filter(a => creep[a.id].flag).length, dot: '#C0307A' }
+    ];
+
+    // detail panel
+    const sel = S.items.find(a => a.id === S.selectedId) || null;
+    let d = { project: '', name: '', requester: '', dates: '', status: 'planned', prog: 0, subDone: 0, subTotal: 0, peak: 0, bins: [], bar: '#2F5BEA', tint: '#D3DDFA', startLabel: '', endLabel: '', subtasks: [], journal: [],
+      cInit: 0, cNow: 0, cGrowth: '', cGrowColor: '#4A505C', cAdd30: 0, cClose30: 0, creep: false, noCreep: true, creepText: '',
+      cBaseLabel: 'At kickoff', hasAck: false, ackText: '' };
+    if (sel) {
+      const m = META[sel.status], c = creep[sel.id];
+      const s0 = this.toT(sel.start), e0 = this.toT(sel.end) + DAY, total = Math.max(1, sel.subtasks.length);
+      const bins = []; let peak = 0;
+      for (let t0 = s0; t0 < e0; t0 += WEEK) {
+        const t1 = Math.min(t0 + WEEK, e0) - 1, future = t0 > nowT, at = Math.min(t1, nowT);
+        const open = future ? 0 : this.openAt(sel, at), scope = future ? 0 : this.scopeAt(sel, at);
+        if (open > peak) peak = open;
+        bins.push({ bg: future ? 'transparent' : m.tint, openH: future ? 0 : Math.round(open / total * 100), scopeH: future ? 100 : Math.round(scope / total * 100),
+          planBorder: future ? '1.5px dashed #C9CDD5' : '0', isToday: tT >= t0 && tT <= t1,
+          tip: 'Week of ' + this.fmtT(t0) + (future ? ': ahead' : ': ' + open + ' open of ' + scope) });
+      }
+      d = {
+        project: (projName[sel.projectId] || '').toUpperCase(), name: sel.name, requester: sel.requester, dates: this.fmt(sel.start) + ' → ' + this.fmt(sel.end),
+        status: sel.status, prog: this.progressOf(sel),
+        subDone: sel.subtasks.filter(x => x.doneAt).length, subTotal: sel.subtasks.length, peak: peak,
+        bins: bins, bar: m.bar, tint: m.tint, startLabel: this.fmt(sel.start), endLabel: this.fmt(sel.end),
+        cInit: c.init, cNow: c.total, cGrowth: c.added > 0 ? '+' + c.pct + '%' : '', cGrowColor: c.pct >= 75 ? '#9D1F5F' : '#4A505C',
+        cAdd30: c.add30, cClose30: c.close30, creep: c.flag, noCreep: !c.flag, creepText: c.text,
+        cBaseLabel: c.ack ? 'Baseline (ack ' + this.fmt(c.ack.date) + ')' : 'At kickoff',
+        hasAck: !!c.ack && !c.flag,
+        ackText: c.ack ? 'Scope acknowledged on ' + this.fmt(c.ack.date) + ' at ' + c.ack.n + ' subtasks. The signal comes back only if scope grows again from here.' : '',
+        subtasks: sel.subtasks.map((x, i) => ({
+          text: x.text, done: !!x.doneAt, color: x.doneAt ? '#5A606C' : '#16181D', deco: x.doneAt ? 'line-through' : 'none',
+          when: x.doneAt ? 'closed ' + this.fmt(x.doneAt) : 'opened ' + this.fmt(x.added),
+          toggle: () => this.patch(sel.id, a => ({ ...a, subtasks: a.subtasks.map((y, k) => k === i ? { ...y, doneAt: y.doneAt ? null : today } : y) }))
+        })),
+        journal: sel.journal.slice().sort((a, b) => this.toT(b.date) - this.toT(a.date)).map(x => {
+          const k = KIND[x.kind] || KIND.update;
+          return { date: this.fmt(x.date), kindLabel: k.label, bg: k.bg, fg: k.fg, text: x.text };
+        })
+      };
+    }
+
+    const stop = e => { if (e && e.preventDefault) e.preventDefault(); };
+    const rowCount = groups.reduce((acc, g) => acc + g.rows.length, 0);
+    return {
+      eyebrow: isYear ? '2026 · ACTIVITY TIMELINE' : 'Q' + (q + 1) + ' 2026 · ' + M[q * 3].toUpperCase() + '–' + M[q * 3 + 2].toUpperCase(),
+      periods: periods, scales: scales, isYear: isYear, pills: pills, monthOptions: monthOptions, month: S.month,
+      projectOptions: projectOptions, projectFilter: S.projectFilter, tiles: tiles,
+      creepCount: creepCount, creepPressed: S.creepOnly ? 'true' : 'false',
+      creepBtn: S.creepOnly ? { bg: '#9D1F5F', fg: '#FFFFFF', border: '#9D1F5F' } : { bg: '#FFFFFF', fg: '#9D1F5F', border: '#E7B9CF' },
+      filtered: S.status !== 'all' || S.month !== 'all' || S.projectFilter !== 'all' || S.creepOnly,
+      columns: columns, gridlines: gridlines, ticks: ticks, groups: groups, noRows: rowCount === 0,
+      shownLabel: rowCount + ' of ' + S.items.length + ' activities · ' + groups.length + ' projects',
+      showToday: tT >= r0 && tT < r1, todayLeft: P(tT + DAY / 2),
+      hasMonthBand: ms !== null, bandLeft: ms === null ? 0 : P(ms), bandWidth: ms === null ? 0 : P(me + 1) - P(ms),
+      hasSel: !!sel, noSel: !sel, d: d,
+      showNew: S.showNew, newProject: S.newProject, newProjectMode: S.newProject === '__new', newProjectName: S.newProjectName,
+      newName: S.newName, newReq: S.newReq, newStart: S.newStart, newEnd: S.newEnd,
+      subText: S.subText, noteText: S.noteText, noteKind: S.noteKind,
+      toggleNew: () => this.setState({ showNew: !S.showNew }),
+      toggleCreep: () => this.setState({ creepOnly: !S.creepOnly }),
+      onProjectFilter: e => this.setState({ projectFilter: e.target.value }),
+      onNewProject: e => this.setState({ newProject: e.target.value }),
+      onNewProjectName: e => this.setState({ newProjectName: e.target.value }),
+      onNewName: e => this.setState({ newName: e.target.value }),
+      onNewReq: e => this.setState({ newReq: e.target.value }),
+      onNewStart: e => this.setState({ newStart: e.target.value }),
+      onNewEnd: e => this.setState({ newEnd: e.target.value }),
+      addActivity: e => {
+        stop(e);
+        const name = S.newName.trim(); if (!name || !S.newStart || !S.newEnd) return;
+        let pid = S.newProject, projects = S.projects;
+        if (pid === '__new') {
+          const pn = S.newProjectName.trim(); if (!pn) return;
+          pid = 'p' + Date.now(); projects = projects.concat([{ id: pid, name: pn }]);
+        }
+        const id = 'n' + Date.now();
+        const item = { id: id, projectId: pid, name: name, requester: S.newReq.trim() || 'Manager', status: this.toT(S.newStart) > tT ? 'planned' : 'active',
+          start: S.newStart, end: S.newEnd, subtasks: [], journal: [{ date: today, kind: 'update', text: 'Activity created' }] };
+        this.setState(s => ({ projects: projects, items: s.items.concat([item]), selectedId: id, showNew: false, newName: '', newProject: pid, newProjectName: '' }));
+      },
+      clearFilters: () => this.setState({ status: 'all', month: 'all', projectFilter: 'all', creepOnly: false }),
+      onMonth: e => this.setState({ month: e.target.value }),
+      acknowledge: () => {
+        if (!sel) return;
+        const c = creep[sel.id];
+        const note = 'Scope change acknowledged: ' + c.init + ' → ' + c.total + ' subtasks' + (c.added > 0 ? ' (+' + c.pct + '%)' : '') + '; last 30 days +' + c.add30 + ' / −' + c.close30 + '. New baseline: ' + c.total + '.';
+        this.patch(sel.id, a => ({ ...a, creepAck: { date: today, n: a.subtasks.length }, journal: a.journal.concat([{ date: today, kind: 'scope', text: note }]) }));
+      },
+      onStatus: e => { const v = e.target.value; if (sel) this.patch(sel.id, a => ({ ...a, status: v })); },
+      onSubText: e => this.setState({ subText: e.target.value }),
+      addSub: e => {
+        stop(e);
+        const t = S.subText.trim(); if (!t || !sel) return;
+        this.patch(sel.id, a => ({ ...a, subtasks: a.subtasks.concat([{ text: t, added: today, doneAt: null }]) }));
+        this.setState({ subText: '' });
+      },
+      onNoteText: e => this.setState({ noteText: e.target.value }),
+      onNoteKind: e => this.setState({ noteKind: e.target.value }),
+      addNote: e => {
+        stop(e);
+        const t = S.noteText.trim(); if (!t || !sel) return;
+        this.patch(sel.id, a => ({ ...a, journal: a.journal.concat([{ date: today, kind: S.noteKind, text: t }]) }));
+        this.setState({ noteText: '' });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

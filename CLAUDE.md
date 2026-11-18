@@ -1,6 +1,6 @@
 # CLAUDE.md — Workline
 
-Read `SPEC.md` before any change. It is the source of truth; `docs/mockup.png` is the visual reference.
+Read `SPEC.md` before any change. It is the source of truth; `docs/mockup.html` is the visual reference.
 
 ## Principles
 - **Standard library first.** Allowed dependencies: `modernc.org/sqlite` and htmx (vendored at `web/static/htmx.min.js`, never loaded from a CDN). Ask before adding anything else, including test helpers.
