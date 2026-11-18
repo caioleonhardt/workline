@@ -64,7 +64,12 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 				s.fail(w, r, err)
 				return
 			}
-			panel = buildPanel(a, projects, subsOf[a.ID], journal, today, r.URL.RequestURI())
+			ack, err := s.store.LatestScopeAck(ctx, a.ID)
+			if err != nil {
+				s.fail(w, r, err)
+				return
+			}
+			panel = buildPanel(a, projects, subsOf[a.ID], journal, ack, today, r.URL.RequestURI())
 		}
 		rows[a.ProjectID] = append(rows[a.ProjectID], activityRow{
 			ID: a.ID, Name: a.Name, Status: string(a.Status), Priority: string(a.Priority),

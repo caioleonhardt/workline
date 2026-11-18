@@ -10,6 +10,20 @@
 </form>
 <p><strong>{{.Progress}}%</strong> · {{.Closed}} of {{.Total}} subtasks done</p>
 
+<h3>Scope</h3>
+<p class="mono">{{.Scope.BaselineLabel}}: {{.Scope.Baseline}} · Now: {{.Scope.Total}} (+{{.Scope.GrowthPct}}%) · Last 30 days: +{{.Scope.Add30}} / −{{.Scope.Close30}}</p>
+{{if .Scope.Flagged}}
+<div class="warn" role="alert">
+<strong>Scope creep.</strong>
+{{range .Scope.Reasons}}<span>{{.}}</span> {{end}}
+<form method="post" action="/activities/{{.ID}}/scope-ack">
+<input type="hidden" name="next" value="{{.Next}}">
+<button>Acknowledge and log to journal</button>
+</form>
+</div>
+{{else if .Scope.AckNote}}<p class="muted">{{.Scope.AckNote}}</p>{{end}}
+<p class="muted">Flagged when scope grows 75%+ over its baseline (kickoff, or the last acknowledgement), or when more subtasks are added than closed over 30 days.</p>
+
 <h3>Subtasks</h3>
 <ul class="rows">
 {{range .Subtasks}}
