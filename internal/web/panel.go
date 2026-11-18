@@ -22,6 +22,8 @@ type panelView struct {
 	Subtasks                             []subtaskRow
 	Journal                              []journalRow
 	Scope                                scopeView
+	Chart                                chartView
+	Status                               string
 	NewKinds                             []option
 	Progress, Closed, Total              int
 	Statuses, Priorities, ProjectChoices []option
@@ -47,7 +49,8 @@ func buildPanel(a domain.Activity, projects []domain.Project, subs []domain.Subt
 	p := &panelView{
 		Next: next, ID: a.ID, Name: a.Name, RequestedBy: a.RequestedBy,
 		Start: a.Start.String(), Due: a.Due.String(), Today: today.String(), Subtasks: subtaskRows(subs),
-		Journal: journalRows(journal), Scope: buildScope(a, subs, ack, today), NewKinds: kindOptions(domain.KindUpdate),
+		Journal: journalRows(journal), Scope: buildScope(a, subs, ack, today),
+		Chart: buildChart(a, subs, today), Status: string(a.Status), NewKinds: kindOptions(domain.KindUpdate),
 		Progress: domain.Progress(a.Status, subs), Total: len(subs),
 		Statuses: statusOptions(a.Status), Priorities: priorityOptions(a.Priority),
 	}

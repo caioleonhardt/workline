@@ -124,3 +124,18 @@ html.js .apply { display: none; }
 .check { flex-direction: row; align-items: center; gap: 8px; font-size: inherit; color: var(--text); min-height: 44px; }
 .check input { width: 20px; height: 20px; min-height: 0; accent-color: #2F5BEA; }
 .done-text { color: var(--muted); text-decoration: line-through; }
+.chart { display: flex; align-items: flex-end; gap: 2px; height: 120px; border-bottom: 1px solid #CFCFC8; }
+.cbin { flex: 1 1 0; min-width: 2px; height: 100%; position: relative; }
+.cbin > span { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 2px 2px 0 0; }
+.scope.planned, .scope-sample.planned { background: #E1E4EA; } .scope.active, .scope-sample.active { background: #D3DDFA; }
+.scope.blocked, .scope-sample.blocked { background: #FADFC2; } .scope.done, .scope-sample.done { background: #CFE8DA; }
+.open.planned, .open-sample.planned { background: #8B94A5; } .open.active, .open-sample.active { background: #2F5BEA; }
+.open.blocked, .open-sample.blocked { background: #E07A12; } .open.done, .open-sample.done { background: #1F8A5B; }
+.scope.ahead { background: transparent; border: 1.5px dashed #C9CDD5; box-sizing: border-box; }
+.today-mark { position: absolute; top: -4px; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: var(--today); }
+.axis { display: flex; justify-content: space-between; margin: 4px 0; }
+.legend-inline { display: flex; flex-wrap: wrap; gap: 14px; }
+.legend-inline span { display: flex; align-items: center; gap: 6px; }
+.open-sample, .scope-sample { width: 12px; height: 12px; border-radius: 2px; }
+.ahead-sample { width: 12px; height: 12px; border: 1.5px dashed #8B94A5; box-sizing: border-box; border-radius: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
