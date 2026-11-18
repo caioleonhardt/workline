@@ -37,6 +37,7 @@ func New(st *store.Store, clock domain.Clock) (http.Handler, error) {
 	s := &Server{store: st, clock: clock, tmpl: tmpl}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.dashboard)
+	mux.HandleFunc("POST /activities", s.createActivity)
 	mux.HandleFunc("GET /projects", s.projects)
 	mux.HandleFunc("POST /projects/{id}", s.updateProject)
 	mux.HandleFunc("POST /projects/{id}/delete", s.deleteProject)

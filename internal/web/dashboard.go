@@ -21,9 +21,13 @@ type projectView struct {
 }
 
 type dashboardView struct {
-	Title    string
-	Next     string
-	Projects []projectView
+	Title, Next string
+	NewHref     string // header link that opens the inline form
+	CancelHref  string // same page without the form
+	ShowForm    bool
+	Today       string
+	AllProjects []domain.Project // choices in the form
+	Projects    []projectView
 }
 
 func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
@@ -58,7 +62,13 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 			Href:     withParam(r.URL.RequestURI(), "sel", strconv.FormatInt(a.ID, 10)),
 		})
 	}
-	v := dashboardView{Title: "Workline", Next: r.URL.RequestURI()}
+	v := dashboardView{
+		Title: "Workline", Next: r.URL.RequestURI(),
+		NewHref:    withParam(r.URL.RequestURI(), "new", "1"),
+		CancelHref: withParam(r.URL.RequestURI(), "new", ""),
+		ShowForm:   r.URL.Query().Get("new") == "1",
+		Today:      today.String(), AllProjects: projects,
+	}
 	for _, p := range projects {
 		v.Projects = append(v.Projects, projectView{Name: p.Name, Activities: rows[p.ID]})
 	}

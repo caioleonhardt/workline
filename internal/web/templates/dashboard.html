@@ -1,4 +1,27 @@
 {{template "head" .}}
+<p><a class="btn" href="{{.NewHref}}">New activity</a></p>
+{{if .ShowForm}}
+<section class="card">
+<h2>New activity</h2>
+<form method="post" action="/activities" class="stack">
+<input type="hidden" name="next" value="{{.Next}}">
+<label>Project
+<select name="project">
+{{range .AllProjects}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+<option value="new">+ New project…</option>
+</select></label>
+<label>New project name (when “+ New project…” is chosen)<input name="new_project"></label>
+<label>Name<input name="name" required></label>
+<label>Requested by<input name="requested_by" placeholder="Manager, Director, Self…"></label>
+<label>Priority
+<select name="priority"><option value="">None</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
+<label>Start<input type="date" name="start" value="{{.Today}}" required></label>
+<label>Due<input type="date" name="due" required></label>
+<label>First subtasks (one per line, at least one)<textarea name="subtasks" rows="4" required></textarea></label>
+<p><button>Create</button> <a href="{{.CancelHref}}">Cancel</a></p>
+</form>
+</section>
+{{end}}
 {{range .Projects}}
 <section class="card">
 <h2>{{.Name}}</h2>
