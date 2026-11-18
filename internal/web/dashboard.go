@@ -1,8 +1,8 @@
 package web
 
 import (
+	"context"
 	"net/http"
-	"strconv"
 
 	"workline/internal/domain"
 )
@@ -35,6 +35,7 @@ type dashboardView struct {
 func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	today := s.clock.Today()
+	f := parseFilter(r.URL.Query(), today)
 	projects, err := s.store.ListProjects(ctx, false)
 	if err != nil {
 		s.fail(w, r, err)
@@ -50,45 +51,83 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
+	acks, err := s.store.ListLatestScopeAcks(ctx)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
 	subsOf := map[int64][]domain.Subtask{}
 	for _, st := range subs {
 		subsOf[st.ActivityID] = append(subsOf[st.ActivityID], st)
 	}
-	sel, _ := strconv.ParseInt(r.URL.Query().Get("sel"), 10, 64)
-	rows := map[int64][]activityRow{}
-	var panel *panelView
-	for _, a := range acts {
-		if a.ID == sel {
-			journal, err := s.store.ListJournal(ctx, a.ID)
-			if err != nil {
-				s.fail(w, r, err)
-				return
-			}
-			ack, err := s.store.LatestScopeAck(ctx, a.ID)
-			if err != nil {
-				s.fail(w, r, err)
-				return
-			}
-			panel = buildPanel(a, projects, subsOf[a.ID], journal, ack, today, r.URL.RequestURI())
-		}
-		rows[a.ProjectID] = append(rows[a.ProjectID], activityRow{
-			ID: a.ID, Name: a.Name, Status: string(a.Status), Priority: string(a.Priority),
-			Start: a.Start.String(), Due: a.Due.String(),
-			Open: domain.OpenAt(subsOf[a.ID], today), Total: len(subsOf[a.ID]),
-			Progress: domain.Progress(a.Status, subsOf[a.ID]),
-			Selected: a.ID == sel,
-			Href:     withParam(r.URL.RequestURI(), "sel", strconv.FormatInt(a.ID, 10)),
-		})
+	live := map[int64]bool{} // projects that are not archived
+	for _, p := range projects {
+		live[p.ID] = true
 	}
+	var panel *panelView
+	byProject := map[int64][]domain.Activity{}
+	itemOf := map[int64]domain.ActivityWithSubtasks{}
+	for _, a := range acts {
+		if !live[a.ProjectID] {
+			continue
+		}
+		it := domain.ActivityWithSubtasks{Activity: a, Subtasks: subsOf[a.ID]}
+		if ack, ok := acks[a.ID]; ok {
+			it.Ack = &ack
+		}
+		itemOf[a.ID] = it
+		if a.ID == f.Sel {
+			if panel, err = s.panel(ctx, it, projects, today, r.URL.RequestURI()); err != nil {
+				s.fail(w, r, err)
+				return
+			}
+		}
+		if !f.inScope(a) {
+			continue
+		}
+		creep := domain.ScopeCreep(a, it.Subtasks, it.Ack, today)
+		if f.shows(a.Status, creep.Flagged) {
+			byProject[a.ProjectID] = append(byProject[a.ProjectID], a)
+		}
+	}
+	var groups []domain.Group
+	for _, p := range projects {
+		if as := byProject[p.ID]; len(as) > 0 {
+			domain.SortActivities(as)
+			groups = append(groups, domain.Group{Project: p, Activities: as})
+		}
+	}
+	domain.SortGroups(groups)
+
 	v := dashboardView{
 		Title: "Workline", Next: r.URL.RequestURI(),
 		NewHref:    withParam(r.URL.RequestURI(), "new", "1"),
 		CancelHref: withParam(r.URL.RequestURI(), "new", ""),
-		ShowForm:   r.URL.Query().Get("new") == "1",
+		ShowForm:   f.New,
 		Today:      today.String(), AllProjects: projects, Panel: panel,
 	}
-	for _, p := range projects {
-		v.Projects = append(v.Projects, projectView{Name: p.Name, Activities: rows[p.ID]})
+	for _, g := range groups {
+		pv := projectView{Name: g.Project.Name}
+		for _, a := range g.Activities {
+			it := itemOf[a.ID]
+			pv.Activities = append(pv.Activities, activityRow{
+				ID: a.ID, Name: a.Name, Status: string(a.Status), Priority: string(a.Priority),
+				Start: a.Start.String(), Due: a.Due.String(),
+				Open: domain.OpenAt(it.Subtasks, today), Total: len(it.Subtasks),
+				Progress: domain.Progress(a.Status, it.Subtasks),
+				Selected: a.ID == f.Sel, Href: f.WithSel(a.ID).URL(),
+			})
+		}
+		v.Projects = append(v.Projects, pv)
 	}
 	s.render(w, http.StatusOK, "dashboard.html", v)
+}
+
+// panel loads what the detail panel needs for one activity.
+func (s *Server) panel(ctx context.Context, it domain.ActivityWithSubtasks, projects []domain.Project, today domain.Date, next string) (*panelView, error) {
+	journal, err := s.store.ListJournal(ctx, it.ID)
+	if err != nil {
+		return nil, err
+	}
+	return buildPanel(it.Activity, projects, it.Subtasks, journal, it.Ack, today, next), nil
 }

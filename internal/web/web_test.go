@@ -77,11 +77,11 @@ func wantBody(t *testing.T, rec *httptest.ResponseRecorder, parts ...string) {
 
 func TestDashboardListsSeededData(t *testing.T) {
 	h, _ := newApp(t)
-	rec := get(h, "/?status=planned&status=active")
+	rec := get(h, "/?status=active&status=blocked")
 	wantStatus(t, rec, http.StatusOK)
 	wantBody(t, rec, "Order platform modernisation", "Kafka upgrade readiness", "3 / 8 open", "63%")
 	// links keep the rest of the query (repeated status included) and set sel
-	wantBody(t, rec, "sel=1", "status=planned&amp;status=active")
+	wantBody(t, rec, "sel=1&amp;status=active&amp;status=blocked")
 }
 
 func TestStaticAndUnknownPaths(t *testing.T) {
