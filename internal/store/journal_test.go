@@ -76,3 +76,18 @@ func TestJournal(t *testing.T) {
 		t.Errorf("delete scope_ack: %v", err)
 	}
 }
+
+func TestListJournalMarks(t *testing.T) {
+	s := newTestStore(t)
+	a := mustActivity(t, s, "P", "2026-01-01", "2026-12-31") // "Activity created" dated 2026-01-01
+	b := mustActivity(t, s, "Q", "2026-01-01", "2026-12-31")
+	s.AddJournal(ctx, domain.JournalEntry{ActivityID: a.ID, Date: date(t, "2026-03-01"), Kind: domain.KindBlocker, Text: "x"})
+	marks, err := s.ListJournalMarks(ctx)
+	if err != nil || len(marks) != 3 {
+		t.Fatalf("marks: %+v %v", marks, err)
+	}
+	want := JournalMark{ActivityID: a.ID, Date: date(t, "2026-03-01"), Kind: domain.KindBlocker}
+	if marks[2] != want || marks[0].ActivityID != a.ID || marks[1].ActivityID != b.ID {
+		t.Errorf("marks: %+v", marks)
+	}
+}

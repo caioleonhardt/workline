@@ -33,6 +33,30 @@ func latestScopeAck(ctx context.Context, q queryer, activityID int64) (*domain.S
 	return &a, nil
 }
 
+// ListLatestScopeAcks returns each activity's most recent ack, keyed by activity id.
+func (s *Store) ListLatestScopeAcks(ctx context.Context) (map[int64]domain.ScopeAck, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, activity_id, date, baseline_count, last_subtask_id FROM scope_acks
+		 WHERE id IN (SELECT max(id) FROM scope_acks GROUP BY activity_id)`)
+	if err != nil {
+		return nil, fmt.Errorf("list scope acks: %w", err)
+	}
+	defer rows.Close()
+	out := map[int64]domain.ScopeAck{}
+	for rows.Next() {
+		var a domain.ScopeAck
+		var date string
+		if err := rows.Scan(&a.ID, &a.ActivityID, &date, &a.BaselineCount, &a.LastSubtaskID); err != nil {
+			return nil, fmt.Errorf("scan scope ack: %w", err)
+		}
+		if a.Date, err = parseDate(date); err != nil {
+			return nil, err
+		}
+		out[a.ActivityID] = a
+	}
+	return out, rows.Err()
+}
+
 // AckScope acknowledges the activity's scope change (SPEC §5.4) in one
 // transaction: it inserts the ScopeAck and the scope_ack journal entry. It
 // returns ErrNotFlagged, writing nothing, when the activity is not flagged.

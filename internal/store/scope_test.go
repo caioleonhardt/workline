@@ -113,3 +113,32 @@ func TestAckScopeRollsBackWhenJournalFails(t *testing.T) {
 		t.Errorf("ack survived a failed transaction: %+v", ack)
 	}
 }
+
+func TestListLatestScopeAcks(t *testing.T) {
+	s := newTestStore(t)
+	today := date(t, "2026-11-18")
+	a := mustActivity(t, s, "P", "2026-06-01", "2026-12-31")
+	b := mustActivity(t, s, "Q", "2026-06-01", "2026-12-31")
+	if got, err := s.ListLatestScopeAcks(ctx); err != nil || len(got) != 0 {
+		t.Fatalf("empty: %v %v", got, err)
+	}
+	for _, id := range []int64{a.ID, b.ID} {
+		s.AddSubtask(ctx, id, "new", date(t, "2026-11-10"))
+		s.AddSubtask(ctx, id, "new", date(t, "2026-11-10"))
+	}
+	first, err := s.AckScope(ctx, a.ID, today)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 4; i++ {
+		s.AddSubtask(ctx, a.ID, "more", date(t, "2026-11-12"))
+	}
+	second, err := s.AckScope(ctx, a.ID, today)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.ListLatestScopeAcks(ctx)
+	if err != nil || len(got) != 1 || got[a.ID] != second || got[a.ID].ID <= first.ID {
+		t.Errorf("latest acks: %+v %v", got, err)
+	}
+}
