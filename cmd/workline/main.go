@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -95,6 +96,23 @@ func runSeed(args []string) error {
 	return nil
 }
 
+// resolveAddr applies -port (-1 when unset) to -addr and checks the result:
+// a port in 1-65535 on a loopback host.
+func resolveAddr(addr string, port int) (string, error) {
+	host, p, err := net.SplitHostPort(addr)
+	if err != nil {
+		return "", fmt.Errorf("invalid -addr %q: %w", addr, err)
+	}
+	if port != -1 {
+		p = strconv.Itoa(port)
+	}
+	if n, err := strconv.Atoi(p); err != nil || n < 1 || n > 65535 {
+		return "", fmt.Errorf("invalid port %q: want a number from 1 to 65535", p)
+	}
+	addr = net.JoinHostPort(host, p)
+	return addr, checkLoopback(addr)
+}
+
 // checkLoopback rejects listen addresses that are reachable from other machines.
 func checkLoopback(addr string) error {
 	host, _, err := net.SplitHostPort(addr)
@@ -115,13 +133,15 @@ func runServe(args []string) error {
 	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
 	dbPath := fs.String("db", def, "path to the SQLite database")
 	addr := fs.String("addr", "127.0.0.1:8080", "listen address (loopback only)")
+	port := fs.Int("port", -1, "port, overriding the one in -addr")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if fs.NArg() != 0 {
 		return fmt.Errorf("serve: unexpected argument %q", fs.Arg(0))
 	}
-	if err := checkLoopback(*addr); err != nil {
+	listenAddr, err := resolveAddr(*addr, *port)
+	if err != nil {
 		return err
 	}
 	st, err := openStore(*dbPath)
@@ -133,8 +153,12 @@ func runServe(args []string) error {
 	if err != nil {
 		return err
 	}
+	ln, err := net.Listen("tcp", listenAddr)
+	if err != nil {
+		return fmt.Errorf("cannot listen on %s: %w (is another program using the port? try -port N)", listenAddr, err)
+	}
 	srv := &http.Server{
-		Addr: *addr, Handler: handler,
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second,
 		WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second,
 	}
@@ -146,8 +170,8 @@ func runServe(args []string) error {
 		defer cancel()
 		srv.Shutdown(shutdown)
 	}()
-	slog.Info("listening", "url", "http://"+*addr, "db", *dbPath)
-	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+	slog.Info("listening", "url", "http://"+ln.Addr().String(), "db", *dbPath)
+	if err := srv.Serve(ln); !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 	return nil

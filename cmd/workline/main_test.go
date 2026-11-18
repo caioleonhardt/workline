@@ -12,3 +12,30 @@ func TestCheckLoopback(t *testing.T) {
 		}
 	}
 }
+
+func TestResolveAddr(t *testing.T) {
+	for _, c := range []struct {
+		addr string
+		port int
+		want string // empty: an error
+	}{
+		{"127.0.0.1:8080", -1, "127.0.0.1:8080"},
+		{"127.0.0.1:8080", 8081, "127.0.0.1:8081"},
+		{"localhost:8080", 9000, "localhost:9000"},
+		{"[::1]:8080", 9000, "[::1]:9000"},
+		{"127.0.0.1:8080", 65535, "127.0.0.1:65535"},
+		{"127.0.0.1:8080", 0, ""},
+		{"127.0.0.1:8080", 65536, ""},
+		{"127.0.0.1:8080", -2, ""},
+		{"127.0.0.1:0", -1, ""},
+		{"127.0.0.1:http", -1, ""},
+		{"0.0.0.0:8080", 8081, ""}, // -port does not lift the loopback rule
+		{":8080", -1, ""},
+		{"8080", 8081, ""},
+	} {
+		got, err := resolveAddr(c.addr, c.port)
+		if (err == nil) != (c.want != "") || got != c.want && c.want != "" {
+			t.Errorf("resolveAddr(%q, %d) = %q, %v; want %q", c.addr, c.port, got, err, c.want)
+		}
+	}
+}
