@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"workline/internal/domain"
 )
@@ -70,6 +71,31 @@ func (s *Store) ListJournal(ctx context.Context, activityID int64) ([]domain.Jou
 	return s.queryJournal(ctx,
 		`SELECT id, activity_id, date, kind, text, logged_at FROM journal_entries
 		 WHERE activity_id = ? ORDER BY date DESC, logged_at IS NULL, logged_at DESC, id DESC`, activityID)
+}
+
+// ListJournalFeed returns up to limit entries of the given activities, newest
+// first (date, then logged time with untimed entries last, then id), and
+// whether more exist beyond the limit.
+func (s *Store) ListJournalFeed(ctx context.Context, activityIDs []int64, limit int) ([]domain.JournalEntry, bool, error) {
+	if len(activityIDs) == 0 || limit <= 0 {
+		return nil, false, nil
+	}
+	args := make([]any, 0, len(activityIDs)+1)
+	for _, id := range activityIDs {
+		args = append(args, id)
+	}
+	args = append(args, limit+1)
+	entries, err := s.queryJournal(ctx,
+		`SELECT id, activity_id, date, kind, text, logged_at FROM journal_entries
+		 WHERE activity_id IN (?`+strings.Repeat(",?", len(activityIDs)-1)+`)
+		 ORDER BY date DESC, logged_at IS NULL, logged_at DESC, id DESC LIMIT ?`, args...)
+	if err != nil {
+		return nil, false, err
+	}
+	if len(entries) > limit {
+		return entries[:limit], true, nil
+	}
+	return entries, false, nil
 }
 
 // ListJournalBetween returns the entries of all activities whose date lies in

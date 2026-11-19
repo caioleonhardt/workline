@@ -194,3 +194,56 @@ func TestListJournalBetween(t *testing.T) {
 		t.Errorf("empty range: %q", got)
 	}
 }
+
+func TestListJournalFeed(t *testing.T) {
+	s := newTestStore(t)
+	a := mustActivity(t, s, "P", "2026-01-01", "2026-12-31") // "Activity created", 2026-01-01 09:30
+	b := mustActivity(t, s, "Q", "2026-01-01", "2026-12-31")
+	c := mustActivity(t, s, "R", "2026-01-01", "2026-12-31")
+	add := func(id int64, day, at, text string) {
+		t.Helper()
+		if _, err := s.AddJournal(ctx, domain.JournalEntry{ActivityID: id, Date: date(t, day), Kind: domain.KindUpdate, Text: text, LoggedAt: at}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	add(a.ID, "2026-03-01", "2026-03-01 08:00", "a early")
+	add(b.ID, "2026-03-01", "2026-03-01 17:00", "b late")
+	add(a.ID, "2026-03-01", "", "a untimed")
+	add(c.ID, "2026-03-02", "2026-03-02 10:00", "c other activity")
+	add(b.ID, "2026-02-01", "", "b old")
+	texts := func(ids []int64, limit int) (string, bool) {
+		t.Helper()
+		es, more, err := s.ListJournalFeed(ctx, ids, limit)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []string
+		for _, e := range es {
+			out = append(out, e.Text)
+		}
+		return strings.Join(out, "|"), more
+	}
+	// newest first, untimed last within a date; activity c is not asked for
+	got, more := texts([]int64{a.ID, b.ID}, 10)
+	if want := "b late|a early|a untimed|b old|Activity created|Activity created"; got != want || more {
+		t.Errorf("feed = %q more=%v, want %q", got, more, want)
+	}
+	// the limit, and the "more" flag only when something is left
+	got, more = texts([]int64{a.ID, b.ID}, 3)
+	if got != "b late|a early|a untimed" || !more {
+		t.Errorf("limit 3 = %q more=%v", got, more)
+	}
+	if got, more = texts([]int64{a.ID, b.ID}, 6); more || strings.Count(got, "|") != 5 {
+		t.Errorf("limit equal to the count = %q more=%v", got, more)
+	}
+	// one activity; none; no limit
+	if got, _ = texts([]int64{c.ID}, 10); got != "c other activity|Activity created" {
+		t.Errorf("one activity = %q", got)
+	}
+	if got, more = texts(nil, 10); got != "" || more {
+		t.Errorf("no ids = %q", got)
+	}
+	if got, more = texts([]int64{a.ID}, 0); got != "" || more {
+		t.Errorf("limit 0 = %q", got)
+	}
+}
