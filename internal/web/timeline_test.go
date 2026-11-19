@@ -407,3 +407,15 @@ func TestBinsArePositionedAgainstTheirContainer(t *testing.T) {
 		}
 	}
 }
+
+// The page is wide enough for the timeline (min 720px) and the panel (360px) to
+// sit side by side (found in a real browser: at 1100px the panel wrapped below).
+func TestPageIsWideEnoughForTheTimelineBesidePanel(t *testing.T) {
+	h, _ := newApp(t)
+	css := get(h, "/static/app.css").Body.String()
+	for _, want := range []string{"main, .top { max-width: 1400px;", ".work > .timeline { flex: 999 1 720px;", ".detail { flex: 1 1 360px;"} {
+		if !strings.Contains(css, want) {
+			t.Errorf("app.css lacks %q", want)
+		}
+	}
+}
