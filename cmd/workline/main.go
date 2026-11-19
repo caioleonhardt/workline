@@ -26,6 +26,7 @@ const usage = `usage: workline <command> [flags]
 commands:
   serve -db <path> [-addr 127.0.0.1:8080]   run the web app
   seed -db <path>   load the mockup sample data into an empty database
+  backup [-db <path>] <dest>   copy the database to a new file (the source is never changed)
 `
 
 func main() {
@@ -43,6 +44,8 @@ func run(args []string) error {
 	switch args[0] {
 	case "serve":
 		return runServe(args[1:])
+	case "backup":
+		return runBackup(args[1:])
 	case "seed":
 		return runSeed(args[1:])
 	default:
@@ -93,6 +96,26 @@ func runSeed(args []string) error {
 		return err
 	}
 	fmt.Printf("seeded %s\n", *dbPath)
+	return nil
+}
+
+func runBackup(args []string) error {
+	def, err := defaultDB()
+	if err != nil {
+		return err
+	}
+	fs := flag.NewFlagSet("backup", flag.ContinueOnError)
+	dbPath := fs.String("db", def, "path to the SQLite database")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() != 1 {
+		return errors.New("usage: workline backup [-db <path>] <dest>")
+	}
+	if err := store.Backup(context.Background(), *dbPath, fs.Arg(0)); err != nil {
+		return err
+	}
+	fmt.Printf("backed up %s to %s\n", *dbPath, fs.Arg(0))
 	return nil
 }
 

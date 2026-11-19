@@ -39,3 +39,11 @@ func TestResolveAddr(t *testing.T) {
 		}
 	}
 }
+
+func TestRunBackupUsage(t *testing.T) {
+	for _, args := range [][]string{{}, {"a", "b"}} {
+		if err := runBackup(args); err == nil {
+			t.Errorf("runBackup(%q) accepted wrong arguments", args)
+		}
+	}
+}
