@@ -164,7 +164,7 @@ func TestHXErrorsGoToTheErrorBar(t *testing.T) {
 		body := rec.Body.String()
 		if rec.Code != c.status || rec.Header().Get("HX-Push-Url") != "false" || rec.Header().Get("HX-Retarget") != "#errors" || rec.Header().Get("HX-Reswap") != "innerHTML" ||
 			!strings.Contains(body, c.msg) || !strings.Contains(body, `<div class="error-bar" role="alert">`) ||
-			!strings.Contains(body, `hx-get="/errors/clear" hx-target="#errors"`) ||
+			!strings.Contains(body, `<button type="button" class="dismiss">Dismiss</button>`) || strings.Contains(body, "hx-get") ||
 			strings.Contains(body, `id="dash"`) || strings.Contains(body, "<html") || leaksInternals(body) {
 			t.Errorf("%s: status %d, retarget %q:\n%s", name, rec.Code, rec.Header().Get("HX-Retarget"), body)
 		}
@@ -175,12 +175,13 @@ func TestHXErrorsGoToTheErrorBar(t *testing.T) {
 			t.Errorf("%s without JS: status %d", name, plain.Code)
 		}
 	}
-	// the error bar can be dismissed, and the page has a place for it
-	clear := get(h, "/errors/clear")
-	if clear.Code != http.StatusOK || clear.Body.Len() != 0 {
-		t.Errorf("clear: %d %q", clear.Code, clear.Body)
-	}
+	// dismissing is done by app.js; the page has a place for the bar and no clear route
+	wantStatus(t, get(h, "/errors/clear"), http.StatusNotFound)
 	wantBody(t, get(h, "/"), `<div id="errors" aria-live="polite"></div>`, `"responseHandling"`)
+	js := get(h, "/static/app.js").Body.String()
+	if !strings.Contains(js, "'.error-bar .dismiss'") || !strings.Contains(js, ".remove()") {
+		t.Error("app.js must remove the error bar on Dismiss")
+	}
 }
 
 // leaksInternals reports error-chain context that belongs in logs, not on screen.

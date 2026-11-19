@@ -1,5 +1,5 @@
 // Marks the page as scripted (hiding buttons that htmx replaces), handles the
-// keyboard shortcuts and collapses project groups on the timeline; the state lives in the browser's local storage.
+// keyboard shortcuts and the error bar's Dismiss, and collapses project groups on the timeline; the state lives in the browser's local storage.
 // Without this script every group stays expanded and every button shows.
 (function () {
   document.documentElement.classList.add('js');
@@ -26,11 +26,15 @@
     });
   }
 
-  // Keyboard shortcuts. app.js runs again inside every swapped fragment, so the
-  // listener is registered once. It only clicks real links and focuses a select,
-  // so htmx's own handling of those links applies.
-  if (!window.worklineKeys) {
-    window.worklineKeys = true;
+  // Document-level handlers. app.js runs again inside every swapped fragment, so
+  // they are registered once. The shortcuts only click real links and focus a
+  // select, so htmx's own handling of those links applies.
+  if (!window.worklineBound) {
+    window.worklineBound = true;
+    document.addEventListener('click', function (e) {
+      var button = e.target.closest && e.target.closest('.error-bar .dismiss');
+      if (button) button.closest('.error-bar').remove();
+    });
     document.addEventListener('keydown', function (e) {
       var t = e.target;
       if (e.ctrlKey || e.altKey || e.metaKey || e.defaultPrevented) return;

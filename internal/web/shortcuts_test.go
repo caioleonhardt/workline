@@ -33,7 +33,7 @@ func TestShortcutScriptRules(t *testing.T) {
 	h, _ := newApp(t)
 	js := get(h, "/static/app.js").Body.String()
 	for _, want := range []string{
-		"if (!window.worklineKeys)", // registered once although app.js re-runs after every swap
+		"if (!window.worklineBound)", // registered once although app.js re-runs after every swap
 		"e.ctrlKey || e.altKey || e.metaKey",
 		"/^(INPUT|TEXTAREA|SELECT|SUMMARY)$/.test(t.tagName)",
 		"e.key === 'n' && !cancel", "e.key === 'Escape'", "e.key === '/'",
@@ -43,7 +43,7 @@ func TestShortcutScriptRules(t *testing.T) {
 			t.Errorf("app.js lacks %q", want)
 		}
 	}
-	if strings.Count(js, "addEventListener('keydown'") != 1 {
-		t.Error("exactly one keydown listener")
+	if strings.Count(js, "addEventListener('keydown'") != 1 || strings.Count(js, "addEventListener('click'") != 2 {
+		t.Error("document listeners: one keydown, one click here and one for the project toggles")
 	}
 }

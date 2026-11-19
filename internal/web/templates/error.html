@@ -6,4 +6,4 @@
 </section>
 {{template "foot" .}}
 
-{{define "error-bar"}}<div class="error-bar" role="alert"><span>{{.}}</span> <button type="button" hx-get="/errors/clear" hx-target="#errors" hx-swap="innerHTML">Dismiss</button></div>{{end}}
+{{define "error-bar"}}<div class="error-bar" role="alert"><span>{{.}}</span> <button type="button" class="dismiss">Dismiss</button></div>{{end}}
