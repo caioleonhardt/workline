@@ -49,6 +49,7 @@ func New(st *store.Store, clock domain.Clock) (http.Handler, error) {
 	mux.HandleFunc("POST /journal/{id}/delete", s.deleteJournal)
 	mux.HandleFunc("POST /activities/{id}/scope-ack", s.ackScope)
 	mux.HandleFunc("GET /errors/clear", func(http.ResponseWriter, *http.Request) {})
+	mux.HandleFunc("GET /export/journal.md", s.exportJournal)
 	mux.HandleFunc("GET /projects", s.projects)
 	mux.HandleFunc("POST /projects/{id}", s.updateProject)
 	mux.HandleFunc("POST /projects/{id}/delete", s.deleteProject)
