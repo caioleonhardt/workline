@@ -40,6 +40,7 @@ type dashboardView struct {
 	Controls    controlsView
 	QuickAdd    *quickAddView // the quick-add bar's target; nil without a selection
 	QuickKinds  []option
+	Journal     journalView
 	ClearQuick  bool // a successful quick add also replaces the text field with an empty one
 	Tiles       []tileView
 	Timeline    timelineView
@@ -105,6 +106,7 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 	counts := map[domain.Status]int{}
 	creepCount := 0
 	byProject := map[int64][]domain.Activity{}
+	var visibleIDs []int64
 	itemOf := map[int64]domain.ActivityWithSubtasks{}
 	for _, a := range acts {
 		if !live[a.ProjectID] {
@@ -116,9 +118,7 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 		}
 		itemOf[a.ID] = it
 		if a.ID == f.Sel {
-			if panel, err = s.panel(ctx, it, projects, today, uri); err != nil {
-				return dashboardView{}, err
-			}
+			panel = buildPanel(it.Activity, projects, it.Subtasks, it.Ack, today, uri)
 		}
 		if f.Project == 0 || a.ProjectID == f.Project {
 			tileItems = append(tileItems, it)
@@ -134,7 +134,16 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 		}
 		if f.shows(a.Status, creep.Flagged) {
 			byProject[a.ProjectID] = append(byProject[a.ProjectID], a)
+			visibleIDs = append(visibleIDs, a.ID)
 		}
+	}
+	ids := visibleIDs
+	if panel != nil {
+		ids = []int64{panel.ID} // a selection narrows the journal to its activity
+	}
+	journal, err := s.buildJournal(ctx, f, uri, ids, panel, itemOf, projects)
+	if err != nil {
+		return dashboardView{}, err
 	}
 	var groups []domain.Group
 	for _, p := range projects {
@@ -152,7 +161,7 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 		CancelHref: withParam(uri, "new", ""),
 		ShowForm:   f.New,
 		Today:      today.String(), AllProjects: projects, Panel: panel,
-		Controls: buildControls(f, projects, counts, creepCount), QuickKinds: kindOptions(domain.KindUpdate),
+		Controls: buildControls(f, projects, counts, creepCount), QuickKinds: kindOptions(domain.KindUpdate), Journal: journal,
 		Timeline: buildTimeline(f, today, timelineData{Groups: groups, ItemOf: itemOf, Creeps: creeps}),
 		Tiles:    buildTiles(domain.ComputeTiles(tileItems, f.Year, today)),
 	}
@@ -160,13 +169,4 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 		v.QuickAdd = &quickAddView{ID: panel.ID, Name: panel.Name, Project: panel.ProjectName, Next: uri}
 	}
 	return v, nil
-}
-
-// panel loads what the detail panel needs for one activity.
-func (s *Server) panel(ctx context.Context, it domain.ActivityWithSubtasks, projects []domain.Project, today domain.Date, next string) (*panelView, error) {
-	journal, err := s.store.ListJournal(ctx, it.ID)
-	if err != nil {
-		return nil, err
-	}
-	return buildPanel(it.Activity, projects, it.Subtasks, journal, it.Ack, today, next), nil
 }

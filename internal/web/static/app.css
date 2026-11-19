@@ -176,3 +176,8 @@ summary { display: flex; align-items: center; min-height: 44px; cursor: pointer;
 #quickadd-error:empty { display: none; }
 body:has(.quick .target) { padding-bottom: 96px; }
 html.js .apply-nojs { display: none; }
+#journal { margin-top: 20px; }
+#journal .rows li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.feed-text { flex: 1 1 280px; min-width: 0; }
+.tag { text-decoration: none; }
+#journal details[open] { flex-basis: 100%; }

@@ -94,12 +94,12 @@ func TestDashboardFilters(t *testing.T) {
 		query         string
 		shown, hidden []string
 	}{
-		{"period=q1&" + all, []string{"Consolidate order", "Move build logic", "Observability vendor"}, []string{"Kafka", "Hire senior", "2027 capacity"}},
-		{"period=q4&month=10&" + all, []string{"Kafka", "Mentoring plan"}, []string{"2027 capacity", "Postmortem"}},
+		{"period=q1&" + all, []string{"Consolidate order", "Move build logic", "Observability vendor"}, []string{"Kafka upgrade", "Hire senior", "2027 capacity"}},
+		{"period=q4&month=10&" + all, []string{"Kafka upgrade", "Mentoring plan"}, []string{"2027 capacity", "Postmortem"}},
 		{"period=q4&month=11&" + all, []string{"2027 capacity"}, []string{"Postmortem"}},
-		{"project=3", []string{"Hire senior", "Team onboarding"}, []string{"Kafka", "Consolidate"}},
-		{"creep=1", []string{"Consolidate order", "Kafka"}, []string{"Hire senior", "Mentoring"}},
-		{"year=2025&" + all, nil, []string{"Consolidate", "Kafka"}},
+		{"project=3", []string{"Hire senior", "Team onboarding"}, []string{"Kafka upgrade", "Consolidate"}},
+		{"creep=1", []string{"Consolidate order", "Kafka upgrade"}, []string{"Hire senior", "Mentoring"}},
+		{"year=2025&" + all, nil, []string{"Consolidate", "Kafka upgrade"}},
 	} {
 		body := get(h, "/?"+c.query).Body.String()
 		for _, n := range c.shown {
@@ -133,4 +133,14 @@ func TestSelectedActivityIgnoresFiltersButNotArchive(t *testing.T) {
 		t.Fatal(err)
 	}
 	wantStatus(t, get(h, "/?sel=3"), http.StatusOK)
+}
+
+func TestWithMoreFeed(t *testing.T) {
+	f := filterFor(t, "sel=2")
+	if got := f.WithMoreFeed().URL(); got != "/?feed=60&sel=2" {
+		t.Errorf("more: %q", got)
+	}
+	if got := filterFor(t, "feed=600").WithMoreFeed().Feed; got != feedMax {
+		t.Errorf("capped at %d, got %d", feedMax, got)
+	}
 }

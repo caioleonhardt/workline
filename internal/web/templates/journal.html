@@ -1,0 +1,31 @@
+{{define "journal"}}
+<section class="card" id="journal" aria-labelledby="journal-title">
+<h2 id="journal-title">Journal{{if .Narrowed}} · {{.Title}} <a class="small" href="{{.ShowAllHref}}">Show all</a>{{end}}</h2>
+<ul class="rows feed">
+{{range .Entries}}
+<li>
+<span class="muted mono">{{.Date}}{{if .Time}} {{.Time}}{{end}}</span> <span class="chip kind-{{.Kind}}">{{.KindLabel}}</span>
+{{if .ActivityHref}}<a class="tag small" href="{{.ActivityHref}}">{{.Project}} › {{.Activity}}</a>{{end}}
+<span class="feed-text">{{.Text}}</span>
+{{if not .ReadOnly}}
+<details>
+<summary>Edit</summary>
+<form class="inline" method="post" action="/journal/{{.ID}}">
+<input type="hidden" name="next" value="{{$.Next}}">
+<label>Kind<select name="kind">{{range .Kinds}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+<label>Entry<input name="text" value="{{.Text}}" required></label>
+<label>Date<input type="date" name="date" value="{{.Date}}" required></label>
+<button>Save</button>
+</form>
+<form method="post" action="/journal/{{.ID}}/delete">
+<input type="hidden" name="next" value="{{$.Next}}">
+<details><summary>Delete…</summary><button>Confirm delete</button></details>
+</form>
+</details>
+{{end}}
+</li>
+{{else}}<li class="muted">No journal entries.</li>{{end}}
+</ul>
+{{if .MoreHref}}<p><a href="{{.MoreHref}}">Show {{.MoreCount}} more</a></p>{{end}}
+</section>
+{{end}}

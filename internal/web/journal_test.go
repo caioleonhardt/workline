@@ -113,7 +113,7 @@ func TestPanelJournalShowsLoggedTime(t *testing.T) {
 	// seeded entries have no time
 	wantBody(t, rec, `<span class="muted mono">2026-11-03</span>`)
 	// newest date first; within a date the later time first, entries without time last
-	if !bodyOrder(body[strings.Index(body, `<section class="card" id="panel">`):], "Fresh note", "Backfilled", "Client upgrades pulled into this activity") {
+	if !bodyOrder(body[strings.Index(body, `<section class="card" id="journal"`):], "Fresh note", "Backfilled", "Client upgrades pulled into this activity") {
 		t.Error("journal order")
 	}
 }

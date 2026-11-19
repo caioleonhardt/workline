@@ -9,6 +9,12 @@ import (
 	"workline/internal/domain"
 )
 
+// The journal feed shows feedStep entries and grows by that much, up to feedMax.
+const (
+	feedStep = 30
+	feedMax  = 600
+)
+
 var allStatuses = []domain.Status{domain.StatusPlanned, domain.StatusActive, domain.StatusBlocked, domain.StatusDone}
 
 // Filter is the dashboard state carried in the URL query string (SPEC §5.1).
@@ -22,6 +28,7 @@ type Filter struct {
 	Creep    bool
 	Sel      int64
 	New      bool
+	Feed     int // journal entries shown
 
 	defaultYear int
 }
@@ -32,7 +39,7 @@ var periodNames = []string{"year", "q1", "q2", "q3", "q4"}
 
 // parseFilter reads the query string; invalid values fall back to defaults.
 func parseFilter(q url.Values, today domain.Date) Filter {
-	f := Filter{Year: today.Year(), defaultYear: today.Year(), Statuses: defaultStatuses()}
+	f := Filter{Year: today.Year(), defaultYear: today.Year(), Statuses: defaultStatuses(), Feed: feedStep}
 	if y, err := strconv.Atoi(q.Get("year")); err == nil && y >= 2000 && y <= 2100 {
 		f.Year = y
 	}
@@ -57,6 +64,9 @@ func parseFilter(q url.Values, today domain.Date) Filter {
 	f.Creep = q.Get("creep") == "1"
 	f.Sel, _ = strconv.ParseInt(q.Get("sel"), 10, 64)
 	f.New = q.Get("new") == "1"
+	if n, err := strconv.Atoi(q.Get("feed")); err == nil && n >= feedStep && n <= feedMax {
+		f.Feed = n
+	}
 	return f
 }
 
@@ -107,6 +117,9 @@ func (f Filter) Values() url.Values {
 	}
 	if f.New {
 		q.Set("new", "1")
+	}
+	if f.Feed != feedStep {
+		q.Set("feed", strconv.Itoa(f.Feed))
 	}
 	return q
 }
@@ -206,4 +219,10 @@ func (f Filter) ExportURL() string {
 		q.Set("project", strconv.FormatInt(f.Project, 10))
 	}
 	return "/export/journal.md?" + q.Encode()
+}
+
+// WithMoreFeed returns f showing feedStep more journal entries.
+func (f Filter) WithMoreFeed() Filter {
+	f.Feed = min(f.Feed+feedStep, feedMax)
+	return f
 }
