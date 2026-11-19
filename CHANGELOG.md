@@ -5,6 +5,8 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-11-19
+
 ### Added
 - Search with filters, over the whole journal. After `/`, combine words,
   `"phrases"` and filters: `p:1`…`p:3` (priority), `k:d` or `k:decision`
@@ -22,6 +24,8 @@ each release is tagged `vX.Y.Z` in git.
   go forward again. The history is kept across pages.
 - Tasks in the journal feed have a checkbox, so a closed task can be reopened
   from the journal page and the search page, with the mouse or with `x`.
+
+### Changed
 - Clicking a journal row opens its editor; the Edit button no longer takes
   space on each row. Task checkboxes in the journal are smaller and line up
   with the dates.
@@ -164,7 +168,8 @@ First release.
 - `serve` on 127.0.0.1:7357 and `seed` with the baseline data.
 - CI running gofmt, vet and tests.
 
-[Unreleased]: ../../compare/v0.9.0...HEAD
+[Unreleased]: ../../compare/v0.10.0...HEAD
+[0.10.0]: ../../compare/v0.9.0...v0.10.0
 [0.9.0]: ../../compare/v0.8.0...v0.9.0
 [0.8.0]: ../../compare/v0.7.0...v0.8.0
 [0.7.0]: ../../compare/v0.6.0...v0.7.0
