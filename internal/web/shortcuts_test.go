@@ -15,7 +15,7 @@ func TestShortcutTargetsAndHints(t *testing.T) {
 		`<select name="project" id="filter-project" aria-keyshortcuts="/">`,
 		`<a class="panel-close" href="/?new=1&amp;period=q4" aria-label="Close panel" aria-keyshortcuts="Escape">×</a>`,
 		`<a class="cancel-new" href="/?period=q4&amp;sel=2">Cancel</a>`,
-		`<p class="hint js-only small muted">Shortcuts: <kbd>n</kbd> new activity · <kbd>/</kbd> filter · <kbd>Esc</kbd> close panel</p>`,
+		`<p class="hint js-only small muted">Shortcuts: <kbd>n</kbd> new activity · <kbd>/</kbd> filter · <kbd>j</kbd> journal · <kbd>Esc</kbd> close panel</p>`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
@@ -37,6 +37,8 @@ func TestShortcutScriptRules(t *testing.T) {
 		"e.ctrlKey || e.altKey || e.metaKey",
 		"/^(INPUT|TEXTAREA|SELECT|SUMMARY)$/.test(t.tagName)",
 		"e.key === 'n' && !cancel", "e.key === 'Escape'", "e.key === '/'",
+		"e.key === 'j'", "document.querySelector('#quickadd-target .target')", // j only when the bar has a target
+		"t.id === 'quickadd-text'", "t.blur()", // Esc in the bar's field only blurs it
 		"document.getElementById('filter-project')", "a.panel-close", "a.cancel-new", "a.new-activity",
 	} {
 		if !strings.Contains(js, want) {

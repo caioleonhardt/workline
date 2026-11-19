@@ -90,7 +90,7 @@ func hxPostFrom(h http.Handler, target string, form url.Values, trigger string) 
 	return rec
 }
 
-const emptiedInput = `<input id="quickadd-text" name="text" aria-label="Journal entry" placeholder="Log to the journal…" autocomplete="off" required hx-swap-oob="true">`
+const emptiedInput = `<input id="quickadd-text" name="text" aria-label="Journal entry" placeholder="Log to the journal…" autocomplete="off" aria-keyshortcuts="j" required hx-swap-oob="true">`
 
 func TestQuickAddSuccessClearsTheField(t *testing.T) {
 	h, st := newApp(t)

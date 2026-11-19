@@ -38,6 +38,11 @@
     document.addEventListener('keydown', function (e) {
       var t = e.target;
       if (e.ctrlKey || e.altKey || e.metaKey || e.defaultPrevented) return;
+      if (e.key === 'Escape' && t && t.id === 'quickadd-text') {
+        e.preventDefault();
+        t.blur();
+        return;
+      }
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|SUMMARY)$/.test(t.tagName))) return;
       var cancel = document.querySelector('a.cancel-new');
       var target = null;
@@ -45,6 +50,13 @@
         target = document.querySelector('a.new-activity');
       } else if (e.key === 'Escape') {
         target = cancel || document.querySelector('a.panel-close');
+      } else if (e.key === 'j') {
+        var field = document.getElementById('quickadd-text');
+        if (field && document.querySelector('#quickadd-target .target')) {
+          e.preventDefault();
+          field.focus();
+        }
+        return;
       } else if (e.key === '/') {
         var filter = document.getElementById('filter-project');
         if (filter) {

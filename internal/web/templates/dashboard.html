@@ -6,7 +6,7 @@
 
 {{define "quickadd-target"}}{{with .}}<span class="target">Journal for <strong>{{.Name}}</strong> · {{.Project}}</span><input type="hidden" name="activity" value="{{.ID}}"><input type="hidden" name="next" value="{{.Next}}">{{end}}{{end}}
 
-{{define "quickadd-input"}}<input id="quickadd-text" name="text" aria-label="Journal entry" placeholder="Log to the journal…" autocomplete="off" required{{if .}} hx-swap-oob="true"{{end}}>{{end}}
+{{define "quickadd-input"}}<input id="quickadd-text" name="text" aria-label="Journal entry" placeholder="Log to the journal…" autocomplete="off" aria-keyshortcuts="j" required{{if .}} hx-swap-oob="true"{{end}}>{{end}}
 
 {{define "quickadd"}}<form id="quickadd" class="quick" method="post" action="/journal" hx-post="/journal" hx-target="#dash" hx-swap="outerHTML">
 <span id="quickadd-target">{{template "quickadd-target" .QuickAdd}}</span>
@@ -28,7 +28,7 @@
 </div>
 <div class="actions"><a class="btn secondary" href="{{.ExportHref}}" hx-boost="false">Export journal</a> <a class="btn new-activity" href="{{.NewHref}}" aria-keyshortcuts="n">New activity</a></div>
 </header>
-<p class="hint js-only small muted">Shortcuts: <kbd>n</kbd> new activity · <kbd>/</kbd> filter · <kbd>Esc</kbd> close panel</p>
+<p class="hint js-only small muted">Shortcuts: <kbd>n</kbd> new activity · <kbd>/</kbd> filter · <kbd>j</kbd> journal · <kbd>Esc</kbd> close panel</p>
 {{if .ShowForm}}
 <section class="card">
 <h2>New activity</h2>
