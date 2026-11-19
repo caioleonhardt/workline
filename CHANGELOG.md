@@ -5,6 +5,8 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-11-19
+
 ### Added
 - Keys `t`, `d`, `u`, `b` and `m` focus the journal bar with task, decision,
   update, blocker or meeting chosen. On the journal page, `/` focuses the bar
@@ -112,7 +114,8 @@ First release.
 - `serve` on 127.0.0.1:7357 and `seed` with the baseline data.
 - CI running gofmt, vet and tests.
 
-[Unreleased]: ../../compare/v0.6.0...HEAD
+[Unreleased]: ../../compare/v0.7.0...HEAD
+[0.7.0]: ../../compare/v0.6.0...v0.7.0
 [0.6.0]: ../../compare/v0.5.0...v0.6.0
 [0.5.0]: ../../compare/v0.4.0...v0.5.0
 [0.4.0]: ../../compare/v0.3.0...v0.4.0
