@@ -17,9 +17,10 @@ func TestShortcutTargetsAndHints(t *testing.T) {
 		`<a class="cancel-new" href="/timeline?period=q4&amp;sel=2">Cancel</a>`,
 		`<p class="hint js-only small muted">Press <kbd>?</kbd> for keys</p>`,
 		`<dialog id="keys" aria-labelledby="keys-title">`,
+		`<div class="status mono">` + "\n" + `<span class="mode" id="status-mode">NORMAL</span>`,
 		`<form class="vsearch" role="search" hidden>`,
-		`<ul class="rows feed" data-pane>`,
-		`<ul class="rows" data-pane>`,
+		`<ul class="rows feed" data-pane="Journal">`,
+		`<ul class="rows" data-pane="Tasks">`,
 		`<li class="sub" tabindex="-1" data-entry>`,
 		`<li tabindex="-1" data-entry>`,
 	} {
@@ -30,7 +31,7 @@ func TestShortcutTargetsAndHints(t *testing.T) {
 	page := get(h, "/").Body.String()
 	for _, want := range []string{
 		`<p class="hint js-only small muted">Press <kbd>?</kbd> for keys</p>`,
-		`<h2 id="open-tasks-title">Open tasks by priority</h2>` + "\n" + `<ul class="rows" data-pane>`,
+		`<h2 id="open-tasks-title">Open tasks by priority</h2>` + "\n" + `<ul class="rows" data-pane="Open tasks">`,
 		`<dialog id="keys" aria-labelledby="keys-title">`,
 	} {
 		if !strings.Contains(page, want) {

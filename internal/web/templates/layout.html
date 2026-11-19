@@ -19,7 +19,13 @@
 </body>
 </html>
 {{end}}
-{{define "keys"}}<form class="vsearch" role="search" hidden><label for="vsearch-text">Search entries</label> <input id="vsearch-text" type="search" autocomplete="off"></form>
+{{define "keys"}}<div class="status mono">
+<span class="mode" id="status-mode">NORMAL</span>
+<form class="vsearch" role="search" hidden><label class="sr-only" for="vsearch-text">Search entries</label><span aria-hidden="true">/</span><input id="vsearch-text" type="search" autocomplete="off"></form>
+<span class="status-msg" id="status-msg"></span>
+<span class="status-cmd" id="status-cmd"></span>
+<span class="status-pos" id="status-pos"></span>
+</div>
 <dialog id="keys" aria-labelledby="keys-title">
 <h2 id="keys-title">Keys</h2>
 <table class="keys">

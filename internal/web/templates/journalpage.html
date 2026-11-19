@@ -55,7 +55,7 @@
 <div class="jwork">
 <section class="card open-tasks" aria-labelledby="open-tasks-title">
 <h2 id="open-tasks-title">Open tasks by priority</h2>
-<ul class="rows" data-pane>
+<ul class="rows" data-pane="Open tasks">
 {{range .Tasks}}
 <li class="sub" tabindex="-1" data-entry>
 <form class="inline sub-toggle" method="post" action="/tasks/{{.ID}}/toggle" hx-trigger="change, submit">

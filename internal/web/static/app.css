@@ -238,7 +238,18 @@ html:not(.js) .editor .cancel, html:not(.js) .keyhint { display: none; }
 .confirm-box { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 4px 0 0; padding: 10px 12px; border-radius: 10px; background: #FDECEA; color: #8A1C12; }
 html.js [data-entry]:focus-visible { outline: 2px solid var(--active-fg); outline-offset: 2px; border-radius: 4px; }
 [data-entry].match { background: var(--blocked-bg); }
-.vsearch { position: fixed; top: 12px; right: 16px; z-index: 30; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 8px rgba(22, 24, 29, 0.08); }
+.status { position: fixed; left: 0; right: 0; bottom: 0; z-index: 21; display: flex; align-items: center; gap: 12px; height: 24px; padding: 0 max(16px, calc((100% - 1400px) / 2 + 16px)); font-size: 13px; background: var(--planned-bg); color: var(--text); }
+html:not(.js) .status { display: none; }
+html.js .quick { bottom: 24px; }
+html.js body:has(.quick) { padding-bottom: 120px; }
+.status .mode { padding: 0 8px; font-weight: 700; background: var(--active-bg); color: var(--active-fg); }
+.status .mode.insert { background: var(--done-bg); color: var(--done-fg); }
+.status .mode.command { background: var(--blocked-bg); color: var(--blocked-fg); }
+.vsearch { display: flex; flex: 1; align-items: center; }
 .vsearch[hidden] { display: none; }
+.vsearch input, .vsearch input:focus { flex: 1; min-width: 0; min-height: 0; padding: 0; border: 0; box-shadow: none; background: transparent; font: inherit; color: inherit; }
+.status-msg { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.status-msg.error { color: var(--today); }
+.status-cmd, .status-pos { white-space: nowrap; color: var(--muted); }
 dialog#keys { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); max-width: 520px; }
 .keys th { text-align: left; padding: 2px 16px 2px 0; white-space: nowrap; font-weight: normal; }

@@ -43,7 +43,7 @@
 <p class="muted">Flagged when scope grows 75%+ over its baseline (kickoff, or the last acknowledgement), or when more tasks are added than closed over 30 days.</p>
 
 <h3>Tasks</h3>
-<ul class="rows" data-pane>
+<ul class="rows" data-pane="Tasks">
 {{range .Tasks}}
 <li class="sub" tabindex="-1" data-entry>
 <form class="inline sub-toggle" method="post" action="/tasks/{{.ID}}/toggle" hx-trigger="change, submit">
