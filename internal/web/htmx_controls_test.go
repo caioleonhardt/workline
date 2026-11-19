@@ -30,12 +30,16 @@ func TestAutoSubmitControlsKeepTheirButtons(t *testing.T) {
 func TestTasksAreCheckboxes(t *testing.T) {
 	h, _ := newApp(t)
 	body := get(h, "/timeline?sel=2").Body.String()
-	// Kafka: six tasks, two closed; each is a checkbox in a form that toggles it
-	if got := strings.Count(body, `<input type="checkbox"`); got != 6 {
-		t.Errorf("checkboxes = %d, want 6", got)
+	// Kafka: six tasks, two closed; each is a checkbox in a form that toggles it,
+	// once in the panel and once in the feed, so a closed task can be reopened from either
+	if got := strings.Count(body, `<input type="checkbox"`); got != 12 {
+		t.Errorf("checkboxes = %d, want 12", got)
 	}
-	if got := strings.Count(body, `<input type="checkbox" checked>`); got != 2 {
-		t.Errorf("checked = %d, want 2", got)
+	if got := strings.Count(body, `<input type="checkbox" checked>`); got != 4 {
+		t.Errorf("checked = %d, want 4", got)
+	}
+	if !strings.Contains(body, `<label class="check"><input type="checkbox" checked><span class="feed-text done-text">Compatibility matrix</span></label>`) {
+		t.Error("a closed task in the feed must have its Reopen checkbox")
 	}
 	for _, want := range []string{
 		`<form class="inline sub-toggle" method="post" action="/tasks/13/toggle" hx-trigger="change, submit">`,
