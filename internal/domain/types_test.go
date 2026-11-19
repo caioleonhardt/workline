@@ -2,6 +2,7 @@ package domain
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 )
 
@@ -137,5 +138,19 @@ func TestJournalTime(t *testing.T) {
 	}
 	if got := (JournalEntry{}).Time(); got != "" {
 		t.Errorf("Time() of an old entry = %q", got)
+	}
+}
+
+func TestInvalidErrorKeepsItsMessageUnderWrapping(t *testing.T) {
+	err := fmt.Errorf("add journal to activity 1: %w", Invalid("journal text is required"))
+	var ie *InvalidError
+	if !errors.Is(err, ErrInvalid) || !errors.As(err, &ie) || ie.Message != "journal text is required" {
+		t.Fatalf("err = %v", err)
+	}
+	if got := err.Error(); got != "add journal to activity 1: invalid value: journal text is required" {
+		t.Errorf("the full chain is kept for logs: %q", got)
+	}
+	if _, perr := ParseDate("soon"); !errors.As(perr, &ie) || ie.Message != `date "soon" is not YYYY-MM-DD` {
+		t.Errorf("ParseDate error: %v", perr)
 	}
 }

@@ -1,7 +1,6 @@
 package web
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,7 +12,7 @@ import (
 func formDate(r *http.Request, field string) (domain.Date, error) {
 	d, err := domain.ParseDate(r.PostFormValue(field))
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", field, err)
+		return 0, domain.Invalid("%s must be a date (YYYY-MM-DD), not %q", field, r.PostFormValue(field))
 	}
 	return d, nil
 }
@@ -41,7 +40,7 @@ func (s *Server) createActivity(w http.ResponseWriter, r *http.Request) {
 	if r.PostFormValue("project") == "new" {
 		in.NewProjectName = r.PostFormValue("new_project")
 	} else if in.ProjectID, err = strconv.ParseInt(r.PostFormValue("project"), 10, 64); err != nil {
-		err = fmt.Errorf("%w: choose a project", domain.ErrInvalid)
+		err = domain.Invalid("choose a project")
 	}
 	if err == nil {
 		in.Start, err = formDate(r, "start")

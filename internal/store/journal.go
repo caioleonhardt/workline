@@ -24,7 +24,7 @@ func insertJournal(ctx context.Context, q queryer, j domain.JournalEntry) (int64
 
 func userKind(k domain.Kind) error {
 	if k == domain.KindScopeAck {
-		return fmt.Errorf("%w: scope_ack entries are created only by Acknowledge", domain.ErrInvalid)
+		return domain.Invalid("acknowledgement entries are created only by Acknowledge")
 	}
 	return nil
 }

@@ -1,7 +1,6 @@
 package web
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -95,7 +94,7 @@ func (s *Server) saveActivityFields(r *http.Request, id int64) error {
 	a.RequestedBy = r.PostFormValue("requested_by")
 	a.Priority = domain.Priority(r.PostFormValue("priority"))
 	if a.ProjectID, err = strconv.ParseInt(r.PostFormValue("project"), 10, 64); err != nil {
-		return fmt.Errorf("%w: choose a project", domain.ErrInvalid)
+		return domain.Invalid("choose a project")
 	}
 	if a.Start, err = formDate(r, "start"); err != nil {
 		return err

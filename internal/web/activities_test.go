@@ -172,3 +172,13 @@ func TestDeleteActivity(t *testing.T) {
 	}
 	wantStatus(t, post(h, "/activities/2/delete", nil), http.StatusNotFound)
 }
+
+func TestRejectedFormShowsOnlyTheMessage(t *testing.T) {
+	h, _ := newApp(t)
+	rec := post(h, "/activities", newForm(url.Values{"start": {"11/01/2026"}}))
+	wantStatus(t, rec, http.StatusUnprocessableEntity)
+	wantBody(t, rec, `Start must be a date (YYYY-MM-DD), not &#34;11/01/2026&#34;.`)
+	if strings.Contains(rec.Body.String(), "create activity") || strings.Contains(rec.Body.String(), "invalid value") {
+		t.Error("error page shows wrapping context")
+	}
+}

@@ -152,9 +152,9 @@ func TestHXErrorsGoToTheErrorBar(t *testing.T) {
 		status int
 		msg    string
 	}{
-		"validation":  {"/activities/2/subtasks", url.Values{"text": {" "}}, http.StatusUnprocessableEntity, "subtask text is required"},
-		"not found":   {"/subtasks/999/toggle", nil, http.StatusNotFound, "Not found."},
-		"not flagged": {"/activities/3/scope-ack", nil, http.StatusUnprocessableEntity, "not flagged"},
+		"validation": {"/activities/2/subtasks", url.Values{"text": {" "}}, http.StatusUnprocessableEntity, "Subtask text is required."},
+		"not found":  {"/subtasks/999/toggle", nil, http.StatusNotFound, "Not found."},
+		"This activity is not flagged for scope creep.": {"/activities/3/scope-ack", nil, http.StatusUnprocessableEntity, "This activity is not flagged for scope creep."},
 	} {
 		form := url.Values{"next": {"/?sel=2"}}
 		for k, v := range c.form {
@@ -165,13 +165,13 @@ func TestHXErrorsGoToTheErrorBar(t *testing.T) {
 		if rec.Code != c.status || rec.Header().Get("HX-Push-Url") != "false" || rec.Header().Get("HX-Retarget") != "#errors" || rec.Header().Get("HX-Reswap") != "innerHTML" ||
 			!strings.Contains(body, c.msg) || !strings.Contains(body, `<div class="error-bar" role="alert">`) ||
 			!strings.Contains(body, `hx-get="/errors/clear" hx-target="#errors"`) ||
-			strings.Contains(body, `id="dash"`) || strings.Contains(body, "<html") {
+			strings.Contains(body, `id="dash"`) || strings.Contains(body, "<html") || leaksInternals(body) {
 			t.Errorf("%s: status %d, retarget %q:\n%s", name, rec.Code, rec.Header().Get("HX-Retarget"), body)
 		}
 		// without JS the same request still gets the plain error page with a Back link
 		plain := post(h, c.target, form)
 		if plain.Code != c.status || !strings.Contains(plain.Body.String(), "<!doctype html>") ||
-			!strings.Contains(plain.Body.String(), `<a href="/?sel=2">Back</a>`) || plain.Header().Get("HX-Retarget") != "" || plain.Header().Get("HX-Push-Url") != "" {
+			!strings.Contains(plain.Body.String(), `<a href="/?sel=2">Back</a>`) || !strings.Contains(plain.Body.String(), c.msg) || leaksInternals(plain.Body.String()) || plain.Header().Get("HX-Retarget") != "" || plain.Header().Get("HX-Push-Url") != "" {
 			t.Errorf("%s without JS: status %d", name, plain.Code)
 		}
 	}
@@ -181,4 +181,14 @@ func TestHXErrorsGoToTheErrorBar(t *testing.T) {
 		t.Errorf("clear: %d %q", clear.Code, clear.Body)
 	}
 	wantBody(t, get(h, "/"), `<div id="errors" aria-live="polite"></div>`, `"responseHandling"`)
+}
+
+// leaksInternals reports error-chain context that belongs in logs, not on screen.
+func leaksInternals(body string) bool {
+	for _, s := range []string{"invalid value", "add subtask to", "toggle subtask", "acknowledge scope", "constraint", "sqlite"} {
+		if strings.Contains(body, s) {
+			return true
+		}
+	}
+	return false
 }

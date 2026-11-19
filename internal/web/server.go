@@ -81,16 +81,36 @@ type errorView struct {
 }
 
 // statusFor maps a store or domain error to an HTTP status and a message that
-// is safe to show.
+// is safe to show: never the wrapping context, which is for logs.
 func statusFor(err error) (int, string) {
+	var invalid *domain.InvalidError
 	switch {
 	case errors.Is(err, store.ErrNotFound):
 		return http.StatusNotFound, "Not found."
-	case errors.Is(err, domain.ErrInvalid), errors.Is(err, store.ErrConflict),
-		errors.Is(err, store.ErrNotFlagged), errors.Is(err, store.ErrReadOnly):
-		return http.StatusUnprocessableEntity, err.Error()
+	case errors.As(err, &invalid):
+		return http.StatusUnprocessableEntity, sentence(invalid.Message)
+	case errors.Is(err, domain.ErrInvalid):
+		return http.StatusUnprocessableEntity, "That value is not allowed."
+	case errors.Is(err, store.ErrConflict):
+		return http.StatusUnprocessableEntity, "That name is already in use."
+	case errors.Is(err, store.ErrNotFlagged):
+		return http.StatusUnprocessableEntity, "This activity is not flagged for scope creep."
+	case errors.Is(err, store.ErrReadOnly):
+		return http.StatusUnprocessableEntity, "Acknowledgement entries cannot be edited or deleted."
 	}
 	return http.StatusInternalServerError, "Something went wrong."
+}
+
+// sentence capitalises a message and ends it with a full stop.
+func sentence(m string) string {
+	if m == "" {
+		return m
+	}
+	m = strings.ToUpper(m[:1]) + m[1:]
+	if !strings.HasSuffix(m, ".") {
+		m += "."
+	}
+	return m
 }
 
 // fail shows a plain error page with a Back link (SPEC §10 item 27).

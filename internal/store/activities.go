@@ -54,10 +54,10 @@ func scanActivity(r scanner) (domain.Activity, error) {
 func (s *Store) CreateActivity(ctx context.Context, in NewActivity, clock domain.Clock) (domain.Activity, error) {
 	today := clock.Today()
 	if (in.ProjectID == 0) == (in.NewProjectName == "") {
-		return domain.Activity{}, fmt.Errorf("%w: set exactly one of project id and new project name", domain.ErrInvalid)
+		return domain.Activity{}, domain.Invalid("choose an existing project or name a new one, not both")
 	}
 	if len(in.Subtasks) == 0 {
-		return domain.Activity{}, fmt.Errorf("%w: an activity needs at least one subtask", domain.ErrInvalid)
+		return domain.Activity{}, domain.Invalid("an activity needs at least one subtask")
 	}
 	created := in.Start
 	if today.Before(created) {
@@ -163,7 +163,7 @@ func (s *Store) UpdateActivity(ctx context.Context, a domain.Activity) error {
 // done date (kept if already done); leaving done clears it (SPEC §10 item 21).
 func (s *Store) SetActivityStatus(ctx context.Context, id int64, status domain.Status, today domain.Date) error {
 	if !status.Valid() {
-		return fmt.Errorf("%w: unknown status %q", domain.ErrInvalid, status)
+		return domain.Invalid("unknown status %q", status)
 	}
 	res, err := s.db.ExecContext(ctx,
 		`UPDATE activities SET status = ?1,

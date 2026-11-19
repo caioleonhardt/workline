@@ -84,7 +84,7 @@ func (s *Store) ListAllSubtasks(ctx context.Context) ([]domain.Subtask, error) {
 func (s *Store) ToggleSubtask(ctx context.Context, id int64, clock domain.Clock) (domain.Subtask, error) {
 	today := clock.Today()
 	if today.IsZero() {
-		return domain.Subtask{}, fmt.Errorf("%w: today is required", domain.ErrInvalid)
+		return domain.Subtask{}, domain.Invalid("today is required")
 	}
 	st, err := scanSubtask(s.db.QueryRowContext(ctx,
 		`UPDATE subtasks SET

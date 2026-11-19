@@ -7,8 +7,22 @@ import (
 	"time"
 )
 
-// ErrInvalid wraps every validation failure.
+// ErrInvalid matches (errors.Is) every validation failure.
 var ErrInvalid = errors.New("invalid value")
+
+// InvalidError is a validation failure. Message is written for the person who
+// made the mistake; wrapping context added around the error is for logs.
+type InvalidError struct{ Message string }
+
+func (e *InvalidError) Error() string { return "invalid value: " + e.Message }
+
+// Is makes errors.Is(err, ErrInvalid) true.
+func (e *InvalidError) Is(target error) bool { return target == ErrInvalid }
+
+// Invalid returns an InvalidError with a formatted message.
+func Invalid(format string, args ...any) error {
+	return &InvalidError{Message: fmt.Sprintf(format, args...)}
+}
 
 // Status is an activity's lifecycle state.
 type Status string
@@ -150,29 +164,25 @@ func validStamp(s string) bool {
 	return err == nil && len(s) == len(stampLayout)
 }
 
-func invalid(format string, args ...any) error {
-	return fmt.Errorf("%w: %s", ErrInvalid, fmt.Sprintf(format, args...))
-}
-
 func blank(s string) bool { return strings.TrimSpace(s) == "" }
 
 // Validate checks the activity's own fields (not its ID or ProjectID).
 func (a Activity) Validate() error {
 	switch {
 	case blank(a.Name):
-		return invalid("activity name is required")
+		return Invalid("activity name is required")
 	case !a.Status.Valid():
-		return invalid("unknown status %q", a.Status)
+		return Invalid("unknown status %q", a.Status)
 	case !a.Priority.Valid():
-		return invalid("unknown priority %q", a.Priority)
+		return Invalid("unknown priority %q", a.Priority)
 	case !a.DoneOn.IsZero() && a.Status != StatusDone:
-		return invalid("done date set on a %s activity", a.Status)
+		return Invalid("done date set on a %s activity", a.Status)
 	case a.Start.IsZero() || a.Due.IsZero():
-		return invalid("start and due dates are required")
+		return Invalid("start and due dates are required")
 	case a.Due.Before(a.Start):
-		return invalid("due date %s is before start date %s", a.Due, a.Start)
+		return Invalid("due date %s is before start date %s", a.Due, a.Start)
 	case a.Due.Sub(a.Start) > maxSpanDays:
-		return invalid("an activity can span at most %d days", maxSpanDays)
+		return Invalid("an activity can span at most %d days", maxSpanDays)
 	}
 	return nil
 }
@@ -182,15 +192,15 @@ func (a Activity) Validate() error {
 func (s Subtask) Validate() error {
 	switch {
 	case blank(s.Text):
-		return invalid("subtask text is required")
+		return Invalid("subtask text is required")
 	case s.CreatedOn.IsZero():
-		return invalid("subtask created date is required")
+		return Invalid("subtask created date is required")
 	case !s.ClosedOn.IsZero() && s.ClosedOn.Before(s.CreatedOn):
-		return invalid("closed date %s is before created date %s", s.ClosedOn, s.CreatedOn)
+		return Invalid("closed date %s is before created date %s", s.ClosedOn, s.CreatedOn)
 	case s.ClosedAt != "" && !validStamp(s.ClosedAt):
-		return invalid("closed time %q is not YYYY-MM-DD HH:MM", s.ClosedAt)
+		return Invalid("closed time %q is not YYYY-MM-DD HH:MM", s.ClosedAt)
 	case s.ClosedAt != "" && (s.ClosedOn.IsZero() || s.ClosedAt[:10] != s.ClosedOn.String()):
-		return invalid("closed time %q does not match closed date %q", s.ClosedAt, s.ClosedOn)
+		return Invalid("closed time %q does not match closed date %q", s.ClosedAt, s.ClosedOn)
 	}
 	return nil
 }
@@ -201,7 +211,7 @@ func (s Subtask) ValidateAt(today Date) error {
 		return err
 	}
 	if s.ClosedOn.After(today) {
-		return invalid("closed date %s is after today (%s)", s.ClosedOn, today)
+		return Invalid("closed date %s is after today (%s)", s.ClosedOn, today)
 	}
 	return nil
 }
@@ -210,13 +220,13 @@ func (s Subtask) ValidateAt(today Date) error {
 func (j JournalEntry) Validate() error {
 	switch {
 	case blank(j.Text):
-		return invalid("journal text is required")
+		return Invalid("journal text is required")
 	case j.Date.IsZero():
-		return invalid("journal date is required")
+		return Invalid("journal date is required")
 	case !j.Kind.Valid():
-		return invalid("unknown journal kind %q", j.Kind)
+		return Invalid("unknown journal kind %q", j.Kind)
 	case j.LoggedAt != "" && !validStamp(j.LoggedAt):
-		return invalid("logged time %q is not YYYY-MM-DD HH:MM", j.LoggedAt)
+		return Invalid("logged time %q is not YYYY-MM-DD HH:MM", j.LoggedAt)
 	}
 	return nil
 }

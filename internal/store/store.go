@@ -164,7 +164,7 @@ func mapErr(err error) error {
 	case code == unique || code == primaryKey:
 		return fmt.Errorf("%w: %v", ErrConflict, err)
 	case code&0xff == constraint:
-		return fmt.Errorf("%w: %v", domain.ErrInvalid, err)
+		return fmt.Errorf("%w: %v", domain.Invalid("the change breaks a rule of the data"), err)
 	}
 	return err
 }

@@ -12,7 +12,7 @@ import (
 
 func validProjectName(name string) error {
 	if strings.TrimSpace(name) == "" {
-		return fmt.Errorf("%w: project name is required", domain.ErrInvalid)
+		return domain.Invalid("project name is required")
 	}
 	return nil
 }

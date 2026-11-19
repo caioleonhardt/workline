@@ -2,7 +2,6 @@ package web
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -59,7 +58,7 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 	today := s.clock.Today()
 	u, err := url.Parse(uri)
 	if err != nil {
-		return dashboardView{}, fmt.Errorf("%w: bad dashboard address", domain.ErrInvalid)
+		return dashboardView{}, domain.Invalid("bad dashboard address")
 	}
 	f := parseFilter(u.Query(), today)
 	projects, err := s.store.ListProjects(ctx, false)

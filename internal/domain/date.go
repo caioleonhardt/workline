@@ -3,7 +3,6 @@
 package domain
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -34,7 +33,7 @@ func DateOf(year int, month time.Month, day int) Date {
 func ParseDate(s string) (Date, error) {
 	t, err := time.Parse("2006-01-02", s)
 	if err != nil || len(s) != 10 || t.Year() < 1 {
-		return 0, fmt.Errorf("%w: date %q is not YYYY-MM-DD", ErrInvalid, s)
+		return 0, Invalid("date %q is not YYYY-MM-DD", s)
 	}
 	return fromTime(t), nil
 }

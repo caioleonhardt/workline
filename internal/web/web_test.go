@@ -2,6 +2,8 @@ package web
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -126,6 +128,25 @@ func TestWithParam(t *testing.T) {
 	} {
 		if got := withParam(c.in, c.key, c.val); got != c.want {
 			t.Errorf("withParam(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+}
+
+func TestStatusForShowsOnlyTheUserMessage(t *testing.T) {
+	for _, c := range []struct {
+		err  error
+		want string
+	}{
+		{fmt.Errorf("add journal to activity 1: %w", domain.Invalid("journal text is required")), "Journal text is required."},
+		{fmt.Errorf("a: %w", fmt.Errorf("b: %w", domain.Invalid("due date 2026-01-01 is before start date 2026-02-01."))), "Due date 2026-01-01 is before start date 2026-02-01."},
+		{fmt.Errorf("create project %q: %w: UNIQUE constraint failed: projects.name", "x", store.ErrConflict), "That name is already in use."},
+		{fmt.Errorf("acknowledge scope: activity 3: %w", store.ErrNotFlagged), "This activity is not flagged for scope creep."},
+		{fmt.Errorf("journal entry 4: %w", store.ErrReadOnly), "Acknowledgement entries cannot be edited or deleted."},
+		{fmt.Errorf("%w: FOREIGN KEY constraint failed", domain.ErrInvalid), "That value is not allowed."},
+		{fmt.Errorf("disk on fire: %w", errors.New("boom")), "Something went wrong."},
+	} {
+		if _, got := statusFor(c.err); got != c.want {
+			t.Errorf("statusFor(%q) message = %q, want %q", c.err, got, c.want)
 		}
 	}
 }
