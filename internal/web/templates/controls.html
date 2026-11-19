@@ -9,7 +9,7 @@
 {{if .Scales}}<div role="group" aria-label="Year columns" class="seg">{{range .Scales}}{{template "toggle" .}}{{end}}</div>{{end}}
 <form method="get" action="/timeline" class="inline" hx-trigger="change, submit">
 {{range .SelectPairs}}<input type="hidden" name="{{.Key}}" value="{{.Value}}">{{end}}
-<label>Project<select name="project" id="filter-project" aria-keyshortcuts="/">{{range .Projects}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+<label>Project<select name="project" id="filter-project" aria-keyshortcuts="f">{{range .Projects}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
 <label>Month<select name="month">{{range .Months}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
 <button class="apply">Apply</button>
 </form>

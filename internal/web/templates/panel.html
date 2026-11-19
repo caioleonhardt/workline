@@ -43,9 +43,9 @@
 <p class="muted">Flagged when scope grows 75%+ over its baseline (kickoff, or the last acknowledgement), or when more tasks are added than closed over 30 days.</p>
 
 <h3>Tasks</h3>
-<ul class="rows">
+<ul class="rows" data-pane>
 {{range .Tasks}}
-<li class="sub">
+<li class="sub" tabindex="-1" data-entry>
 <form class="inline sub-toggle" method="post" action="/tasks/{{.ID}}/toggle" hx-trigger="change, submit">
 <input type="hidden" name="next" value="{{$.Next}}">
 <label class="check"><input type="checkbox"{{if .Closed}} checked{{end}}><span{{if .Closed}} class="done-text"{{end}}>{{.Text}}</span></label>{{if .Priority}} <span class="chip prio-{{.Priority}}">{{.PriorityLabel}}</span>{{end}}

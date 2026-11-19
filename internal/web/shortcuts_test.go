@@ -11,14 +11,30 @@ func TestShortcutTargetsAndHints(t *testing.T) {
 	h, _ := newApp(t)
 	body := get(h, "/timeline?period=q4&sel=2&new=1").Body.String()
 	for _, want := range []string{
-		`<a class="btn new-activity" href="/timeline?new=1&amp;period=q4&amp;sel=2" aria-keyshortcuts="n">New activity</a>`,
-		`<select name="project" id="filter-project" aria-keyshortcuts="/">`,
+		`<a class="btn new-activity" href="/timeline?new=1&amp;period=q4&amp;sel=2" aria-keyshortcuts="O">New activity</a>`,
+		`<select name="project" id="filter-project" aria-keyshortcuts="f">`,
 		`<a class="panel-close" href="/timeline?new=1&amp;period=q4" aria-label="Close panel" aria-keyshortcuts="Escape">×</a>`,
 		`<a class="cancel-new" href="/timeline?period=q4&amp;sel=2">Cancel</a>`,
-		`<p class="hint js-only small muted">Shortcuts: <kbd>n</kbd> new activity · <kbd>/</kbd> filter · <kbd>j</kbd> journal · <kbd>t</kbd> <kbd>d</kbd> <kbd>u</kbd> <kbd>b</kbd> <kbd>m</kbd> log a task, decision, update, blocker, meeting · <kbd>Esc</kbd> close panel</p>`,
+		`<p class="hint js-only small muted">Press <kbd>?</kbd> for keys</p>`,
+		`<dialog id="keys" aria-labelledby="keys-title">`,
+		`<form class="vsearch" role="search" hidden>`,
+		`<ul class="rows feed" data-pane>`,
+		`<ul class="rows" data-pane>`,
+		`<li class="sub" tabindex="-1" data-entry>`,
+		`<li tabindex="-1" data-entry>`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
+		}
+	}
+	page := get(h, "/").Body.String()
+	for _, want := range []string{
+		`<p class="hint js-only small muted">Press <kbd>?</kbd> for keys</p>`,
+		`<h2 id="open-tasks-title">Open tasks by priority</h2>` + "\n" + `<ul class="rows" data-pane>`,
+		`<dialog id="keys" aria-labelledby="keys-title">`,
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("journal page missing %q", want)
 		}
 	}
 	css := get(h, "/static/app.css").Body.String()

@@ -236,3 +236,9 @@ html:not(.js) .editor .cancel, html:not(.js) .keyhint { display: none; }
 .proj-archive { margin: 0; }
 .proj-delete[open] { flex-basis: 100%; }
 .confirm-box { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 4px 0 0; padding: 10px 12px; border-radius: 10px; background: #FDECEA; color: #8A1C12; }
+[data-entry]:focus { outline: 2px solid var(--active-fg); outline-offset: 2px; border-radius: 4px; }
+[data-entry].match { background: var(--blocked-bg); }
+.vsearch { position: fixed; top: 12px; right: 16px; z-index: 30; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 8px rgba(22, 24, 29, 0.08); }
+.vsearch[hidden] { display: none; }
+dialog#keys { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); max-width: 520px; }
+.keys th { text-align: left; padding: 2px 16px 2px 0; white-space: nowrap; font-weight: normal; }

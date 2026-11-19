@@ -95,7 +95,7 @@ func hxPostFrom(h http.Handler, target string, form url.Values, trigger string) 
 	return rec
 }
 
-const emptiedInput = `<textarea id="quickadd-text" name="text" rows="1" aria-label="Journal entry" placeholder="Log… /t task · /t1 high-priority task · /d decision · /u update (Shift+Enter: new line)" autocomplete="off" aria-keyshortcuts="j t d u b m" required hx-swap-oob="true"></textarea>`
+const emptiedInput = `<textarea id="quickadd-text" name="text" rows="1" aria-label="Journal entry" placeholder="Log… /t task · /t1 high-priority task · /d decision · /u update (Shift+Enter: new line)" autocomplete="off" aria-keyshortcuts="o" required hx-swap-oob="true"></textarea>`
 
 func TestQuickAddSuccessClearsTheField(t *testing.T) {
 	h, st := newApp(t)

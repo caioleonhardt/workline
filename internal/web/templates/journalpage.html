@@ -2,6 +2,7 @@
 <div id="errors" aria-live="polite"></div>
 {{template "jdash" .}}
 {{template "quickadd" .}}
+{{template "keys"}}
 {{template "foot" .}}
 
 {{define "jdash-fragment"}}{{template "jdash" .}}{{template "bar-oob" .}}{{end}}
@@ -15,7 +16,7 @@
 </div>
 <div class="actions"><a class="btn secondary" href="{{.ExportHref}}" hx-boost="false">Export journal</a></div>
 </header>
-<p class="hint js-only small muted">Shortcuts: <kbd>j</kbd> or <kbd>/</kbd> journal · <kbd>t</kbd> <kbd>d</kbd> <kbd>u</kbd> <kbd>b</kbd> <kbd>m</kbd> log a task, decision, update, blocker, meeting · in the bar, <kbd>/t1</kbd> … <kbd>/t3</kbd> starts a task with a priority</p>
+<p class="hint js-only small muted">Press <kbd>?</kbd> for keys</p>
 <div class="tiles">
 {{range .Tiles}}<div class="tile"><div class="tile-label"><span class="dot {{.Class}}" aria-hidden="true"></span>{{.Label}}</div><div class="tile-value mono">{{.Value}}</div></div>
 {{end}}</div>
@@ -54,9 +55,9 @@
 <div class="jwork">
 <section class="card open-tasks" aria-labelledby="open-tasks-title">
 <h2 id="open-tasks-title">Open tasks by priority</h2>
-<ul class="rows">
+<ul class="rows" data-pane>
 {{range .Tasks}}
-<li class="sub">
+<li class="sub" tabindex="-1" data-entry>
 <form class="inline sub-toggle" method="post" action="/tasks/{{.ID}}/toggle" hx-trigger="change, submit">
 <input type="hidden" name="next" value="{{$.Next}}">
 <label class="check"><input type="checkbox"><span>{{.Text}}</span></label>

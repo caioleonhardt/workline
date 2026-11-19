@@ -19,3 +19,23 @@
 </body>
 </html>
 {{end}}
+{{define "keys"}}<form class="vsearch" role="search" hidden><label for="vsearch-text">Search entries</label> <input id="vsearch-text" type="search" autocomplete="off"></form>
+<dialog id="keys" aria-labelledby="keys-title">
+<h2 id="keys-title">Keys</h2>
+<table class="keys">
+<tr><th scope="row"><kbd>j</kbd> <kbd>k</kbd></th><td>next / previous entry</td></tr>
+<tr><th scope="row"><kbd>gg</kbd> <kbd>G</kbd></th><td>first / last entry</td></tr>
+<tr><th scope="row"><kbd>h</kbd> <kbd>l</kbd></th><td>previous / next list</td></tr>
+<tr><th scope="row"><kbd>i</kbd></th><td>edit the entry</td></tr>
+<tr><th scope="row"><kbd>x</kbd></th><td>close or reopen the task</td></tr>
+<tr><th scope="row"><kbd>dd</kbd></th><td>delete the entry (asks to confirm)</td></tr>
+<tr><th scope="row"><kbd>Enter</kbd></th><td>open the entry's activity</td></tr>
+<tr><th scope="row"><kbd>o</kbd></th><td>log an entry (in the bar, <kbd>/t</kbd> <kbd>/t1</kbd>…<kbd>/t3</kbd> <kbd>/d</kbd> <kbd>/u</kbd> <kbd>/b</kbd> <kbd>/m</kbd> choose the kind)</td></tr>
+<tr><th scope="row"><kbd>/</kbd> <kbd>n</kbd> <kbd>N</kbd></th><td>search the page, next / previous match</td></tr>
+<tr><th scope="row"><kbd>[</kbd> <kbd>]</kbd></th><td>previous / next week (journal)</td></tr>
+<tr><th scope="row"><kbd>O</kbd> <kbd>f</kbd></th><td>new activity, project filter (timeline)</td></tr>
+<tr><th scope="row"><kbd>gj</kbd> <kbd>gt</kbd> <kbd>gp</kbd></th><td>Journal, Timeline, Projects</td></tr>
+<tr><th scope="row"><kbd>Esc</kbd></th><td>clear search, cancel, close panel</td></tr>
+</table>
+<form method="dialog"><button>Close</button></form>
+</dialog>{{end}}
