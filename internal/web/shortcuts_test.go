@@ -26,3 +26,24 @@ func TestShortcutTargetsAndHints(t *testing.T) {
 		t.Error("the hint must show only when scripting is on")
 	}
 }
+
+// Key handling needs a browser (checked by hand in Firefox); this pins the rules
+// that keep it from stealing keystrokes and from stacking up across htmx swaps.
+func TestShortcutScriptRules(t *testing.T) {
+	h, _ := newApp(t)
+	js := get(h, "/static/app.js").Body.String()
+	for _, want := range []string{
+		"if (!window.worklineKeys)", // registered once although app.js re-runs after every swap
+		"e.ctrlKey || e.altKey || e.metaKey",
+		"/^(INPUT|TEXTAREA|SELECT|SUMMARY)$/.test(t.tagName)",
+		"e.key === 'n' && !cancel", "e.key === 'Escape'", "e.key === '/'",
+		"document.getElementById('filter-project')", "a.panel-close", "a.cancel-new", "a.new-activity",
+	} {
+		if !strings.Contains(js, want) {
+			t.Errorf("app.js lacks %q", want)
+		}
+	}
+	if strings.Count(js, "addEventListener('keydown'") != 1 {
+		t.Error("exactly one keydown listener")
+	}
+}

@@ -1,5 +1,5 @@
-// Marks the page as scripted (hiding buttons that htmx replaces) and collapses
-// project groups on the timeline; the state lives in the browser's local storage.
+// Marks the page as scripted (hiding buttons that htmx replaces), handles the
+// keyboard shortcuts and collapses project groups on the timeline; the state lives in the browser's local storage.
 // Without this script every group stays expanded and every button shows.
 (function () {
   document.documentElement.classList.add('js');
@@ -23,6 +23,36 @@
     group.querySelector('.proj-toggle').setAttribute('aria-expanded', String(!collapsed));
     group.querySelectorAll('.act-row').forEach(function (row) {
       row.hidden = collapsed;
+    });
+  }
+
+  // Keyboard shortcuts. app.js runs again inside every swapped fragment, so the
+  // listener is registered once. It only clicks real links and focuses a select,
+  // so htmx's own handling of those links applies.
+  if (!window.worklineKeys) {
+    window.worklineKeys = true;
+    document.addEventListener('keydown', function (e) {
+      var t = e.target;
+      if (e.ctrlKey || e.altKey || e.metaKey || e.defaultPrevented) return;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|SUMMARY)$/.test(t.tagName))) return;
+      var cancel = document.querySelector('a.cancel-new');
+      var target = null;
+      if (e.key === 'n' && !cancel) {
+        target = document.querySelector('a.new-activity');
+      } else if (e.key === 'Escape') {
+        target = cancel || document.querySelector('a.panel-close');
+      } else if (e.key === '/') {
+        var filter = document.getElementById('filter-project');
+        if (filter) {
+          e.preventDefault();
+          filter.focus();
+        }
+        return;
+      }
+      if (target) {
+        e.preventDefault();
+        target.click();
+      }
     });
   }
 
