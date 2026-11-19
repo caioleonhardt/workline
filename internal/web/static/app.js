@@ -216,7 +216,7 @@
     // Search (SPEC §10 item 103). The server parses the query; Enter marks the
     // entries on the page whose ids it returns and jumps between them, Ctrl+Enter
     // opens the search page. The marks are fetched again after every swap.
-    var pattern = '', hits = null, searchFrom = null;
+    var pattern = '', hits = null, total = 0, searchFrom = null;
     function fetchHits(then) {
       fetch('/search/ids?' + new URLSearchParams({ q: pattern })).then(function (res) {
         return res.json().then(function (body) {
@@ -226,6 +226,7 @@
             return say(body.error, true);
           }
           hits = {};
+          total = body.ids.length;
           body.ids.forEach(function (id) { hits[id] = true; });
           then();
         });
@@ -244,6 +245,7 @@
       if (!hits) return;
       var all = Array.prototype.slice.call(document.querySelectorAll('[data-entry]'));
       var found = mark();
+      if (!found.length && total) return say('E486: Pattern not found on this page: ' + pattern + ' (' + total + ' in the journal, Ctrl+Enter lists them)', true);
       if (!found.length) return say('E486: Pattern not found: ' + pattern, true);
       var at = all.indexOf(cursor()), next = null;
       found.forEach(function (entry) {
@@ -253,7 +255,7 @@
       var target = next || found[delta > 0 ? 0 : found.length - 1];
       moveTo(target);
       if (next) {
-        say('/' + pattern + '  [' + (found.indexOf(target) + 1) + '/' + found.length + ']');
+        say('/' + pattern + '  [' + (found.indexOf(target) + 1) + '/' + found.length + ']' + (total > found.length ? ' · ' + total + ' in the journal' : ''));
       } else {
         say(delta > 0 ? 'search hit BOTTOM, continuing at TOP' : 'search hit TOP, continuing at BOTTOM', true);
       }
