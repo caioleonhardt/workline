@@ -168,6 +168,8 @@
     }, true);
     document.addEventListener('htmx:afterSettle', function () {
       updateStatus();
+      searchPageStatus();
+      if (pattern && hits) fetchHits(mark);
       if (!restore) return;
       var pane = panes()[restore.pane];
       if (pane) {
@@ -211,18 +213,37 @@
     }
     document.addEventListener('focusin', updateStatus);
     document.addEventListener('focusout', function () { setTimeout(updateStatus, 0); });
-    // Search (/) marks the entries whose text contains the pattern; n and N read the
-    // page again, so they keep working after a swap.
-    var pattern = '', query = '', searchFrom = null;
-    function search(delta) {
-      if (!query) return say('E35: No previous regular expression', true);
-      var all = Array.prototype.slice.call(document.querySelectorAll('[data-entry]'));
-      var found = all.filter(function (entry) {
-        var text = entry.querySelector('.feed-text, .check span') || entry;
-        var hit = query !== '' && text.textContent.toLowerCase().indexOf(query) !== -1;
+    // Search (SPEC §10 item 103). The server parses the query; Enter marks the
+    // entries on the page whose ids it returns and jumps between them, Ctrl+Enter
+    // opens the search page. The marks are fetched again after every swap.
+    var pattern = '', hits = null, searchFrom = null;
+    function fetchHits(then) {
+      fetch('/search/ids?' + new URLSearchParams({ q: pattern })).then(function (res) {
+        return res.json().then(function (body) {
+          if (!res.ok) {
+            hits = null;
+            mark();
+            return say(body.error, true);
+          }
+          hits = {};
+          body.ids.forEach(function (id) { hits[id] = true; });
+          then();
+        });
+      }).catch(function () { say('Search failed', true); });
+    }
+    // mark highlights the hits on the page and returns them in page order.
+    function mark() {
+      return Array.prototype.filter.call(document.querySelectorAll('[data-entry]'), function (entry) {
+        var hit = !!hits && hits[entry.dataset.id] === true;
         entry.classList.toggle('match', hit);
         return hit;
       });
+    }
+    function search(delta) {
+      if (!pattern) return say('E35: No previous regular expression', true);
+      if (!hits) return;
+      var all = Array.prototype.slice.call(document.querySelectorAll('[data-entry]'));
+      var found = mark();
       if (!found.length) return say('E486: Pattern not found: ' + pattern, true);
       var at = all.indexOf(cursor()), next = null;
       found.forEach(function (entry) {
@@ -238,30 +259,109 @@
       }
     }
     function clearSearch() {
-      pattern = query = '';
-      document.querySelectorAll('[data-entry].match').forEach(function (entry) { entry.classList.remove('match'); });
+      pattern = '';
+      hits = null;
+      mark();
       say('');
     }
     function openSearch() {
       var form = document.querySelector('.vsearch');
       if (!form) return;
       searchFrom = cursor();
+      completion = null;
       say('');
       form.hidden = false;
       form.querySelector('input').value = '';
       form.querySelector('input').focus();
     }
-    function closeSearch(run) {
+    // closeSearch leaves the search line: how is 'cancel', 'mark' (Enter) or
+    // 'filter' (Ctrl+Enter). An empty line repeats the last pattern, as in Vim.
+    function closeSearch(how) {
       var input = document.getElementById('vsearch-text');
+      var typed = input.value.trim();
       input.closest('.vsearch').hidden = true;
       if (searchFrom && searchFrom.isConnected) searchFrom.focus();
       else input.blur();
-      // An empty search repeats the last pattern, as in Vim.
-      if (run && input.value.trim()) {
-        pattern = input.value.trim();
-        query = pattern.toLowerCase();
+      if (how === 'cancel') return say('');
+      if (!typed && !pattern) return say('E35: No previous regular expression', true);
+      if (how === 'filter') {
+        var from = location.pathname + location.search;
+        if (location.pathname === '/search') from = new URLSearchParams(location.search).get('from') || '/';
+        location.assign('/search?' + new URLSearchParams({ q: typed || pattern, from: from }));
+        return;
       }
-      if (run) search(1);
+      if (typed) pattern = typed;
+      fetchHits(function () { search(1); });
+    }
+    // The search page tells the statusline what it shows.
+    function searchPageStatus() {
+      var dash = document.querySelector('#dash[data-search]');
+      if (!dash) return;
+      var refused = dash.querySelector('.error-bar[role="alert"]');
+      if (refused) return say(refused.textContent, true);
+      say('/' + dash.dataset.search + '  [filter] ' + dash.dataset.count + (dash.dataset.count === '1' ? ' result' : ' results'));
+    }
+    // app.js loads inside #dash, before the statusline's markup.
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', searchPageStatus);
+    else searchPageStatus();
+    // Tab completes the search line's last token from /search/words (fetched
+    // once), cycling through the candidates like Vim's wildmenu.
+    var words = null, completion = null;
+    function tokenStart(s) {
+      var start = 0, quoted = false;
+      for (var i = 0; i < s.length; i++) {
+        if (s[i] === '"') quoted = !quoted;
+        else if (/\s/.test(s[i]) && !quoted) start = i + 1;
+      }
+      return start;
+    }
+    function candidates(token) {
+      var neg = token.charAt(0) === '!' ? '!' : '', body = token.slice(neg.length);
+      var colon = body.indexOf(':');
+      if (colon === -1) {
+        return words.keys.map(function (k) { return k.key + ':'; })
+          .filter(function (c) { return c.indexOf(body) === 0; })
+          .map(function (c) { return neg + c; });
+      }
+      var key = body.slice(0, colon), typed = body.slice(colon + 1).replace(/"/g, '').toLowerCase();
+      var spec = words.keys.filter(function (k) { return k.key === key; })[0];
+      if (!spec) return [];
+      var values = spec.values.length ? spec.values : key === 'proj' ? words.projects : words.activities;
+      return values.filter(function (v) { return v.toLowerCase().indexOf(typed) === 0; }).map(function (v) {
+        return neg + key + ':' + (/\s/.test(v) ? '"' + v + '"' : v);
+      });
+    }
+    function wildmenu(list, current) {
+      var msg = document.getElementById('status-msg');
+      msg.textContent = '';
+      msg.classList.remove('error');
+      list.forEach(function (c, i) {
+        var span = document.createElement('span');
+        span.className = i === current ? 'wild current' : 'wild';
+        span.textContent = c;
+        msg.appendChild(span);
+      });
+    }
+    function complete(input, delta) {
+      if (!words) {
+        fetch('/search/words').then(function (res) { return res.json(); }).then(function (w) {
+          words = w;
+          complete(input, delta);
+        }).catch(function () { say('Search failed', true); });
+        return;
+      }
+      if (!completion) {
+        var head = input.value.slice(0, tokenStart(input.value));
+        var list = candidates(input.value.slice(head.length));
+        if (!list.length) return;
+        completion = { head: head, list: list, i: delta > 0 ? -1 : list.length };
+      }
+      var c = completion, n = c.list.length;
+      c.i = (c.i + delta + n) % n;
+      input.value = c.head + c.list[c.i];
+      wildmenu(c.list, c.i);
+      // A single candidate is taken, so the next Tab completes what follows it (p: → its values).
+      if (n === 1) completion = null;
     }
     var pending = '', pendingAt = 0;
     var keys = {
@@ -296,8 +396,8 @@
         if (dialog) dialog.showModal();
       },
       Escape: function () {
-        if (query) return clearSearch();
-        var target = document.querySelector('a.cancel-new') || document.querySelector('a.panel-close');
+        if (pattern) return clearSearch();
+        var target = document.querySelector('a.cancel-new') || document.querySelector('a.panel-close') || document.querySelector('a.clear-search');
         if (target) target.click();
       }
     };
@@ -316,6 +416,19 @@
         }
       }
       if (editor) return; // the editor is Insert mode, its buttons included
+      // The search line: Enter marks, Ctrl+Enter filters, Esc goes back to the cursor, Tab completes.
+      if (t && t.id === 'vsearch-text' && !e.isComposing) {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          return complete(t, e.shiftKey ? -1 : 1);
+        }
+        if (!/^(Shift|Control|Alt|Meta)$/.test(e.key)) completion = null;
+        if (e.key === 'Enter' || e.key === 'Escape') {
+          e.preventDefault();
+          closeSearch(e.key === 'Escape' ? 'cancel' : e.ctrlKey || e.metaKey ? 'filter' : 'mark');
+        }
+        return;
+      }
       if (e.ctrlKey || e.altKey || e.metaKey || e.defaultPrevented) return;
       if (e.key === 'Escape' && t && t.id === 'quickadd-text') {
         e.preventDefault();
@@ -326,12 +439,6 @@
       if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && t && t.id === 'quickadd-text') {
         e.preventDefault();
         t.form.requestSubmit();
-        return;
-      }
-      // The search line: Enter searches, Esc goes back to the cursor.
-      if (t && t.id === 'vsearch-text' && (e.key === 'Enter' || e.key === 'Escape')) {
-        e.preventDefault();
-        closeSearch(e.key === 'Enter');
         return;
       }
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|SUMMARY)$/.test(t.tagName))) return;

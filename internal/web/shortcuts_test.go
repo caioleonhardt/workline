@@ -70,6 +70,9 @@ func TestShortcutScriptRules(t *testing.T) {
 		"'/': openSearch", "n: function () { search(1); }", "N: function () { search(-1); }",
 		"t.id === 'vsearch-text'", // Enter in the search line searches instead of submitting the form
 		"entry.classList.toggle('match', hit)",
+		"fetch('/search/ids?'", "location.assign('/search?'", "e.ctrlKey || e.metaKey ? 'filter' : 'mark'", // Enter marks, Ctrl+Enter filters
+		"if (pattern && hits) fetchHits(mark)", // marks survive swaps
+		"fetch('/search/words')", "complete(t, e.shiftKey ? -1 : 1)", "a.clear-search",
 		"name = 'COMMAND'", "name = 'INSERT'", "a.closest('.editor')", // the statusline's mode; the editor counts as Insert
 		"'E486: Pattern not found: '", "'search hit BOTTOM, continuing at TOP'", "'E35: No previous regular expression'",
 		"showcmd(key)", "pane.dataset.pane + ' '",

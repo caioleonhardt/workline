@@ -255,3 +255,5 @@ dialog#keys { border: 1px solid var(--border); border-radius: 12px; background: 
 .keys th { text-align: left; padding: 2px 16px 2px 0; white-space: nowrap; font-weight: normal; }
 .search-form { display: flex; gap: 8px; margin-top: 4px; }
 .search-form input[type="search"] { width: min(420px, 60vw); }
+.status-msg .wild { padding: 0 4px; }
+.status-msg .wild.current { background: var(--active-bg); color: var(--active-fg); font-weight: 700; }
