@@ -419,3 +419,15 @@ func TestPageIsWideEnoughForTheTimelineBesidePanel(t *testing.T) {
 		}
 	}
 }
+
+// The Today chip needs its own strip under the column's load text (found in a
+// real browser: at 72px the chip covered the "13 open · …" line).
+func TestTodayChipHasItsOwnStrip(t *testing.T) {
+	h, _ := newApp(t)
+	css := get(h, "/static/app.css").Body.String()
+	for _, want := range []string{".head-track { height: 88px; }", "padding: 6px 10px;", ".today-flag { position: absolute; bottom: 20px;"} {
+		if !strings.Contains(css, want) {
+			t.Errorf("app.css lacks %q", want)
+		}
+	}
+}
