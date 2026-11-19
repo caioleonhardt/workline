@@ -288,6 +288,7 @@ GET    /static/*                           embedded assets
 3. **Dashboard timeline.** Periods, scales, filters in the URL, project grouping and collapse, activity burndown rows, tiles, legend.
 4. **Detail panel + htmx.** Panel, burndown chart, scope section, acknowledge; htmx partial swaps so selecting, toggling and logging don't reload the page.
 5. **Polish.** Journal Markdown export, backup command, keyboard shortcuts (`n` new activity, `/` focus filter, `Esc` close panel), narrow-screen layout.
+6. **Journal workspace.** Journal list below the timeline and a fixed quick-add bar (§10 items 73–76).
 
 Each milestone ends with `go vet ./...` and `go test ./...` green.
 
@@ -380,3 +381,9 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 70. **Narrow screens**: the label column is sticky; it is ~160px wide on phones. Panel stat boxes wrap; all controls ≥ 44px.
 71. Timeline header grows to 88px so the Today chip has its own strip; subtask rows are one line (one date: closed, else opened; both in the tooltip and in Edit).
 72. **Target screen is a laptop.** Narrow-screen support (item 70) is best-effort; phone-specific polish is out of scope. Export filenames use today's date; a backup keeps its source's schema version.
+
+### Decisions (Milestone 6, journal workspace, 2026-11-19)
+73. **Journal list moves out of the panel** to a full-width section below the timeline. With nothing selected it is a newest-first feed of entries from all activities visible under the current filters, each tagged with its project and activity (a link that selects it). With an activity selected it shows only that activity's entries. Edit/delete per entry stay (scope_ack read-only). The panel keeps status, burndown, scope and subtasks.
+74. **Quick-add bar**: fixed to the bottom of the viewport, shown only when an activity is selected, and displays that activity's name (and project) so it is clear where the entry goes. Fields: kind (default Update) and text; Enter logs it with date = today and `logged_at` stamped. Backfilling another date is done by editing the entry in the list.
+75. The bar lives outside the htmx swap region so typed text survives swaps; its target updates when the selection changes. The page reserves bottom space so the bar never covers content. Without JS it is a normal form posting with `next`.
+76. Shortcut `j` focuses the bar's text field (when shown); `Esc` from the field blurs it.
