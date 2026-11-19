@@ -14,7 +14,7 @@ It is a single Go binary with an embedded SQLite database. It works offline, lis
 - **Burndowns** computed from task open/close dates, never entered by hand.
 - **Scope-creep signal** when an activity grows 75% past its baseline, or when work arrives faster than it closes over the last 30 days. Acknowledging it resets the baseline and logs the change to the journal.
 - **Journal** per activity, exportable as Markdown for 1:1 preparation.
-- **Keyboard shortcuts**: `j` journal bar, `n` new activity, `/` focus filter, `Esc` close panel.
+- **Keyboard shortcuts**: `j` journal bar, `t` / `d` / `u` / `b` / `m` log a task, decision, update, blocker or meeting, `n` new activity, `/` focus filter, `Esc` close panel.
 
 ## Install
 

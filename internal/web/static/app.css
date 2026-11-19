@@ -123,6 +123,10 @@ textarea { border: 1px solid var(--border); border-radius: 8px; padding: 8px; fo
 .done-dot.down .popup { bottom: auto; top: 38px; }
 .done-dot:hover, .done-dot:focus-within { z-index: 6; }
 .done-dot:hover .popup, .done-dot:focus-within .popup { display: block; }
+/* With JS the popup floats over the page, placed by app.js next to its dot, so the
+   timeline's scrolling box cannot clip it. */
+html.js .done-dot .popup, html.js .done-dot.left .popup, html.js .done-dot.right .popup, html.js .done-dot.down .popup { display: none; position: fixed; top: 0; left: 0; right: auto; bottom: auto; transform: none; z-index: 30; }
+html.js .done-dot.open .popup { display: block; }
 .dot-sample { width: 10px; height: 10px; border-radius: 5px; background: #16181D; }
 .work { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: auto 1fr; grid-template-areas: "timeline panel" "journal panel"; }
 .work > .timeline { grid-area: timeline; margin: 0; }

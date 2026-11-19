@@ -1,4 +1,4 @@
-// Marks the page as scripted (hiding buttons that htmx replaces), handles the
+// Marks the page as scripted (hiding buttons that htmx replaces), floats the completion popups, handles the
 // keyboard shortcuts (including Enter to log from the journal bar) and the error bar's Dismiss, and collapses project groups on the timeline; the state lives in the browser's local storage.
 // Without this script every group stays expanded and every button shows.
 (function () {
@@ -35,6 +35,59 @@
       var button = e.target.closest && e.target.closest('.error-bar .dismiss');
       if (button) button.closest('.error-bar').remove();
     });
+    // Completion popups float (position: fixed) beside their dot, above it when
+    // there is room, else below, and inside the window horizontally.
+    function placePopup(dotWrap) {
+      var popup = dotWrap.querySelector('.popup');
+      if (!popup) return;
+      dotWrap.classList.add('open');
+      var r = dotWrap.querySelector('.dot').getBoundingClientRect();
+      var w = popup.offsetWidth, h = popup.offsetHeight, gap = 4, margin = 8;
+      var left = Math.min(Math.max(margin, r.left + r.width / 2 - w / 2), window.innerWidth - w - margin);
+      var top = r.top - h - gap;
+      if (top < margin) top = Math.min(r.bottom + gap, window.innerHeight - h - margin);
+      popup.style.left = left + 'px';
+      popup.style.top = top + 'px';
+    }
+    function closePopup(dotWrap) {
+      if (!dotWrap.matches(':hover') && !dotWrap.matches(':focus-within')) dotWrap.classList.remove('open');
+    }
+    function dotOf(e) {
+      return e.target.closest && e.target.closest('.done-dot');
+    }
+    document.addEventListener('mouseover', function (e) {
+      var d = dotOf(e);
+      if (d && !d.classList.contains('open')) placePopup(d);
+    });
+    document.addEventListener('focusin', function (e) {
+      var d = dotOf(e);
+      if (d) placePopup(d);
+    });
+    document.addEventListener('mouseout', function (e) {
+      var d = dotOf(e);
+      if (d && !d.contains(e.relatedTarget)) {
+        d.classList.remove('open');
+        if (d.matches(':focus-within')) placePopup(d);
+      }
+    });
+    document.addEventListener('focusout', function (e) {
+      var d = dotOf(e);
+      if (d) setTimeout(function () { closePopup(d); }, 0);
+    });
+    // A fixed popup would drift from its dot on scroll: move it along.
+    document.addEventListener('scroll', function () {
+      document.querySelectorAll('.done-dot.open').forEach(placePopup);
+    }, true);
+    // Single keys focus the journal bar with a kind chosen (j keeps the current one).
+    var barKinds = { t: 'task', d: 'decision', u: 'update', b: 'blocker', m: 'meeting' };
+    function focusBar(kind) {
+      var field = document.getElementById('quickadd-text');
+      if (!field || !document.querySelector('#quickadd-target .target')) return false;
+      var select = document.getElementById('quickadd-kind');
+      if (kind && select) select.value = kind;
+      field.focus();
+      return true;
+    }
     document.addEventListener('keydown', function (e) {
       var t = e.target;
       if (e.ctrlKey || e.altKey || e.metaKey || e.defaultPrevented) return;
@@ -56,18 +109,17 @@
         target = document.querySelector('a.new-activity');
       } else if (e.key === 'Escape') {
         target = cancel || document.querySelector('a.panel-close');
-      } else if (e.key === 'j') {
-        var field = document.getElementById('quickadd-text');
-        if (field && document.querySelector('#quickadd-target .target')) {
-          e.preventDefault();
-          field.focus();
-        }
+      } else if (e.key === 'j' || barKinds[e.key]) {
+        if (focusBar(barKinds[e.key])) e.preventDefault();
         return;
       } else if (e.key === '/') {
+        // The timeline's project filter; elsewhere the bar, rather than the browser's quick find.
         var filter = document.getElementById('filter-project');
         if (filter) {
           e.preventDefault();
           filter.focus();
+        } else if (focusBar()) {
+          e.preventDefault();
         }
         return;
       }

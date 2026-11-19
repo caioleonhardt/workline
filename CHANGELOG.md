@@ -5,6 +5,15 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
+### Added
+- Keys `t`, `d`, `u`, `b` and `m` focus the journal bar with task, decision,
+  update, blocker or meeting chosen. On the journal page, `/` focuses the bar
+  instead of opening the browser's quick find.
+
+### Fixed
+- Completion popups float beside their dot instead of opening inside the
+  timeline's scrolling box, where they were cut off.
+
 ## [0.6.0] — 2026-11-19
 
 ### Added

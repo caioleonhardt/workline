@@ -15,7 +15,7 @@
 </div>
 <div class="actions"><a class="btn secondary" href="{{.ExportHref}}" hx-boost="false">Export journal</a></div>
 </header>
-<p class="hint js-only small muted">Shortcuts: <kbd>j</kbd> journal · in the bar <kbd>/t</kbd> task, <kbd>/t1</kbd> high-priority task, <kbd>/d</kbd> decision, <kbd>/u</kbd> update</p>
+<p class="hint js-only small muted">Shortcuts: <kbd>j</kbd> or <kbd>/</kbd> journal · <kbd>t</kbd> <kbd>d</kbd> <kbd>u</kbd> <kbd>b</kbd> <kbd>m</kbd> log a task, decision, update, blocker, meeting · in the bar, <kbd>/t1</kbd> … <kbd>/t3</kbd> starts a task with a priority</p>
 <div class="tiles">
 {{range .Tiles}}<div class="tile"><div class="tile-label"><span class="dot {{.Class}}" aria-hidden="true"></span>{{.Label}}</div><div class="tile-value mono">{{.Value}}</div></div>
 {{end}}</div>
