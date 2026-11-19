@@ -371,3 +371,11 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 63. **HX validation errors** (422) show in a small error bar above the dashboard (`HX-Retarget`/`HX-Reswap`), leaving the dashboard as it was. Without JS, item 27's error page applies.
 64. With nothing selected, the panel shows "Select an activity to see its burndown, scope, subtasks and journal." 
 65. A period shows only activities whose start–due range overlaps it (open activities do not carry past their due date). Projects with no visible activity are hidden.
+
+### Decisions (Milestone 5, 2026-11-19)
+66. **Journal export** `GET /export/journal.md?project=&from=&to=`: all non-archived projects (an archived one only when named), entries whose own `date` is in `from..to` inclusive, status/creep filters not applied; projects by name, activities by start then id, entries oldest first (date, `logged_at` with untimed first, id). Downloaded as `workline-journal-YYYY-MM-DD.md`. The header's "Export journal" link carries the dashboard's project and period/month range.
+67. **Backup** `workline backup [-db path] <dest>` uses `VACUUM INTO`, refuses an existing destination or missing parent directory, writes mode 0600, and opens the source **without applying migrations** (the source is never changed).
+68. **Shortcuts**: `n` new activity, `/` focuses the Project select, `Esc` cancels an open new-activity form, else closes the panel. Ignored in form fields and with Ctrl/Alt/Meta. A hint line shows when JS is on.
+69. The error bar's Dismiss is handled in `app.js`; the `/errors/clear` route is removed. 422s are not logged.
+70. **Narrow screens**: the label column is sticky; it is ~160px wide on phones. Panel stat boxes wrap; all controls ≥ 44px.
+71. Timeline header grows to 88px so the Today chip has its own strip; subtask rows are one line (one date: closed, else opened; both in the tooltip and in Edit).
