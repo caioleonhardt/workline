@@ -60,7 +60,7 @@ func TestDashboardFullPageWithoutHXAndOnHistoryRestore(t *testing.T) {
 func TestDashboardControlsStayPlainLinksAndForms(t *testing.T) {
 	h, _ := newApp(t)
 	body := get(h, "/?sel=2").Body.String()
-	for _, want := range []string{`<form method="get" action="/" class="toggle">`, `<a class="btn" href="/?new=1&amp;sel=2">`, `<a class="tl-label act-label" href="`, `<form method="post" action="/activities/2"`} {
+	for _, want := range []string{`<form method="get" action="/" class="toggle">`, `<a class="btn new-activity" href="/?new=1&amp;sel=2"`, `<a class="tl-label act-label" href="`, `<form method="post" action="/activities/2"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}

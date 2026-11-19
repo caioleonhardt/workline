@@ -1,5 +1,6 @@
 {{define "panel"}}
 <section class="card" id="panel">
+<a class="panel-close" href="{{.CloseHref}}" aria-label="Close panel" aria-keyshortcuts="Escape">×</a>
 <p class="eyebrow mono">{{.ProjectName}}</p>
 <h2>{{.Name}}</h2>
 <p class="muted small">Requested by <strong>{{if .RequestedBy}}{{.RequestedBy}}{{else}}—{{end}}</strong> · <span class="mono">{{.Start}} → {{.Due}}</span></p>

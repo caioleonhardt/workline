@@ -23,6 +23,7 @@ type panelView struct {
 	Scope                                scopeView
 	Chart                                chartView
 	Status                               string
+	CloseHref                            string // the dashboard without the selection
 	NewKinds                             []option
 	Progress, Closed, Total              int
 	Statuses, Priorities, ProjectChoices []option
@@ -49,7 +50,7 @@ func buildPanel(a domain.Activity, projects []domain.Project, subs []domain.Subt
 		Next: next, ID: a.ID, Name: a.Name, RequestedBy: a.RequestedBy,
 		Start: a.Start.String(), Due: a.Due.String(), Today: today.String(), Subtasks: subtaskRows(subs),
 		Journal: journalRows(journal), Scope: buildScope(a, subs, ack, today),
-		Chart: buildChart(a, subs, today), Status: string(a.Status), NewKinds: kindOptions(domain.KindUpdate),
+		Chart: buildChart(a, subs, today), Status: string(a.Status), CloseHref: withParam(next, "sel", ""), NewKinds: kindOptions(domain.KindUpdate),
 		Progress: domain.Progress(a.Status, subs), Total: len(subs),
 		Statuses: statusOptions(a.Status), Priorities: priorityOptions(a.Priority),
 	}

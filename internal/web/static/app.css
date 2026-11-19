@@ -157,3 +157,8 @@ html.js .apply { display: none; }
 .sub-toggle { flex: 1 1 0; min-width: 0; }
 .sub summary { display: flex; align-items: center; min-height: 44px; padding: 0 4px; cursor: pointer; }
 .sub details[open] { flex-basis: 100%; }
+.js-only { display: none; }
+html.js .js-only { display: block; }
+kbd { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 1px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); }
+.detail .card { position: relative; }
+.panel-close { position: absolute; top: 8px; right: 8px; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; font-size: 24px; text-decoration: none; color: var(--muted); }
