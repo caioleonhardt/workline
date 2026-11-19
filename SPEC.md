@@ -201,7 +201,7 @@ Shown beside the timeline (below it on narrow screens) when `sel` is set.
   - If acknowledged and not flagged, a confirmation line shows the ack date and baseline.
   - Helper text explains the rule.
 - **Subtasks**: checkbox list (toggle closes or reopens), `opened {date}` / `closed {date}` on the right, add form, edit and delete per subtask.
-- **Journal**: form (kind select + text + Log), list newest first with date, kind chip and text. Edit and delete per entry, except `scope_ack` entries, which are read-only.
+- **Journal**: moved out of the panel to the journal workspace below the timeline (§10 items 73–79).
 - Edit activity (name, requested by, dates, project) and delete activity.
 
 ### 5.3 Create flows
@@ -387,3 +387,6 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 74. **Quick-add bar**: fixed to the bottom of the viewport, shown only when an activity is selected, and displays that activity's name (and project) so it is clear where the entry goes. Fields: kind (default Update) and text; Enter logs it with date = today and `logged_at` stamped. Backfilling another date is done by editing the entry in the list.
 75. The bar lives outside the htmx swap region so typed text survives swaps; its target updates when the selection changes. The page reserves bottom space so the bar never covers content. Without JS it is a normal form posting with `next`.
 76. Shortcut `j` focuses the bar's text field (when shown); `Esc` from the field blurs it.
+77. The feed lists all entries (any date) of the visible activities; the period/month only choose activities. 30 entries per page with "Show 30 more" (`feed` param, step 30, max 600), also in the narrowed view.
+78. The bar targets the selected activity even when filters hide it. Adding entries uses `POST /journal` (hidden `activity`); `POST /activities/{id}/journal` is removed.
+79. Quick-add errors show inside the bar; the draft text and kind survive swaps and selection changes (the label shows the current target). Bar visibility and the bottom padding use CSS `:has()`.
