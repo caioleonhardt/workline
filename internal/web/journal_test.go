@@ -21,12 +21,12 @@ func TestJournalFlows(t *testing.T) {
 		return f
 	}
 
-	rec := post(h, "/activities/2/journal", form("kind", "decision", "text", "Ship it"))
+	rec := post(h, "/journal", form("activity", "2", "kind", "decision", "text", "Ship it"))
 	wantStatus(t, rec, http.StatusSeeOther)
 	if loc := rec.Header().Get("Location"); loc != next {
 		t.Errorf("Location = %q", loc)
 	}
-	wantStatus(t, post(h, "/activities/2/journal", form("kind", "meeting", "text", "Sync", "date", "2026-11-01")), http.StatusSeeOther)
+	wantStatus(t, post(h, "/journal", form("activity", "2", "kind", "meeting", "text", "Sync", "date", "2026-11-01")), http.StatusSeeOther)
 	list, _ := st.ListJournal(ctx, 2)
 	if list[0].Text != "Ship it" || list[0].Date != date(t, testToday) || list[0].Kind != domain.KindDecision {
 		t.Errorf("newest first, default date today: %+v", list[0])
@@ -37,12 +37,12 @@ func TestJournalFlows(t *testing.T) {
 	}
 
 	for name, f := range map[string]url.Values{
-		"scope_ack kind": form("kind", "scope_ack", "text", "x"),
-		"blank text":     form("kind", "update", "text", " "),
-		"bad kind":       form("kind", "gossip", "text", "x"),
-		"bad date":       form("kind", "update", "text", "x", "date", "yesterday"),
+		"scope_ack kind": form("activity", "2", "kind", "scope_ack", "text", "x"),
+		"blank text":     form("activity", "2", "kind", "update", "text", " "),
+		"bad kind":       form("activity", "2", "kind", "gossip", "text", "x"),
+		"bad date":       form("activity", "2", "kind", "update", "text", "x", "date", "yesterday"),
 	} {
-		if rec := post(h, "/activities/2/journal", f); rec.Code != http.StatusUnprocessableEntity {
+		if rec := post(h, "/journal", f); rec.Code != http.StatusUnprocessableEntity {
 			t.Errorf("%s: %d", name, rec.Code)
 		}
 	}
@@ -64,6 +64,18 @@ func TestJournalFlows(t *testing.T) {
 	}
 	wantStatus(t, post(h, "/journal/"+id+"/delete", form()), http.StatusSeeOther)
 	wantStatus(t, post(h, "/journal/"+id+"/delete", form()), http.StatusNotFound)
+	// the activity must be named and exist
+	for name, f := range map[string]url.Values{
+		"no activity":      form("kind", "update", "text", "x"),
+		"bad activity":     form("activity", "abc", "kind", "update", "text", "x"),
+		"unknown activity": form("activity", "999", "kind", "update", "text", "x"),
+	} {
+		if rec := post(h, "/journal", f); rec.Code != http.StatusUnprocessableEntity {
+			t.Errorf("%s: %d", name, rec.Code)
+		}
+	}
+	// the old per-activity route is gone
+	wantStatus(t, post(h, "/activities/2/journal", form("kind", "update", "text", "x")), http.StatusNotFound)
 	wantStatus(t, post(h, "/journal/999", form("kind", "update", "text", "x", "date", "2026-11-02")), http.StatusNotFound)
 }
 
@@ -92,8 +104,8 @@ func TestScopeAckEntriesAreReadOnly(t *testing.T) {
 
 func TestPanelJournalShowsLoggedTime(t *testing.T) {
 	h, _ := newApp(t)
-	wantStatus(t, post(h, "/activities/2/journal", url.Values{"kind": {"update"}, "text": {"Fresh note"}}), http.StatusSeeOther)
-	wantStatus(t, post(h, "/activities/2/journal", url.Values{"kind": {"update"}, "text": {"Backfilled"}, "date": {"2026-11-12"}}), http.StatusSeeOther)
+	wantStatus(t, post(h, "/journal", url.Values{"activity": {"2"}, "kind": {"update"}, "text": {"Fresh note"}}), http.StatusSeeOther)
+	wantStatus(t, post(h, "/journal", url.Values{"activity": {"2"}, "kind": {"update"}, "text": {"Backfilled"}, "date": {"2026-11-12"}}), http.StatusSeeOther)
 	rec := get(h, "/?sel=2")
 	body := rec.Body.String()
 	// new entries show the date and the time they were logged, even when backfilled

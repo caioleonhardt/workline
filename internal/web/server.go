@@ -44,7 +44,7 @@ func New(st *store.Store, clock domain.Clock) (http.Handler, error) {
 	mux.HandleFunc("POST /subtasks/{id}/toggle", s.toggleSubtask)
 	mux.HandleFunc("POST /subtasks/{id}", s.editSubtask)
 	mux.HandleFunc("POST /subtasks/{id}/delete", s.deleteSubtask)
-	mux.HandleFunc("POST /activities/{id}/journal", s.addJournal)
+	mux.HandleFunc("POST /journal", s.addJournal)
 	mux.HandleFunc("POST /journal/{id}", s.editJournal)
 	mux.HandleFunc("POST /journal/{id}/delete", s.deleteJournal)
 	mux.HandleFunc("POST /activities/{id}/scope-ack", s.ackScope)

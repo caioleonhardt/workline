@@ -76,8 +76,9 @@
 </form>
 
 <h3>Journal</h3>
-<form class="inline" method="post" action="/activities/{{.ID}}/journal">
+<form class="inline" method="post" action="/journal">
 <input type="hidden" name="next" value="{{.Next}}">
+<input type="hidden" name="activity" value="{{.ID}}">
 <label>Kind<select name="kind">{{range .NewKinds}}<option value="{{.Value}}">{{.Label}}</option>{{end}}</select></label>
 <label>Entry<input name="text" required></label>
 <label>Date<input type="date" name="date" value="{{.Today}}"></label>

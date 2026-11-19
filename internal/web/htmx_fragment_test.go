@@ -92,7 +92,7 @@ func TestMutationsAnswerHXWithTheFragment(t *testing.T) {
 		{"toggle subtask", "/subtasks/1/toggle", nil, next},
 		{"edit subtask", "/subtasks/1", url.Values{"text": {"y"}, "created_on": {"2026-03-01"}}, next},
 		{"delete subtask", "/subtasks/1/delete", nil, next},
-		{"add journal", "/activities/2/journal", url.Values{"kind": {"update"}, "text": {"z"}}, next},
+		{"add journal", "/journal", url.Values{"activity": {"2"}, "kind": {"update"}, "text": {"z"}}, next},
 		{"edit journal", "/journal/1", url.Values{"kind": {"update"}, "text": {"z"}, "date": {"2026-03-01"}}, next},
 		{"delete journal", "/journal/1/delete", nil, next},
 		{"status", "/activities/2", url.Values{"status": {"active"}}, next},

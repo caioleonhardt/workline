@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"workline/internal/domain"
@@ -40,8 +41,12 @@ func journalRows(entries []domain.JournalEntry) []journalRow {
 	return rows
 }
 
+// addJournal logs an entry on the activity named by the form's `activity` field.
 func (s *Server) addJournal(w http.ResponseWriter, r *http.Request) {
-	id, err := pathID(r)
+	id, err := strconv.ParseInt(r.PostFormValue("activity"), 10, 64)
+	if err != nil {
+		err = domain.Invalid("choose an activity")
+	}
 	day := s.clock.Today()
 	if err == nil && r.PostFormValue("date") != "" {
 		day, err = formDate(r, "date")
