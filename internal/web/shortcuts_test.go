@@ -41,6 +41,9 @@ func TestShortcutTargetsAndHints(t *testing.T) {
 	if !strings.Contains(css, ".js-only { display: none; }") || !strings.Contains(css, "html.js .js-only { display: block; }") {
 		t.Error("the hint must show only when scripting is on")
 	}
+	if !strings.Contains(css, "html.js [data-entry]:focus-visible {") {
+		t.Error("the entry cursor must show only for keyboard focus with scripting on")
+	}
 }
 
 // Key handling needs a browser (checked by hand in Firefox); this pins the rules
@@ -52,6 +55,8 @@ func TestShortcutScriptRules(t *testing.T) {
 		"if (!window.worklineBound)", // registered once although app.js re-runs after every swap
 		"e.ctrlKey || e.altKey || e.metaKey",
 		"/^(INPUT|TEXTAREA|SELECT|SUMMARY)$/.test(t.tagName)",
+		"if (editor) return;",                  // the editor's buttons don't take Normal-mode keys
+		"ra.left - rb.left || ra.top - rb.top", // h/l follow the screen, not the markup
 		"e.key === 'Escape'",
 		"t.id === 'quickadd-text'", "t.blur()", // Esc in the bar's field only blurs it
 		"e.key === 'Enter' && !e.shiftKey && !e.isComposing", "t.form.requestSubmit()", // Enter logs, Shift+Enter is a newline
