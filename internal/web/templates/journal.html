@@ -8,21 +8,28 @@
 {{if .ActivityHref}}<a class="tag small" href="{{.ActivityHref}}"{{if $.FullLoadLinks}} hx-boost="false"{{end}}>{{.Project}} › {{.Activity}}</a>{{else if .Unassigned}}<span class="tag small unassigned">Unassigned</span>{{end}}
 <span class="feed-text{{if .Closed}} done-text{{end}}">{{.Text}}</span>{{if .Closed}} <span class="muted mono small">closed {{.Closed}}</span>{{end}}
 {{if not .ReadOnly}}
-<details>
-<summary>Edit</summary>
-<form class="inline" method="post" action="/journal/{{.ID}}">
+<details class="edit">
+<summary class="edit-toggle"><span aria-hidden="true">✎</span> Edit</summary>
+<div class="editor">
+<form class="editor-form" method="post" action="/journal/{{.ID}}">
 <input type="hidden" name="next" value="{{$.Next}}">
+<label class="sr-only" for="text-feed-{{.ID}}">Entry</label>
+<textarea class="editor-text" id="text-feed-{{.ID}}" name="text" rows="3" required>{{.Text}}</textarea>
+<div class="editor-meta">
 {{if .IsTask}}<input type="hidden" name="kind" value="task">{{else}}<label>Kind<select name="kind">{{range .Kinds}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>{{end}}
 {{with .FileTo}}<label>Activity<select name="activity">{{range .}}{{if .Label}}<optgroup label="{{.Label}}">{{end}}{{range .Options}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}{{if .Label}}</optgroup>{{end}}{{end}}</select></label>{{end}}
-<label>Entry<textarea name="text" rows="3" required>{{.Text}}</textarea></label>
 {{with .Priorities}}<label>Priority<select name="priority">{{range .}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>{{end}}
 <label>{{if .IsTask}}Opened{{else}}Date{{end}}<input type="date" name="date" value="{{.Date}}" required></label>
-<button>Save</button>
+</div>
+<div class="editor-foot">
+<details class="confirm"><summary class="danger">Delete…</summary><button class="danger-fill" form="del-feed-{{.ID}}">Confirm delete</button></details>
+<span class="keyhint muted small"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span>
+<button type="button" class="ghost cancel">Cancel</button>
+<button class="primary">Save</button>
+</div>
 </form>
-<form method="post" action="/journal/{{.ID}}/delete">
-<input type="hidden" name="next" value="{{$.Next}}">
-<details><summary>Delete…</summary><button>Confirm delete</button></details>
-</form>
+<form id="del-feed-{{.ID}}" method="post" action="/journal/{{.ID}}/delete"><input type="hidden" name="next" value="{{$.Next}}"></form>
+</div>
 </details>
 {{end}}
 </li>

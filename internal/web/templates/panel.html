@@ -52,20 +52,27 @@
 <button class="apply">{{if .Closed}}Reopen{{else}}Close{{end}}</button>
 </form>
 <span class="muted mono small" title="opened {{.Created}}{{if .Closed}} · closed {{.Closed}}{{end}}">{{if .Closed}}closed {{.Closed}}{{else}}opened {{.Created}}{{end}}</span>
-<details>
-<summary>Edit</summary>
-<form class="inline" method="post" action="/journal/{{.ID}}">
+<details class="edit">
+<summary class="edit-toggle"><span aria-hidden="true">✎</span> Edit</summary>
+<div class="editor">
+<form class="editor-form" method="post" action="/journal/{{.ID}}">
 <input type="hidden" name="next" value="{{$.Next}}">
 <input type="hidden" name="kind" value="task">
-<label>Text<textarea name="text" rows="2" required>{{.Text}}</textarea></label>
+<label class="sr-only" for="text-task-{{.ID}}">Text</label>
+<textarea class="editor-text" id="text-task-{{.ID}}" name="text" rows="3" required>{{.Text}}</textarea>
+<div class="editor-meta">
 <label>Priority<select name="priority">{{range .Priorities}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
 <label>Opened<input type="date" name="date" value="{{.Created}}" required></label>
-<button>Save</button>
+</div>
+<div class="editor-foot">
+<details class="confirm"><summary class="danger">Delete…</summary><button class="danger-fill" form="del-task-{{.ID}}">Confirm delete</button></details>
+<span class="keyhint muted small"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span>
+<button type="button" class="ghost cancel">Cancel</button>
+<button class="primary">Save</button>
+</div>
 </form>
-<form method="post" action="/journal/{{.ID}}/delete">
-<input type="hidden" name="next" value="{{$.Next}}">
-<details><summary>Delete…</summary><button>Confirm delete</button></details>
-</form>
+<form id="del-task-{{.ID}}" method="post" action="/journal/{{.ID}}/delete"><input type="hidden" name="next" value="{{$.Next}}"></form>
+</div>
 </details>
 </li>
 {{else}}<li class="muted">No tasks.</li>{{end}}

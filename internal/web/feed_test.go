@@ -102,7 +102,7 @@ func TestFeedLimitAndShowMore(t *testing.T) {
 
 func TestFeedEntriesCanBeEditedExceptAcknowledgements(t *testing.T) {
 	h, st := newApp(t)
-	wantBody(t, get(h, "/timeline?sel=2"), `<form class="inline" method="post" action="/journal/`, `Confirm delete`)
+	wantBody(t, get(h, "/timeline?sel=2"), `<form class="editor-form" method="post" action="/journal/`, `Confirm delete`)
 	if _, err := st.AckScope(ctx, 1, domain.FixedClock{D: date(t, testToday)}); err != nil {
 		t.Fatal(err)
 	}

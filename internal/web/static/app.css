@@ -199,4 +199,31 @@ html.js .apply-nojs { display: none; }
 .feed-text { flex: 1 1 280px; min-width: 0; white-space: pre-wrap; }
 .tag { text-decoration: none; }
 .tag.unassigned { color: var(--muted); font-style: italic; }
-#journal details[open] { flex-basis: 100%; }
+/* Inline editor for journal entries and tasks: the text first, full width and
+   growing with its content, then the fields, then Delete… / Cancel / Save. */
+input:focus, select:focus, textarea:focus { outline: none; border-color: #2F5BEA; box-shadow: 0 0 0 3px rgba(47, 91, 234, 0.18); }
+details.edit { margin-left: auto; }
+details.edit[open] { flex-basis: 100%; margin-left: 0; }
+.edit-toggle { gap: 6px; padding: 0 10px; border-radius: 8px; color: var(--muted); font-size: 13px; list-style: none; }
+.edit-toggle::-webkit-details-marker { display: none; }
+.edit-toggle:hover { color: var(--text); background: #F0F0EB; }
+html.js details.edit[open] > .edit-toggle { display: none; }
+.editor { margin: 4px 0 8px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: #FAFAF8; box-shadow: 0 1px 2px rgba(22, 24, 29, 0.05); }
+.detail .editor { background: var(--surface); }
+.editor-text { display: block; width: 100%; min-height: 6.5em; max-height: 24em; padding: 10px 12px; line-height: 1.5; resize: vertical; field-sizing: content; }
+.editor-meta { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 12px; }
+.editor-meta label { flex-direction: row; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.editor-meta select, .editor-meta input { font-size: 14px; font-weight: 400; letter-spacing: normal; text-transform: none; }
+.editor-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.editor-foot .confirm { margin-right: auto; }
+.confirm[open] > summary { margin-bottom: 4px; }
+button.primary { background: var(--active-fg); border-color: var(--active-fg); color: #fff; font-weight: 600; padding: 4px 20px; }
+button.primary:hover { background: #17369A; }
+button.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+button.ghost:hover { background: #EDEDE8; color: var(--text); }
+.danger { padding: 0 10px; border-radius: 8px; color: #B42318; list-style: none; }
+.danger::-webkit-details-marker { display: none; }
+.danger:hover { background: #FDECEA; }
+button.danger-fill { background: #B42318; border-color: #B42318; color: #fff; font-weight: 600; }
+html:not(.js) .editor .cancel, html:not(.js) .keyhint { display: none; }
+@media (max-width: 640px) { .keyhint { display: none; } }
