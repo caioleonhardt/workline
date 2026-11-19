@@ -436,3 +436,9 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
     - `?` opens a dialog listing the keys; the pages' hint lines say "Press ? for keys".
     This replaces the keys of items 68, 76 and 97 (`n`, `/` as filter or bar, `j`, `t d u b m`). Without scripting nothing changes. No counts, Visual mode, registers or `:` commands.
 100. **Server-side search** over the whole journal is left for later; `/` searches only the entries on the page.
+101. **Statusline.** With scripting on, a one-line statusline sits at the bottom of the window, below the quick-add bar, as in Neovim with a lualine-style mode block:
+    - **Mode** on the left: `NORMAL`; `INSERT` while a field (bar, editor, filter) has focus; `COMMAND` while typing a search.
+    - **Command line**: `/` types the search in the statusline after a `/`. Afterwards it shows `/term [i/n]` for the match under the cursor, `search hit BOTTOM, continuing at TOP` (or `TOP … BOTTOM` for `N`) when a jump wraps, and `E486: Pattern not found: term` when nothing matches. Esc clearing the matches clears it.
+    - **Pending keys** (`g`, `d`) show on the right while they wait, like `showcmd`.
+    - **Position** on the far right: the cursor's list and place in it, e.g. `Journal 3/30`.
+    Lists are named by their `data-pane` value (Open tasks, Tasks, Journal). Without scripting there is no statusline. It is not a live region, so mode changes are not announced.
