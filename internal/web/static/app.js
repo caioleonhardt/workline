@@ -104,9 +104,14 @@
       field.focus();
       return true;
     }
+    // Panes in screen order, left to right then top to bottom: on the timeline the
+    // panel comes first in the markup but is drawn to the right of the feed.
     function panes() {
       return Array.prototype.filter.call(document.querySelectorAll('[data-pane]'), function (p) {
         return p.querySelector('[data-entry]');
+      }).sort(function (a, b) {
+        var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+        return ra.left - rb.left || ra.top - rb.top;
       });
     }
     function entriesOf(pane) {
