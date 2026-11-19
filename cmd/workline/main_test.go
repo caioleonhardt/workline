@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	"workline/internal/domain"
 	"workline/internal/store"
+	"workline/migrations"
 )
 
 func TestCheckLoopback(t *testing.T) {
@@ -198,5 +200,46 @@ func TestBackupExplicitDestinationAndMissingSource(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Dir(missing)); err == nil {
 		t.Error("a missing source created directories")
+	}
+}
+
+func TestMigrateBacksUpThenUpgrades(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "old.db")
+	db, err := sql.Open("sqlite", "file:"+path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, _ := migrations.FS.ReadFile("0001_init.sql")
+	if _, err := db.Exec(string(first) + `; PRAGMA user_version = 1; INSERT INTO projects (name) VALUES ('P')`); err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
+	if _, err := openStore(path); err == nil || !strings.Contains(err.Error(), "workline migrate") {
+		t.Errorf("openStore on an old database: %v", err)
+	}
+	if err := runMigrateAt([]string{"-db", path}, clockAt("2026-11-19", 10, 0)); err != nil {
+		t.Fatal(err)
+	}
+	if have, want, err := store.SchemaVersions(context.Background(), filepath.Join(dir, "backups", "workline-2026-11-19-1000.db")); err != nil || have != 1 || want == 1 {
+		t.Errorf("backup should keep schema 1: %d %d %v", have, want, err)
+	}
+	st, err := openStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	if ps, _ := st.ListProjects(context.Background(), true); len(ps) != 1 {
+		t.Errorf("projects after migrating: %v", ps)
+	}
+}
+
+func TestMigrateUpToDate(t *testing.T) {
+	dataDir := seedDefaultDB(t)
+	if err := runMigrateAt(nil, clockAt("2026-11-19", 10, 0)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(dataDir, "backups")); err == nil {
+		t.Error("an up-to-date database was backed up")
 	}
 }

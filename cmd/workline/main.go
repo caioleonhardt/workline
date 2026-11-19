@@ -33,6 +33,7 @@ commands:
   serve    run the web app on ` + defaultAddr + `   [-addr host:port] [-port N] [-db path]
   backup   copy the database to a new file (the source is never changed)   [-db path] [dest]
   seed     load the mockup sample data into an empty database   [-db path]
+  migrate  upgrade an existing database to this version, after backing it up   [-db path]
 `
 
 func main() {
@@ -54,6 +55,8 @@ func run(args []string) error {
 		return runBackup(args[1:])
 	case "seed":
 		return runSeed(args[1:])
+	case "migrate":
+		return runMigrateAt(args[1:], domain.SystemClock{})
 	default:
 		fmt.Fprint(os.Stderr, usage)
 		return fmt.Errorf("unknown command %q", args[0])
@@ -77,7 +80,11 @@ func openStore(path string) (*store.Store, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return nil, fmt.Errorf("create database directory: %w", err)
 	}
-	return store.Open(path)
+	st, err := store.Open(path)
+	if errors.Is(err, store.ErrMigrationNeeded) {
+		return nil, fmt.Errorf("%w; run \"workline migrate\" (it backs the database up first)", err)
+	}
+	return st, err
 }
 
 func runSeed(args []string) error {
@@ -106,6 +113,41 @@ func runSeed(args []string) error {
 }
 
 func runBackup(args []string) error { return runBackupAt(args, domain.SystemClock{}) }
+
+// runMigrateAt backs up an outdated database to the default backup file, then
+// upgrades it in place. A current database is left alone.
+func runMigrateAt(args []string, clock domain.Clock) error {
+	def, err := defaultDB()
+	if err != nil {
+		return err
+	}
+	fs := flag.NewFlagSet("migrate", flag.ContinueOnError)
+	dbPath := fs.String("db", def, "path to the SQLite database")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() != 0 {
+		return fmt.Errorf("migrate: unexpected argument %q", fs.Arg(0))
+	}
+	ctx := context.Background()
+	have, want, err := store.SchemaVersions(ctx, *dbPath)
+	if err != nil {
+		return fmt.Errorf("migrate %s: %w", *dbPath, err)
+	}
+	if have == want {
+		fmt.Printf("%s is up to date (schema %d)\n", *dbPath, want)
+		return nil
+	}
+	if err := runBackupAt([]string{"-db", *dbPath}, clock); err != nil {
+		return fmt.Errorf("migrate: backup first: %w", err)
+	}
+	from, to, err := store.Migrate(ctx, *dbPath)
+	if err != nil {
+		return fmt.Errorf("%w; the backup above holds the data as it was", err)
+	}
+	fmt.Printf("migrated %s: schema %d → %d\n", *dbPath, from, to)
+	return nil
+}
 
 // backupDest is the default backup file: <db directory>/backups/workline-YYYY-MM-DD-HHMM.db
 // in local time. One backup per minute: a second one in the same minute is refused.

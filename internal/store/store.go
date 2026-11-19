@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net/url"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -25,6 +26,8 @@ var (
 	ErrReadOnly   = errors.New("entry is read-only")
 	ErrNotFlagged = errors.New("activity is not flagged for scope creep")
 	ErrNotEmpty   = errors.New("database is not empty")
+	// ErrMigrationNeeded means an existing database is behind this build; Migrate upgrades it.
+	ErrMigrationNeeded = errors.New("database needs migrating")
 )
 
 // Store is a handle on one SQLite database.
@@ -39,8 +42,29 @@ type queryer interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
-// Open opens (creating if needed) the database at path and applies migrations.
+// Open opens (creating if needed) the database at path. A new database gets
+// every migration; an existing one behind this build is refused with
+// ErrMigrationNeeded, so upgrading real data is always a deliberate Migrate.
 func Open(path string) (*Store, error) {
+	db, err := openDB(path)
+	if err != nil {
+		return nil, err
+	}
+	have, want, err := versions(context.Background(), db)
+	if err == nil && have != 0 && have < want {
+		err = fmt.Errorf("%w: %s is at schema %d, this build needs %d", ErrMigrationNeeded, path, have, want)
+	}
+	if err == nil && have == 0 {
+		err = migrate(context.Background(), db, migrations.FS)
+	}
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("open %s: %w", path, err)
+	}
+	return &Store{db: db}, nil
+}
+
+func openDB(path string) (*sql.DB, error) {
 	if path == "" {
 		return nil, errors.New("store: empty database path")
 	}
@@ -53,11 +77,82 @@ func Open(path string) (*Store, error) {
 	// One connection: single user, and it rules out SQLITE_BUSY between our own
 	// goroutines. Code inside a transaction must use only that transaction.
 	db.SetMaxOpenConns(1)
-	if err := migrate(context.Background(), db, migrations.FS); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("migrate %s: %w", path, err)
+	return db, nil
+}
+
+// versions returns the database's schema version and the one this build needs.
+func versions(ctx context.Context, db *sql.DB) (have, want int, err error) {
+	ms, err := listMigrations(migrations.FS)
+	if err != nil {
+		return 0, 0, err
 	}
-	return &Store{db: db}, nil
+	if err := db.QueryRowContext(ctx, `PRAGMA user_version`).Scan(&have); err != nil {
+		return 0, 0, fmt.Errorf("read user_version: %w", err)
+	}
+	if have > len(ms) {
+		return 0, 0, fmt.Errorf("database version %d is newer than this binary (%d)", have, len(ms))
+	}
+	return have, len(ms), nil
+}
+
+// Migrate upgrades the existing database at path to this build's schema and
+// checks its integrity afterwards. It returns the versions before and after;
+// they are equal when there was nothing to do. Callers back up first.
+func Migrate(ctx context.Context, path string) (from, to int, err error) {
+	if _, err := os.Stat(path); err != nil {
+		return 0, 0, fmt.Errorf("migrate: %w", err)
+	}
+	db, err := openDB(path)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer db.Close()
+	if from, to, err = versions(ctx, db); err != nil || from == to {
+		return from, to, err
+	}
+	if err := migrate(ctx, db, migrations.FS); err != nil {
+		return from, from, fmt.Errorf("migrate %s: %w", path, err)
+	}
+	if err := checkIntegrity(ctx, db); err != nil {
+		return from, to, fmt.Errorf("migrate %s: %w", path, err)
+	}
+	return from, to, nil
+}
+
+// SchemaVersions reports the schema version of the existing database at path
+// and the one this build needs, without changing the file.
+func SchemaVersions(ctx context.Context, path string) (have, want int, err error) {
+	if _, err := os.Stat(path); err != nil {
+		return 0, 0, err
+	}
+	db, err := sql.Open("sqlite", "file:"+(&url.URL{Path: path}).EscapedPath()+"?mode=rw&_pragma=busy_timeout(5000)")
+	if err != nil {
+		return 0, 0, err
+	}
+	defer db.Close()
+	return versions(ctx, db)
+}
+
+// checkIntegrity runs SQLite's foreign key and integrity checks.
+func checkIntegrity(ctx context.Context, db *sql.DB) error {
+	var table string
+	var rowid, fkid sql.NullInt64
+	var parent string
+	err := db.QueryRowContext(ctx, `PRAGMA foreign_key_check`).Scan(&table, &rowid, &parent, &fkid)
+	if err == nil {
+		return fmt.Errorf("foreign key check: row %d of %s has no %s", rowid.Int64, table, parent)
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("foreign key check: %w", err)
+	}
+	var result string
+	if err := db.QueryRowContext(ctx, `PRAGMA integrity_check`).Scan(&result); err != nil {
+		return fmt.Errorf("integrity check: %w", err)
+	}
+	if result != "ok" {
+		return fmt.Errorf("integrity check: %s", result)
+	}
+	return nil
 }
 
 // Close releases the database.

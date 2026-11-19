@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -181,5 +182,57 @@ func TestMigration0002BackfillsDoneOn(t *testing.T) {
 	db.QueryRowContext(ctx, `SELECT done_on FROM activities WHERE name = 'b'`).Scan(&active)
 	if done.String != "2026-02-01" || active.Valid {
 		t.Errorf("done_on: done=%v active=%v", done, active)
+	}
+}
+
+// oldDB creates a database at schema 1 holding one project.
+func oldDB(t *testing.T) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "old.db")
+	db, err := sql.Open("sqlite", "file:"+path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	first, _ := migrations.FS.ReadFile("0001_init.sql")
+	if err := migrate(ctx, db, fstest.MapFS{"0001_init.sql": {Data: first}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO projects (id, name) VALUES (1, 'P')`); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func TestOpenRefusesAnOutdatedDatabase(t *testing.T) {
+	path := oldDB(t)
+	if _, err := Open(path); !errors.Is(err, ErrMigrationNeeded) {
+		t.Fatalf("Open = %v, want ErrMigrationNeeded", err)
+	}
+	if have, _, err := SchemaVersions(ctx, path); err != nil || have != 1 {
+		t.Errorf("Open changed the schema: %d %v", have, err)
+	}
+}
+
+func TestMigrateUpgradesThenIsANoOp(t *testing.T) {
+	path := oldDB(t)
+	from, to, err := Migrate(ctx, path)
+	if err != nil || from != 1 || to != 4 {
+		t.Fatalf("Migrate = %d, %d, %v", from, to, err)
+	}
+	s, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ps, err := s.ListProjects(ctx, true)
+	s.Close()
+	if err != nil || len(ps) != 1 {
+		t.Errorf("data after migrating: %v %v", ps, err)
+	}
+	if from, to, err := Migrate(ctx, path); err != nil || from != to {
+		t.Errorf("second Migrate = %d, %d, %v", from, to, err)
+	}
+	if _, _, err := Migrate(ctx, filepath.Join(t.TempDir(), "missing.db")); err == nil {
+		t.Error("a missing database was accepted")
 	}
 }

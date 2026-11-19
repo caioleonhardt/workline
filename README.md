@@ -28,6 +28,7 @@ go install ./cmd/workline
 workline serve     # http://127.0.0.1:7357
 workline backup    # copy the database to <data dir>/backups/
 workline seed      # load sample data into an empty database
+workline migrate   # back up, then upgrade an existing database after an update
 ```
 
 Every command works with no arguments. The database defaults to `$XDG_DATA_HOME/workline/workline.db`, falling back to `~/.local/share/workline/workline.db`.
@@ -53,7 +54,7 @@ gofmt -l .
 [`SPEC.md`](SPEC.md) is the source of truth for behaviour; [`docs/mockup.html`](docs/mockup.html) is the visual reference.
 
 ```
-cmd/workline/     subcommands: serve, seed, backup
+cmd/workline/     subcommands: serve, seed, backup, migrate
 internal/domain/  pure logic: burndown, progress, scope creep, periods
 internal/store/   SQLite, hand-written SQL, migrations
 internal/web/     handlers, templates, static assets (embedded)

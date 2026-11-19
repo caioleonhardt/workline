@@ -278,6 +278,7 @@ GET    /static/*                           embedded assets
 - Migrations: numbered `.sql` files embedded in the binary, tracked with `PRAGMA user_version`, applied at startup in a transaction.
 - `workline backup <path>` subcommand using `VACUUM INTO`.
 - `workline seed` subcommand loading the mockup's sample data (dev only).
+- `workline migrate` subcommand upgrading an existing database to the current schema (§10 item 83).
 
 ---
 
@@ -393,3 +394,4 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 80. **Whole-row selection**: clicking anywhere on an activity row (label or track) selects it. The activity name remains the one real link, stretched over the row with CSS; completion-dot buttons stay above it and keep their popups.
 81. The empty feed reads "No journal entries for these filters." The export keeps filtering by entry date (period/month range). The quick-add kind keeps the last choice after a successful add.
 82. **Zero-argument commands**: `workline serve` defaults to `127.0.0.1:7357` and the default database (`$XDG_DATA_HOME/workline/workline.db`, else `~/.local/share/workline/workline.db`). `workline backup` with no destination writes `<data dir>/backups/workline-YYYY-MM-DD-HHMM.db` (folder created, mode 0700) and prints the path. Flags only; no environment variables.
+83. **Explicit migrations.** A new (empty) database gets every migration on open. An existing database behind the build's schema is refused by `serve` and `seed`, which point to `workline migrate [-db path]`. `migrate` does nothing on a current database; otherwise it first writes the default dated backup (item 82), then applies the pending migrations (each in its own transaction), runs `PRAGMA foreign_key_check` and `integrity_check`, and prints `schema N → M`. On failure it names the backup.
