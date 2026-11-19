@@ -1,26 +1,34 @@
 {{template "head" .}}
 <h1>Projects</h1>
 {{$next := .Next}}
-{{range .Projects}}
+{{if .Projects}}
 <section class="card">
-<form class="inline" method="post" action="/projects/{{.ID}}">
+<ul class="rows proj-list">
+{{range .Projects}}
+<li>
+<form class="proj-rename" method="post" action="/projects/{{.ID}}">
 <input type="hidden" name="next" value="{{$next}}">
-<label>Name<input name="name" value="{{.Name}}" required></label>
-<button>Rename</button>
+<label class="sr-only" for="proj-name-{{.ID}}">Name</label>
+<input class="proj-name-input" id="proj-name-{{.ID}}" name="name" value="{{.Name}}" required>
+<button class="ghost">Rename</button>
 </form>
-<form class="inline" method="post" action="/projects/{{.ID}}">
+{{if .Archived}}<span class="chip planned">Archived</span>{{end}}
+<form class="proj-archive" method="post" action="/projects/{{.ID}}">
 <input type="hidden" name="next" value="{{$next}}">
-{{if .Archived}}<input type="hidden" name="archived" value="0"><button>Restore</button> <span class="muted">archived</span>
-{{else}}<input type="hidden" name="archived" value="1"><button>Archive</button>{{end}}
+{{if .Archived}}<input type="hidden" name="archived" value="0"><button class="ghost">Restore</button>
+{{else}}<input type="hidden" name="archived" value="1"><button class="ghost">Archive</button>{{end}}
 </form>
-<details>
-<summary>Delete…</summary>
-<form method="post" action="/projects/{{.ID}}/delete">
+<details class="confirm proj-delete">
+<summary class="danger">Delete…</summary>
+<form class="confirm-box" method="post" action="/projects/{{.ID}}/delete">
 <input type="hidden" name="next" value="{{$next}}">
-<p class="muted">Deletes the project and all its activities.</p>
-<button>Confirm delete</button>
+<span>Deletes the project and all its activities.</span>
+<button class="danger-fill">Confirm delete</button>
 </form>
 </details>
+</li>
+{{end}}
+</ul>
 </section>
 {{else}}
 <p>No projects yet. Projects are created with their first activity.</p>

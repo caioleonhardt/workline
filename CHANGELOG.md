@@ -9,6 +9,8 @@ each release is tagged `vX.Y.Z` in git.
 - Editing a journal entry or task opens a cleaner inline editor: a full-width
   text box that grows as you type, the fields below it, and Delete…, Cancel and
   Save at the bottom. Ctrl/Cmd+Enter saves; Esc cancels.
+- The projects page lists projects as aligned rows: the name is edited in
+  place, with Rename, Archive or Restore, and Delete… on the same line.
 
 ## [0.7.0] — 2026-11-19
 
