@@ -117,3 +117,19 @@ func TestPanelJournalShowsLoggedTime(t *testing.T) {
 		t.Error("journal order")
 	}
 }
+
+func TestJournalTextIsMultiline(t *testing.T) {
+	h, st := newApp(t)
+	wantStatus(t, post(h, "/journal", url.Values{"activity": {"2"}, "kind": {"update"}, "text": {"First line\r\n\r\n- detail  \r\n\r\n"}}), http.StatusSeeOther)
+	list, _ := st.ListJournal(ctx, 2)
+	if list[0].Text != "First line\n\n- detail" {
+		t.Fatalf("stored %q", list[0].Text)
+	}
+	id := strconv.FormatInt(list[0].ID, 10)
+	wantBody(t, get(h, "/?sel=2"), "<span class=\"feed-text\">First line\n\n- detail</span>",
+		"<textarea name=\"text\" rows=\"3\" required>First line\n\n- detail</textarea>")
+	wantStatus(t, post(h, "/journal/"+id, url.Values{"kind": {"update"}, "text": {"one\r\ntwo"}, "date": {"2026-11-18"}}), http.StatusSeeOther)
+	if list, _ := st.ListJournal(ctx, 2); list[0].Text != "one\ntwo" {
+		t.Errorf("edited %q", list[0].Text)
+	}
+}

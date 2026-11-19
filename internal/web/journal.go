@@ -63,7 +63,7 @@ func (s *Server) addJournal(w http.ResponseWriter, r *http.Request) {
 	}
 	if err == nil {
 		_, err = s.store.AddJournal(r.Context(), domain.JournalEntry{
-			ActivityID: id, Date: day, Kind: domain.Kind(r.PostFormValue("kind")), Text: r.PostFormValue("text"),
+			ActivityID: id, Date: day, Kind: domain.Kind(r.PostFormValue("kind")), Text: formText(r),
 			LoggedAt: domain.Stamp(s.clock.Now()),
 		})
 	}
@@ -81,7 +81,7 @@ func (s *Server) editJournal(w http.ResponseWriter, r *http.Request) {
 		day, err = formDate(r, "date")
 	}
 	if err == nil {
-		err = s.store.EditJournal(r.Context(), id, day, domain.Kind(r.PostFormValue("kind")), r.PostFormValue("text"))
+		err = s.store.EditJournal(r.Context(), id, day, domain.Kind(r.PostFormValue("kind")), formText(r))
 	}
 	if err != nil {
 		s.fail(w, r, err)
@@ -100,4 +100,10 @@ func (s *Server) deleteJournal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.done(w, r, nextURL(r))
+}
+
+// formText returns the posted multiline text with browser line endings
+// (CRLF) turned into "\n" and trailing blank space removed.
+func formText(r *http.Request) string {
+	return strings.TrimRight(strings.ReplaceAll(r.PostFormValue("text"), "\r\n", "\n"), " \t\r\n")
 }

@@ -57,7 +57,7 @@
 <form class="inline" method="post" action="/journal/{{.ID}}">
 <input type="hidden" name="next" value="{{$.Next}}">
 <input type="hidden" name="kind" value="task">
-<label>Text<input name="text" value="{{.Text}}" required></label>
+<label>Text<textarea name="text" rows="2" required>{{.Text}}</textarea></label>
 <label>Opened<input type="date" name="date" value="{{.Created}}" required></label>
 <button>Save</button>
 </form>

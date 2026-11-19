@@ -39,6 +39,7 @@ func TestShortcutScriptRules(t *testing.T) {
 		"e.key === 'n' && !cancel", "e.key === 'Escape'", "e.key === '/'",
 		"e.key === 'j'", "document.querySelector('#quickadd-target .target')", // j only when the bar has a target
 		"t.id === 'quickadd-text'", "t.blur()", // Esc in the bar's field only blurs it
+		"e.key === 'Enter' && !e.shiftKey && !e.isComposing", "t.form.requestSubmit()", // Enter logs, Shift+Enter is a newline
 		"document.getElementById('filter-project')", "a.panel-close", "a.cancel-new", "a.new-activity",
 	} {
 		if !strings.Contains(js, want) {

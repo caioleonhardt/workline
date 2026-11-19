@@ -13,7 +13,7 @@
 <form class="inline" method="post" action="/journal/{{.ID}}">
 <input type="hidden" name="next" value="{{$.Next}}">
 {{if .IsTask}}<input type="hidden" name="kind" value="task">{{else}}<label>Kind<select name="kind">{{range .Kinds}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>{{end}}
-<label>Entry<input name="text" value="{{.Text}}" required></label>
+<label>Entry<textarea name="text" rows="3" required>{{.Text}}</textarea></label>
 <label>{{if .IsTask}}Opened{{else}}Date{{end}}<input type="date" name="date" value="{{.Date}}" required></label>
 <button>Save</button>
 </form>

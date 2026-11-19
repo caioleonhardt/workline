@@ -131,6 +131,7 @@ textarea { border: 1px solid var(--border); border-radius: 8px; padding: 8px; fo
 .error-bar button { min-height: 36px; margin-left: auto; }
 html.js .apply { display: none; }
 .check { flex-direction: row; align-items: center; gap: 8px; font-size: inherit; color: var(--text); min-height: 44px; }
+.check span { white-space: pre-wrap; }
 .check input { width: 20px; height: 20px; min-height: 0; accent-color: #2F5BEA; }
 .done-text { color: var(--muted); text-decoration: line-through; }
 .chart { display: flex; align-items: flex-end; gap: 2px; height: 120px; border-bottom: 1px solid #CFCFC8; }
@@ -178,13 +179,13 @@ summary { display: flex; align-items: center; min-height: 44px; cursor: pointer;
 .quick { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px max(16px, calc((100% - 1400px) / 2 + 16px)); background: var(--surface); border-top: 1px solid var(--border); box-shadow: 0 -2px 8px rgba(22, 24, 29, 0.08); }
 .quick:not(:has(.target)) { display: none; }
 .quick .target { font-size: 13px; }
-.quick input[name="text"] { flex: 1 1 240px; min-width: 0; }
+.quick textarea[name="text"] { flex: 1 1 240px; min-width: 0; resize: none; field-sizing: content; max-height: 10lh; }
 #quickadd-error { flex-basis: 100%; }
 #quickadd-error:empty { display: none; }
 body:has(.quick .target) { padding-bottom: 96px; }
 html.js .apply-nojs { display: none; }
 #journal { grid-area: journal; align-self: start; margin: 0; min-width: 0; }
 #journal .rows li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
-.feed-text { flex: 1 1 280px; min-width: 0; }
+.feed-text { flex: 1 1 280px; min-width: 0; white-space: pre-wrap; }
 .tag { text-decoration: none; }
 #journal details[open] { flex-basis: 100%; }

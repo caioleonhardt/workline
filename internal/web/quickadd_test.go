@@ -24,7 +24,7 @@ func TestQuickAddBarOutsideTheSwapRegion(t *testing.T) {
 	}
 	wantBody(t, get(h, "/"), `<form id="quickadd" class="quick" method="post" action="/journal" hx-post="/journal" hx-target="#dash" hx-swap="outerHTML">`,
 		`<span id="quickadd-target"></span>`, `<option value="update" selected>Update</option>`,
-		`<input id="quickadd-text" name="text" aria-label="Journal entry"`)
+		`<textarea id="quickadd-text" name="text" rows="1" aria-label="Journal entry"`)
 	// htmx fragments never contain the bar itself, only the target update
 	frag := hxGet(h, "/?sel=2")
 	if strings.Contains(frag.Body.String(), `<form id="quickadd"`) || strings.Contains(frag.Body.String(), `id="quickadd-text"`) {
@@ -90,7 +90,7 @@ func hxPostFrom(h http.Handler, target string, form url.Values, trigger string) 
 	return rec
 }
 
-const emptiedInput = `<input id="quickadd-text" name="text" aria-label="Journal entry" placeholder="Log to the journal…" autocomplete="off" aria-keyshortcuts="j" required hx-swap-oob="true">`
+const emptiedInput = `<textarea id="quickadd-text" name="text" rows="1" aria-label="Journal entry" placeholder="Log to the journal… (Shift+Enter for a new line)" autocomplete="off" aria-keyshortcuts="j" required hx-swap-oob="true"></textarea>`
 
 func TestQuickAddSuccessClearsTheField(t *testing.T) {
 	h, st := newApp(t)

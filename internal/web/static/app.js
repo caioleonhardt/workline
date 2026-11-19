@@ -1,5 +1,5 @@
 // Marks the page as scripted (hiding buttons that htmx replaces), handles the
-// keyboard shortcuts and the error bar's Dismiss, and collapses project groups on the timeline; the state lives in the browser's local storage.
+// keyboard shortcuts (including Enter to log from the journal bar) and the error bar's Dismiss, and collapses project groups on the timeline; the state lives in the browser's local storage.
 // Without this script every group stays expanded and every button shows.
 (function () {
   document.documentElement.classList.add('js');
@@ -41,6 +41,12 @@
       if (e.key === 'Escape' && t && t.id === 'quickadd-text') {
         e.preventDefault();
         t.blur();
+        return;
+      }
+      // In the bar, Enter logs the entry and Shift+Enter starts a new line.
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && t && t.id === 'quickadd-text') {
+        e.preventDefault();
+        t.form.requestSubmit();
         return;
       }
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|SUMMARY)$/.test(t.tagName))) return;
