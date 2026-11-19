@@ -65,7 +65,8 @@ func TestDashboardControlsStayPlainLinksAndForms(t *testing.T) {
 			t.Errorf("missing %q", want)
 		}
 	}
-	if strings.Contains(body, "hx-get") || strings.Contains(body, "hx-post") {
+	dash := body[:strings.Index(body, `<form id="quickadd"`)] // the bar outside #dash needs explicit attributes
+	if strings.Contains(dash, "hx-get") || strings.Contains(dash, "hx-post") {
 		t.Error("controls must work through hx-boost alone")
 	}
 }

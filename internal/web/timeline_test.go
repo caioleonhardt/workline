@@ -194,7 +194,7 @@ func TestTimelineBinsUseGlobalMax(t *testing.T) {
 func TestTimelineHasNoJournalDots(t *testing.T) {
 	h, _ := newApp(t)
 	body := get(h, "/").Body.String()
-	if strings.Contains(body, "dot-mark") || strings.Contains(body, "Journal entry") {
+	if strings.Contains(body, "dot-mark") || strings.Contains(body, "</i>Journal entry") {
 		t.Error("journal entries must not appear on the timeline")
 	}
 	wantBody(t, get(h, "/"), "Activity: open subtasks (taller = more open)", "Until due date")

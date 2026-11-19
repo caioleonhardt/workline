@@ -168,3 +168,11 @@ summary { display: flex; align-items: center; min-height: 44px; cursor: pointer;
 .tl-head .tl-label { background: #FAFAF8; }
 .act-row.sel .tl-label { background: #F0F3FE; }
 @media (max-width: 640px) { :root { --label-w: 160px; } .act-label { padding-left: 24px; } html.js .hint { display: none; } }
+.quick { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px max(16px, calc((100% - 1400px) / 2 + 16px)); background: var(--surface); border-top: 1px solid var(--border); box-shadow: 0 -2px 8px rgba(22, 24, 29, 0.08); }
+.quick:not(:has(.target)) { display: none; }
+.quick .target { font-size: 13px; }
+.quick input[name="text"] { flex: 1 1 240px; min-width: 0; }
+#quickadd-error { flex-basis: 100%; }
+#quickadd-error:empty { display: none; }
+body:has(.quick .target) { padding-bottom: 96px; }
+html.js .apply-nojs { display: none; }

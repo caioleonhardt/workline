@@ -8,6 +8,13 @@ import (
 	"workline/internal/domain"
 )
 
+// quickAddView is where the quick-add bar's next entry goes.
+type quickAddView struct {
+	ID            int64
+	Name, Project string
+	Next          string
+}
+
 type tileView struct {
 	Label, Class string
 	Value        int
@@ -31,6 +38,8 @@ type dashboardView struct {
 	AllProjects []domain.Project // choices in the form
 	Panel       *panelView       // nil unless sel names an existing activity
 	Controls    controlsView
+	QuickAdd    *quickAddView // the quick-add bar's target; nil without a selection
+	QuickKinds  []option
 	Tiles       []tileView
 	Timeline    timelineView
 }
@@ -139,9 +148,12 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 		CancelHref: withParam(uri, "new", ""),
 		ShowForm:   f.New,
 		Today:      today.String(), AllProjects: projects, Panel: panel,
-		Controls: buildControls(f, projects, counts, creepCount),
+		Controls: buildControls(f, projects, counts, creepCount), QuickKinds: kindOptions(domain.KindUpdate),
 		Timeline: buildTimeline(f, today, timelineData{Groups: groups, ItemOf: itemOf, Creeps: creeps}),
 		Tiles:    buildTiles(domain.ComputeTiles(tileItems, f.Year, today)),
+	}
+	if panel != nil {
+		v.QuickAdd = &quickAddView{ID: panel.ID, Name: panel.Name, Project: panel.ProjectName, Next: uri}
 	}
 	return v, nil
 }
