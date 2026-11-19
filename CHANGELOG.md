@@ -5,6 +5,10 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
+### Added
+- `workline version` prints the release, the database schema it needs and,
+  for a build from a git checkout, the revision.
+
 ## [0.2.0] — 2026-11-19
 
 Upgrading from 0.1.0: run `workline migrate` once before `serve`. It backs the

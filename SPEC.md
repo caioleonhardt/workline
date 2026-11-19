@@ -273,6 +273,7 @@ GET    /static/*                           embedded assets
 - `workline backup <path>` subcommand using `VACUUM INTO`.
 - `workline seed` subcommand loading the mockup's sample data (dev only).
 - `workline migrate` subcommand upgrading an existing database to the current schema (§10 item 83).
+- `workline version` subcommand printing the release and the schema it needs (§10 item 90).
 
 ---
 
@@ -285,6 +286,7 @@ GET    /static/*                           embedded assets
 5. **Polish.** Journal Markdown export, backup command, keyboard shortcuts (`n` new activity, `/` focus filter, `Esc` close panel), narrow-screen layout.
 6. **Journal workspace.** Journal list below the timeline and a fixed quick-add bar (§10 items 73–76).
 7. **Tasks in the journal.** `workline migrate`; tasks become journal entries of kind `task`; multiline entries (§10 items 83–89).
+8. **Version.** `workline version` (§10 item 90).
 
 Each milestone ends with `go vet ./...` and `go test ./...` green.
 
@@ -398,3 +400,4 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 87. **Migration 0005** rebuilds `journal_entries` with `AUTOINCREMENT`, copies existing entries with their ids, then appends the old subtasks in id order (`date = created_on`, no `logged_at`). `scope_acks.last_subtask_id` becomes `last_task_id`, remapped to the new id of the last task at or before the old value, so the tasks newer than an ack stay the same. The `subtasks` table is dropped.
 88. **Activity created** is logged before the initial tasks, so newest-first lists show the tasks above it. The seed keeps the baseline's task ids; its other entries take the ids after them.
 89. **Multiline entries.** Journal text (tasks too) is a `<textarea>` in the quick-add bar and in both Edit forms. The bar's field starts one line high and grows with its content (CSS `field-sizing`, capped at 10 lines). The server turns CRLF into LF and trims trailing blank space; lists show line breaks (`white-space: pre-wrap`), and the export indents continuation lines under their bullet.
+90. **Version.** `workline version` (also `-version`) prints `workline vX.Y.Z (schema N)`, plus ` revision abc1234[, modified]` when the binary carries a VCS stamp. `X.Y.Z` is a constant in `cmd/workline/main.go` that each release bumps together with `CHANGELOG.md`; a test keeps them equal.

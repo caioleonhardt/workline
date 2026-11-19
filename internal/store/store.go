@@ -96,6 +96,12 @@ func versions(ctx context.Context, db *sql.DB) (have, want int, err error) {
 	return have, len(ms), nil
 }
 
+// LatestSchema is the schema version this build migrates databases to.
+func LatestSchema() (int, error) {
+	ms, err := listMigrations(migrations.FS)
+	return len(ms), err
+}
+
 // Migration reports what Migrate did: the schema versions before and after
 // (equal when there was nothing to do) and each table's row count before and
 // after, so the caller can show that no data went missing.

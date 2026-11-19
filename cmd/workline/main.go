@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"syscall"
@@ -36,6 +37,7 @@ commands:
   backup   copy the database to a new file (the source is never changed)   [-db path] [dest]
   seed     load the mockup sample data into an empty database   [-db path]
   migrate  upgrade an existing database to this version, after backing it up   [-db path]
+  version  print the version and the database schema it needs
 `
 
 func main() {
@@ -59,10 +61,50 @@ func run(args []string) error {
 		return runSeed(args[1:])
 	case "migrate":
 		return runMigrateAt(args[1:], domain.SystemClock{})
+	case "version", "-version", "--version":
+		return runVersion(os.Stdout)
 	default:
 		fmt.Fprint(os.Stderr, usage)
 		return fmt.Errorf("unknown command %q", args[0])
 	}
+}
+
+// version is this release; a release commit bumps it with CHANGELOG.md.
+const version = "0.2.0"
+
+// runVersion prints the release, the schema this build needs and, for a build
+// from a git checkout, its revision.
+func runVersion(w io.Writer) error {
+	schema, err := store.LatestSchema()
+	if err != nil {
+		return err
+	}
+	info, _ := debug.ReadBuildInfo()
+	fmt.Fprintf(w, "workline v%s (schema %d)%s\n", version, schema, revision(info))
+	return nil
+}
+
+// revision returns " revision abc1234[, modified]" from the build's VCS
+// stamp, or "" when there is none.
+func revision(info *debug.BuildInfo) string {
+	if info == nil {
+		return ""
+	}
+	var rev, modified string
+	for _, s := range info.Settings {
+		switch s.Key {
+		case "vcs.revision":
+			rev = s.Value[:min(7, len(s.Value))]
+		case "vcs.modified":
+			if s.Value == "true" {
+				modified = ", modified"
+			}
+		}
+	}
+	if rev == "" {
+		return ""
+	}
+	return " revision " + rev + modified
 }
 
 // defaultDB is $XDG_DATA_HOME/workline/workline.db, else ~/.local/share/workline/workline.db.

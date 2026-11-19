@@ -9,7 +9,7 @@ Read `SPEC.md` before any change. It is the source of truth; `docs/mockup.html` 
 
 ## Layout
 ```
-cmd/workline/        main: flags, subcommands (serve, seed, backup, migrate)
+cmd/workline/        main: flags, subcommands (serve, seed, backup, migrate, version)
 internal/domain/     pure logic: burndown, progress, scope creep, periods. No I/O.
 internal/store/      database/sql + SQLite, hand-written SQL, migrations
 internal/web/        handlers, view models, templates, static (all embedded)
@@ -47,5 +47,5 @@ gofmt -l .        # must print nothing
 - Work one milestone at a time (SPEC §9). Start each with a short plan and wait for approval.
 - Before saying a task is done: `gofmt`, `go vet ./...`, `go test ./...` all clean.
 - Commit each finished step without asking. Keep commits small and single-scope, with imperative messages.
-- Note user-visible changes in `CHANGELOG.md` under Unreleased. A release moves them under a new version heading and gets an annotated `vX.Y.Z` tag.
+- Note user-visible changes in `CHANGELOG.md` under Unreleased. A release moves them under a new version heading, bumps `version` in `cmd/workline/main.go` to match (a test checks it), and gets an annotated `vX.Y.Z` tag.
 - If the spec is ambiguous, ask; record the decision in SPEC §10.

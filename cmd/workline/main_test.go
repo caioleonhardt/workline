@@ -3,8 +3,11 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"runtime/debug"
 	"strings"
 	"testing"
 
@@ -241,5 +244,38 @@ func TestMigrateUpToDate(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dataDir, "backups")); err == nil {
 		t.Error("an up-to-date database was backed up")
+	}
+}
+
+func TestVersion(t *testing.T) {
+	var out strings.Builder
+	if err := runVersion(&out); err != nil {
+		t.Fatal(err)
+	}
+	schema, _ := store.LatestSchema()
+	if want := fmt.Sprintf("workline v%s (schema %d)", version, schema); !strings.HasPrefix(out.String(), want) {
+		t.Errorf("version printed %q, want prefix %q", out.String(), want)
+	}
+	info := &debug.BuildInfo{Settings: []debug.BuildSetting{{Key: "vcs.revision", Value: "7ff7c41abcdef"}, {Key: "vcs.modified", Value: "true"}}}
+	if got := revision(info); got != " revision 7ff7c41, modified" {
+		t.Errorf("revision = %q", got)
+	}
+	if revision(nil) != "" || revision(&debug.BuildInfo{}) != "" {
+		t.Error("no VCS stamp must print nothing")
+	}
+}
+
+// The newest released heading in CHANGELOG.md must match the version constant.
+func TestVersionMatchesChangelog(t *testing.T) {
+	b, err := os.ReadFile("../../CHANGELOG.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`(?m)^## \[(\d+\.\d+\.\d+)\]`).FindSubmatch(b)
+	if m == nil {
+		t.Fatal("CHANGELOG.md has no release heading")
+	}
+	if string(m[1]) != version {
+		t.Errorf("CHANGELOG's latest release is %s, version is %s", m[1], version)
 	}
 }
