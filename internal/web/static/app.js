@@ -170,6 +170,43 @@
       }
       restore = null;
     });
+    // Search (/) marks the entries whose text contains the query; n and N read the
+    // page again, so they keep working after a swap.
+    var query = '', searchFrom = null;
+    function search(delta) {
+      var all = Array.prototype.slice.call(document.querySelectorAll('[data-entry]'));
+      var found = all.filter(function (entry) {
+        var text = entry.querySelector('.feed-text, .check span') || entry;
+        var hit = query !== '' && text.textContent.toLowerCase().indexOf(query) !== -1;
+        entry.classList.toggle('match', hit);
+        return hit;
+      });
+      if (!found.length) return;
+      var at = all.indexOf(cursor()), next = null;
+      found.forEach(function (entry) {
+        var i = all.indexOf(entry);
+        if (delta > 0 ? !next && i > at : i < at || at === -1) next = entry;
+      });
+      moveTo(next || found[delta > 0 ? 0 : found.length - 1]);
+    }
+    function openSearch() {
+      var form = document.querySelector('.vsearch');
+      if (!form) return;
+      searchFrom = cursor();
+      form.hidden = false;
+      form.querySelector('input').select();
+      form.querySelector('input').focus();
+    }
+    function closeSearch(run) {
+      var input = document.getElementById('vsearch-text');
+      input.closest('.vsearch').hidden = true;
+      if (searchFrom && searchFrom.isConnected) searchFrom.focus();
+      else input.blur();
+      if (run) {
+        query = input.value.trim().toLowerCase();
+        search(1);
+      }
+    }
     var pending = '', pendingAt = 0;
     var keys = {
       j: function () { step(1); },
@@ -195,11 +232,19 @@
         var filter = document.getElementById('filter-project');
         if (filter) filter.focus();
       },
+      '/': openSearch,
+      n: function () { search(1); },
+      N: function () { search(-1); },
       '?': function () {
         var dialog = document.getElementById('keys');
         if (dialog) dialog.showModal();
       },
       Escape: function () {
+        if (query) {
+          query = '';
+          search(1);
+          return;
+        }
         var target = document.querySelector('a.cancel-new') || document.querySelector('a.panel-close');
         if (target) target.click();
       }
@@ -229,6 +274,12 @@
       if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && t && t.id === 'quickadd-text') {
         e.preventDefault();
         t.form.requestSubmit();
+        return;
+      }
+      // The search line: Enter searches, Esc goes back to the cursor.
+      if (t && t.id === 'vsearch-text' && (e.key === 'Enter' || e.key === 'Escape')) {
+        e.preventDefault();
+        closeSearch(e.key === 'Enter');
         return;
       }
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|SUMMARY)$/.test(t.tagName))) return;
