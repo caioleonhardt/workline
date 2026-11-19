@@ -9,7 +9,7 @@ Read `SPEC.md` before any change. It is the source of truth; `docs/mockup.html` 
 
 ## Layout
 ```
-cmd/workline/        main: flags, subcommands (serve, seed, backup)
+cmd/workline/        main: flags, subcommands (serve, seed, backup, migrate)
 internal/domain/     pure logic: burndown, progress, scope creep, periods. No I/O.
 internal/store/      database/sql + SQLite, hand-written SQL, migrations
 internal/web/        handlers, view models, templates, static (all embedded)
@@ -46,5 +46,5 @@ gofmt -l .        # must print nothing
 ## Workflow
 - Work one milestone at a time (SPEC §9). Start each with a short plan and wait for approval.
 - Before saying a task is done: `gofmt`, `go vet ./...`, `go test ./...` all clean.
-- Don't commit unless asked. Keep commits small, with imperative messages.
+- Commit each finished step without asking. Keep commits small and single-scope, with imperative messages.
 - If the spec is ambiguous, ask; record the decision in SPEC §10.
