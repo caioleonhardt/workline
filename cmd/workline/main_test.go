@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestCheckLoopback(t *testing.T) {
 	for addr, ok := range map[string]bool{
@@ -10,6 +13,26 @@ func TestCheckLoopback(t *testing.T) {
 		if err := checkLoopback(addr); (err == nil) != ok {
 			t.Errorf("checkLoopback(%q) = %v, want ok=%v", addr, err, ok)
 		}
+	}
+}
+
+func TestDefaultAddrAndUsage(t *testing.T) {
+	if defaultAddr != "127.0.0.1:7357" {
+		t.Errorf("defaultAddr = %q", defaultAddr)
+	}
+	if got, err := resolveAddr(defaultAddr, -1); err != nil || got != "127.0.0.1:7357" {
+		t.Errorf("default address does not resolve: %q %v", got, err)
+	}
+	if got, err := resolveAddr(defaultAddr, 7400); err != nil || got != "127.0.0.1:7400" {
+		t.Errorf("-port over the default: %q %v", got, err)
+	}
+	for _, want := range []string{"7357", "Every command works with no arguments", "serve ", "backup ", "seed "} {
+		if !strings.Contains(usage, want) {
+			t.Errorf("usage lacks %q", want)
+		}
+	}
+	if strings.Contains(usage, "8080") {
+		t.Error("usage still mentions 8080")
 	}
 }
 

@@ -21,12 +21,18 @@ import (
 	"workline/internal/web"
 )
 
+// defaultAddr is where serve listens unless -addr or -port say otherwise.
+const defaultAddr = "127.0.0.1:7357"
+
 const usage = `usage: workline <command> [flags]
 
+Every command works with no arguments, on the default database
+($XDG_DATA_HOME/workline/workline.db, else ~/.local/share/workline/workline.db).
+
 commands:
-  serve -db <path> [-addr 127.0.0.1:8080]   run the web app
-  seed -db <path>   load the mockup sample data into an empty database
-  backup [-db <path>] <dest>   copy the database to a new file (the source is never changed)
+  serve    run the web app on ` + defaultAddr + `   [-addr host:port] [-port N] [-db path]
+  backup   copy the database to a new file (the source is never changed)   [-db path] [dest]
+  seed     load the mockup sample data into an empty database   [-db path]
 `
 
 func main() {
@@ -155,7 +161,7 @@ func runServe(args []string) error {
 	}
 	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
 	dbPath := fs.String("db", def, "path to the SQLite database")
-	addr := fs.String("addr", "127.0.0.1:8080", "listen address (loopback only)")
+	addr := fs.String("addr", defaultAddr, "listen address (loopback only)")
 	port := fs.Int("port", -1, "port, overriding the one in -addr")
 	if err := fs.Parse(args); err != nil {
 		return err
