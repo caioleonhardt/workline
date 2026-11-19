@@ -5,7 +5,7 @@
 {{range .Entries}}
 <li>
 <span class="muted mono">{{.Date}}{{if .Time}} {{.Time}}{{end}}</span> <span class="chip kind-{{.Kind}}">{{.KindLabel}}</span>
-{{if .ActivityHref}}<a class="tag small" href="{{.ActivityHref}}">{{.Project}} › {{.Activity}}</a>{{end}}
+{{if .ActivityHref}}<a class="tag small" href="{{.ActivityHref}}">{{.Project}} › {{.Activity}}</a>{{else if .Unassigned}}<span class="tag small unassigned">Unassigned</span>{{end}}
 <span class="feed-text{{if .Closed}} done-text{{end}}">{{.Text}}</span>{{if .Closed}} <span class="muted mono small">closed {{.Closed}}</span>{{end}}
 {{if not .ReadOnly}}
 <details>
@@ -13,6 +13,7 @@
 <form class="inline" method="post" action="/journal/{{.ID}}">
 <input type="hidden" name="next" value="{{$.Next}}">
 {{if .IsTask}}<input type="hidden" name="kind" value="task">{{else}}<label>Kind<select name="kind">{{range .Kinds}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>{{end}}
+{{with .FileTo}}<label>Activity<select name="activity">{{range .}}{{if .Label}}<optgroup label="{{.Label}}">{{end}}{{range .Options}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}{{if .Label}}</optgroup>{{end}}{{end}}</select></label>{{end}}
 <label>Entry<textarea name="text" rows="3" required>{{.Text}}</textarea></label>
 <label>{{if .IsTask}}Opened{{else}}Date{{end}}<input type="date" name="date" value="{{.Date}}" required></label>
 <button>Save</button>

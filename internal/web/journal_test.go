@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strconv"
 	"strings"
@@ -64,9 +65,8 @@ func TestJournalFlows(t *testing.T) {
 	}
 	wantStatus(t, post(h, "/journal/"+id+"/delete", form()), http.StatusSeeOther)
 	wantStatus(t, post(h, "/journal/"+id+"/delete", form()), http.StatusNotFound)
-	// the activity must be named and exist
+	// the activity, when named, must exist
 	for name, f := range map[string]url.Values{
-		"no activity":      form("kind", "update", "text", "x"),
 		"bad activity":     form("activity", "abc", "kind", "update", "text", "x"),
 		"unknown activity": form("activity", "999", "kind", "update", "text", "x"),
 	} {
@@ -132,4 +132,60 @@ func TestJournalTextIsMultiline(t *testing.T) {
 	if list, _ := st.ListJournal(ctx, 2); list[0].Text != "one\ntwo" {
 		t.Errorf("edited %q", list[0].Text)
 	}
+}
+
+// Logging needs no activity: the entry is Unassigned until filed from its Edit
+// form (SPEC §10 item 91).
+func TestUnassignedEntries(t *testing.T) {
+	h, st := newApp(t)
+	wantStatus(t, post(h, "/journal", url.Values{"kind": {"task"}, "text": {"Loose task"}, "next": {"/"}}), http.StatusSeeOther)
+	before := tileValue(t, get(h, "/").Body.String(), "Open tasks now")
+	feed, _, _ := st.ListJournalFeed(ctx, nil, true, 10)
+	if len(feed) != 1 || feed[0].ActivityID != 0 {
+		t.Fatalf("unassigned: %+v", feed)
+	}
+	id := strconv.FormatInt(feed[0].ID, 10)
+
+	// the feed shows it, with a filing select, unless a project or selection narrows it
+	body := get(h, "/").Body.String()
+	for _, want := range []string{`<span class="tag small unassigned">Unassigned</span>`, `<select name="activity"><option value="" selected>Unassigned</option><optgroup label=`, `<option value="2">Kafka upgrade readiness</option>`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("feed lacks %q", want)
+		}
+	}
+	for _, target := range []string{"/?project=1", "/?sel=2"} {
+		if strings.Contains(get(h, target).Body.String(), "Loose task") {
+			t.Errorf("%s shows the unassigned entry", target)
+		}
+	}
+	// its open task counts in the tile until it is closed
+	wantStatus(t, post(h, "/tasks/"+id+"/toggle", url.Values{"next": {"/"}}), http.StatusSeeOther)
+	if after := tileValue(t, get(h, "/").Body.String(), "Open tasks now"); after != before-1 {
+		t.Errorf("tile %d → %d", before, after)
+	}
+
+	// filing it moves it to the activity; an edit without the field keeps it there
+	edit := func(activity ...string) *httptest.ResponseRecorder {
+		f := url.Values{"kind": {"task"}, "text": {"Filed task"}, "date": {testToday}, "next": {"/"}}
+		if len(activity) > 0 {
+			f.Set("activity", activity[0])
+		}
+		return post(h, "/journal/"+id, f)
+	}
+	wantStatus(t, edit("2"), http.StatusSeeOther)
+	wantStatus(t, edit(), http.StatusSeeOther)
+	if ts, _ := st.ListTasks(ctx, 2); ts[len(ts)-1].Text != "Filed task" {
+		t.Errorf("not filed: %+v", ts[len(ts)-1])
+	}
+	if strings.Contains(get(h, "/?sel=2").Body.String(), `<select name="activity">`) {
+		t.Error("filed entries offer no filing select")
+	}
+	wantStatus(t, edit(""), http.StatusSeeOther)
+	if feed, _, _ := st.ListJournalFeed(ctx, nil, true, 10); len(feed) != 1 {
+		t.Errorf("not unassigned again: %+v", feed)
+	}
+	if rec := edit("999"); rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("filed under a missing activity: %d", rec.Code)
+	}
+	wantBody(t, get(h, "/export/journal.md"), "## Unassigned\n\n- "+testToday+" 14:05 **Task** — Filed task (closed "+testToday+")")
 }

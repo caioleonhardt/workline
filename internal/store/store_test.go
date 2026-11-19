@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -63,8 +64,9 @@ func TestOpenAppliesMigrationsAndPragmas(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if v := userVersion(t, s); v != 5 {
-		t.Errorf("user_version = %d, want 5", v)
+	latest := latestSchema(t)
+	if v := userVersion(t, s); v != latest {
+		t.Errorf("user_version = %d, want %d", v, latest)
 	}
 	var fk int
 	var mode string
@@ -84,7 +86,7 @@ func TestOpenAppliesMigrationsAndPragmas(t *testing.T) {
 	}
 	defer s2.Close()
 	ps, err := s2.ListProjects(ctx, true)
-	if err != nil || len(ps) != 1 || userVersion(t, s2) != 5 {
+	if err != nil || len(ps) != 1 || userVersion(t, s2) != latest {
 		t.Errorf("reopen: %v %v", ps, err)
 	}
 }
@@ -95,23 +97,41 @@ func TestOpenRejectsEmptyPath(t *testing.T) {
 	}
 }
 
+// applied returns n placeholder migrations 0001.. standing for the ones a new
+// test store already has, plus extra.
+func applied(n int, extra fstest.MapFS) fstest.MapFS {
+	fsys := fstest.MapFS{}
+	for i := 1; i <= n; i++ {
+		fsys[fmt.Sprintf("%04d_done.sql", i)] = &fstest.MapFile{Data: []byte(`-- already applied`)}
+	}
+	for k, v := range extra {
+		fsys[k] = v
+	}
+	return fsys
+}
+
+func latestSchema(t *testing.T) int {
+	t.Helper()
+	n, err := LatestSchema()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return n
+}
+
 func TestMigrateFailureRollsBack(t *testing.T) {
 	s := newTestStore(t)
-	fsys := fstest.MapFS{
-		"0001_init.sql": {Data: []byte(`;`)},
-		"0002_more.sql": {Data: []byte(`;`)},
-		"0003_more.sql": {Data: []byte(`;`)},
-		"0004_more.sql": {Data: []byte(`;`)},
-		"0005_more.sql": {Data: []byte(`;`)},
-		"0006_bad.sql":  {Data: []byte(`CREATE TABLE y (a INTEGER); SELECT * FROM nonexistent_table; CREATE TABLE z (b);`)},
-	}
-	// Versions 1 to 5 are already applied, so only 0006 runs.
+	latest := latestSchema(t)
+	// Every real migration is already applied, so only the bad one runs.
+	fsys := applied(latest, fstest.MapFS{
+		fmt.Sprintf("%04d_bad.sql", latest+1): {Data: []byte(`CREATE TABLE y (a INTEGER); SELECT * FROM nonexistent_table; CREATE TABLE z (b);`)},
+	})
 	err := migrate(ctx, s.db, fsys)
 	if err == nil {
 		t.Fatal("expected failure")
 	}
-	if v := userVersion(t, s); v != 5 {
-		t.Errorf("user_version = %d, want 5 (unchanged)", v)
+	if v := userVersion(t, s); v != latest {
+		t.Errorf("user_version = %d, want %d (unchanged)", v, latest)
 	}
 	var n int
 	s.db.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_master WHERE name IN ('y','z')`).Scan(&n)
@@ -122,18 +142,12 @@ func TestMigrateFailureRollsBack(t *testing.T) {
 
 func TestMigrateAppliesNewFile(t *testing.T) {
 	s := newTestStore(t)
-	fsys := fstest.MapFS{
-		"0001_init.sql": {Data: []byte(`-- already applied`)},
-		"0002_more.sql": {Data: []byte(`-- already applied`)},
-		"0003_more.sql": {Data: []byte(`-- already applied`)},
-		"0004_more.sql": {Data: []byte(`-- already applied`)},
-		"0005_more.sql": {Data: []byte(`-- already applied`)},
-		"0006_more.sql": {Data: []byte(`CREATE TABLE extra (a INTEGER);`)},
-	}
+	latest := latestSchema(t)
+	fsys := applied(latest, fstest.MapFS{fmt.Sprintf("%04d_more.sql", latest+1): {Data: []byte(`CREATE TABLE extra (a INTEGER);`)}})
 	if err := migrate(ctx, s.db, fsys); err != nil {
 		t.Fatal(err)
 	}
-	if v := userVersion(t, s); v != 6 {
+	if v := userVersion(t, s); v != latest+1 {
 		t.Errorf("user_version = %d", v)
 	}
 }
@@ -143,11 +157,11 @@ func TestMigrateRefusals(t *testing.T) {
 	if err := migrate(ctx, s.db, fstest.MapFS{}); err == nil || !strings.Contains(err.Error(), "newer") {
 		t.Errorf("newer DB: %v", err)
 	}
-	gap := fstest.MapFS{"0001_a.sql": {Data: []byte(`;`)}, "0006_c.sql": {Data: []byte(`;`)}}
+	gap := fstest.MapFS{"0001_a.sql": {Data: []byte(`;`)}, "0003_c.sql": {Data: []byte(`;`)}}
 	if err := migrate(ctx, s.db, gap); err == nil || !strings.Contains(err.Error(), "numbering") {
 		t.Errorf("gap: %v", err)
 	}
-	ignored := fstest.MapFS{"0001_a.sql": {Data: []byte(`;`)}, "0002_b.sql": {Data: []byte(`;`)}, "0003_c.sql": {Data: []byte(`;`)}, "0004_d.sql": {Data: []byte(`;`)}, "0005_e.sql": {Data: []byte(`;`)}, "README.md": {Data: []byte(`x`)}}
+	ignored := applied(latestSchema(t), fstest.MapFS{"README.md": {Data: []byte(`x`)}})
 	if err := migrate(ctx, s.db, ignored); err != nil {
 		t.Errorf("non-migration file should be ignored: %v", err)
 	}
@@ -219,7 +233,7 @@ func TestOpenRefusesAnOutdatedDatabase(t *testing.T) {
 func TestMigrateUpgradesThenIsANoOp(t *testing.T) {
 	path := oldDB(t)
 	m, err := Migrate(ctx, path)
-	if err != nil || m.From != 1 || m.To != 5 || m.Before["projects"] != 1 || m.After["projects"] != 1 {
+	if err != nil || m.From != 1 || m.To != latestSchema(t) || m.Before["projects"] != 1 || m.After["projects"] != 1 {
 		t.Fatalf("Migrate = %+v, %v", m, err)
 	}
 	s, err := Open(path)
@@ -287,7 +301,7 @@ func TestMigration0005MovesTasksIntoTheJournal(t *testing.T) {
 	}, &domain.ScopeAck{Date: d("2026-06-01"), BaselineCount: 2, LastTaskID: 3}, today)
 
 	m, err := Migrate(ctx, path)
-	if err != nil || m.From != 4 || m.To != 5 {
+	if err != nil || m.From != 4 || m.To != latestSchema(t) {
 		t.Fatalf("Migrate = %+v, %v", m, err)
 	}
 	if _, ok := m.After["subtasks"]; ok || m.Before["subtasks"] != 4 || m.Before["journal_entries"] != 2 || m.After["journal_entries"] != 6 {
@@ -337,5 +351,69 @@ func TestMigration0005MovesTasksIntoTheJournal(t *testing.T) {
 	}
 	if next, err := s.AddTask(ctx, 1, "new", today); err != nil || next.ID != 7 {
 		t.Errorf("next id = %d, %v", next.ID, err)
+	}
+}
+
+// dbAt returns the path of a database migrated to schema n with the real
+// migrations, and the open connection for loading test rows.
+func dbAt(t *testing.T, n int) (string, *sql.DB) {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), fmt.Sprintf("v%d.db", n))
+	db, err := sql.Open("sqlite", "file:"+path+"?_pragma=foreign_keys(1)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	db.SetMaxOpenConns(1)
+	ms, err := listMigrations(migrations.FS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	upTo := fstest.MapFS{}
+	for _, m := range ms[:n] {
+		body, err := migrations.FS.ReadFile(m.name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		upTo[m.name] = &fstest.MapFile{Data: body}
+	}
+	if err := migrate(ctx, db, upTo); err != nil {
+		t.Fatal(err)
+	}
+	return path, db
+}
+
+func TestMigration0006AllowsUnassignedAndKeepsIDs(t *testing.T) {
+	path, db := dbAt(t, 5)
+	for _, q := range []string{
+		`INSERT INTO projects (id, name) VALUES (1, 'P')`,
+		`INSERT INTO activities (id, project_id, name, status, start_date, due_date) VALUES (1, 1, 'a', 'active', '2026-01-01', '2026-12-31')`,
+		`INSERT INTO journal_entries (activity_id, date, kind, text, logged_at, closed_on, closed_at) VALUES
+		   (1, '2026-01-01', 'update', 'Activity created', '2026-01-01 09:00', NULL, NULL),
+		   (1, '2026-01-02', 'task', 'closed task', NULL, '2026-01-03', '2026-01-03 10:00'),
+		   (1, '2026-01-04', 'task', 'deleted newest', NULL, NULL, NULL)`,
+		`DELETE FROM journal_entries WHERE id = 3`,
+	} {
+		if _, err := db.ExecContext(ctx, q); err != nil {
+			t.Fatal(err)
+		}
+	}
+	db.Close()
+
+	if m, err := Migrate(ctx, path); err != nil || m.From != 5 || m.Before["journal_entries"] != 2 || m.After["journal_entries"] != 2 {
+		t.Fatalf("Migrate = %+v, %v", m, err)
+	}
+	s, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	ts, _ := s.ListTasks(ctx, 1)
+	if len(ts) != 1 || ts[0].ID != 2 || ts[0].ClosedAt != "2026-01-03 10:00" {
+		t.Errorf("tasks: %+v", ts)
+	}
+	// the id of the deleted newest entry is not handed out again
+	j, err := s.AddJournal(ctx, domain.JournalEntry{Date: date(t, "2026-02-01"), Kind: domain.KindUpdate, Text: "unassigned"})
+	if err != nil || j.ID != 4 {
+		t.Errorf("new entry: %+v %v, want id 4", j, err)
 	}
 }

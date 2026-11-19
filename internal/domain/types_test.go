@@ -66,7 +66,8 @@ func TestValidate(t *testing.T) {
 		bad  bool
 	}{
 		{"ok", func(*JournalEntry) {}, false},
-		{"ok scope_ack", func(j *JournalEntry) { j.Kind = KindScopeAck }, false},
+		{"ok scope_ack", func(j *JournalEntry) { j.Kind, j.ActivityID = KindScopeAck, 1 }, false},
+		{"unassigned scope_ack", func(j *JournalEntry) { j.Kind = KindScopeAck }, true},
 		{"blank", func(j *JournalEntry) { j.Text = " " }, true},
 		{"no date", func(j *JournalEntry) { j.Date = 0 }, true},
 		{"bad kind", func(j *JournalEntry) { j.Kind = "x" }, true},

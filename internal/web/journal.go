@@ -51,12 +51,24 @@ func journalRows(entries []domain.JournalEntry) []journalRow {
 	return rows
 }
 
-// addJournal logs an entry on the activity named by the form's `activity` field.
-func (s *Server) addJournal(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(r.PostFormValue("activity"), 10, 64)
-	if err != nil {
-		err = domain.Invalid("choose an activity")
+// formActivity reads the form's `activity` field: an activity id, or empty
+// for Unassigned.
+func formActivity(r *http.Request) (int64, error) {
+	v := r.PostFormValue("activity")
+	if v == "" {
+		return 0, nil
 	}
+	id, err := strconv.ParseInt(v, 10, 64)
+	if err != nil || id <= 0 {
+		return 0, domain.Invalid("choose an activity, or none")
+	}
+	return id, nil
+}
+
+// addJournal logs an entry on the activity named by the form's `activity`
+// field, or Unassigned when it is empty or missing.
+func (s *Server) addJournal(w http.ResponseWriter, r *http.Request) {
+	id, err := formActivity(r)
 	day := s.clock.Today()
 	if err == nil && r.PostFormValue("date") != "" {
 		day, err = formDate(r, "date")
@@ -74,14 +86,22 @@ func (s *Server) addJournal(w http.ResponseWriter, r *http.Request) {
 	s.done(w, r, nextURL(r), func(v *dashboardView) { v.ClearQuick = fromQuickAdd(r) })
 }
 
+// editJournal rewrites an entry, and files it when the form has an
+// `activity` field (empty for Unassigned).
 func (s *Server) editJournal(w http.ResponseWriter, r *http.Request) {
 	id, err := pathID(r)
 	var day domain.Date
 	if err == nil {
 		day, err = formDate(r, "date")
 	}
+	var activity *int64
+	if err == nil && r.PostForm.Has("activity") {
+		var a int64
+		a, err = formActivity(r)
+		activity = &a
+	}
 	if err == nil {
-		err = s.store.EditJournal(r.Context(), id, day, domain.Kind(r.PostFormValue("kind")), formText(r))
+		err = s.store.EditJournal(r.Context(), id, activity, day, domain.Kind(r.PostFormValue("kind")), formText(r))
 	}
 	if err != nil {
 		s.fail(w, r, err)

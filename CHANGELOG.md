@@ -5,6 +5,20 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
+Upgrading from 0.3.0: run `workline migrate` once before `serve`.
+
+### Added
+- Log to the journal without choosing an activity. With nothing selected, the
+  bar logs to **Unassigned**; a × next to a selected activity switches back to
+  Unassigned.
+- File an Unassigned entry from its Edit form in the feed by picking an
+  activity.
+- Unassigned entries show in the feed (unless a project or activity narrows
+  it), count in "Open tasks now", and have their own section in the export.
+
+### Changed
+- The journal bar is always visible.
+
 ## [0.3.0] — 2026-11-19
 
 ### Added

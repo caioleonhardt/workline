@@ -19,7 +19,7 @@ func TestToggleStampsAndClearsClosedAt(t *testing.T) {
 		t.Errorf("stored: %+v", subs[1])
 	}
 	// editing text or creation date leaves the close time alone
-	if err := s.EditJournal(ctx, st.ID, date(t, "2026-02-02"), domain.KindTask, "renamed"); err != nil {
+	if err := s.EditJournal(ctx, st.ID, nil, date(t, "2026-02-02"), domain.KindTask, "renamed"); err != nil {
 		t.Fatal(err)
 	}
 	if subs, _ := s.ListTasks(ctx, a.ID); subs[1].ClosedAt != "2026-02-10 17:40" || subs[1].Text != "renamed" {

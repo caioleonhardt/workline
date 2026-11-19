@@ -21,9 +21,10 @@ type exportProject struct {
 	Activities []exportActivity
 }
 
-// exportMarkdown renders the journal export (SPEC §10 item 66). from and to
-// are zero when unbounded; scope names the project or "all projects".
-func exportMarkdown(scope string, from, to, generated domain.Date, projects []exportProject) string {
+// exportMarkdown renders the journal export (SPEC §10 items 66 and 91). from
+// and to are zero when unbounded; scope names the project or "all projects".
+// The Unassigned entries come last.
+func exportMarkdown(scope string, from, to, generated domain.Date, projects []exportProject, unassigned []domain.JournalEntry) string {
 	var b strings.Builder
 	rng := "all dates"
 	switch {
@@ -35,7 +36,7 @@ func exportMarkdown(scope string, from, to, generated domain.Date, projects []ex
 		rng = "until " + to.String()
 	}
 	fmt.Fprintf(&b, "# Workline journal\n%s · %s · generated %s\n", rng, scope, generated)
-	if len(projects) == 0 {
+	if len(projects) == 0 && len(unassigned) == 0 {
 		b.WriteString("\nNo journal entries in this range.\n")
 	}
 	for _, p := range projects {
@@ -43,20 +44,28 @@ func exportMarkdown(scope string, from, to, generated domain.Date, projects []ex
 		for _, a := range p.Activities {
 			fmt.Fprintf(&b, "\n### %s\n%s · requested by %s · %s → %s\n\n",
 				a.Name, capitalize(string(a.Status)), orDash(a.RequestedBy), a.Start, a.Due)
-			for _, e := range a.Entries {
-				when := e.Date.String()
-				if t := e.Time(); t != "" {
-					when += " " + t
-				}
-				text := strings.ReplaceAll(strings.TrimRight(e.Text, "\n"), "\n", "\n  ")
-				if !e.ClosedOn.IsZero() {
-					text += " (closed " + e.ClosedOn.String() + ")"
-				}
-				fmt.Fprintf(&b, "- %s **%s** — %s\n", when, kindLabel(e.Kind), text)
-			}
+			writeEntries(&b, a.Entries)
 		}
 	}
+	if len(unassigned) > 0 {
+		b.WriteString("\n## Unassigned\n\n")
+		writeEntries(&b, unassigned)
+	}
 	return b.String()
+}
+
+func writeEntries(b *strings.Builder, entries []domain.JournalEntry) {
+	for _, e := range entries {
+		when := e.Date.String()
+		if t := e.Time(); t != "" {
+			when += " " + t
+		}
+		text := strings.ReplaceAll(strings.TrimRight(e.Text, "\n"), "\n", "\n  ")
+		if !e.ClosedOn.IsZero() {
+			text += " (closed " + e.ClosedOn.String() + ")"
+		}
+		fmt.Fprintf(b, "- %s **%s** — %s\n", when, kindLabel(e.Kind), text)
+	}
 }
 
 func orDash(s string) string {
@@ -95,7 +104,7 @@ func (s *Server) exportJournal(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	scope := "all projects"
+	scope, allProjects := "all projects", true
 	if v := r.URL.Query().Get("project"); v != "" {
 		id, perr := strconv.ParseInt(v, 10, 64)
 		if perr != nil {
@@ -107,7 +116,7 @@ func (s *Server) exportJournal(w http.ResponseWriter, r *http.Request) {
 			s.fail(w, r, fmt.Errorf("project %d: %w", id, store.ErrNotFound))
 			return
 		}
-		projects, scope = projects[i:i+1], projects[i].Name
+		projects, scope, allProjects = projects[i:i+1], projects[i].Name, false
 	} else {
 		projects = slices.DeleteFunc(projects, func(p domain.Project) bool { return p.Archived })
 	}
@@ -149,5 +158,9 @@ func (s *Server) exportJournal(w http.ResponseWriter, r *http.Request) {
 	today := s.clock.Today()
 	w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="workline-journal-%s.md"`, today))
-	fmt.Fprint(w, exportMarkdown(scope, from, to, today, out))
+	var unassigned []domain.JournalEntry
+	if allProjects {
+		unassigned = byActivity[0]
+	}
+	fmt.Fprint(w, exportMarkdown(scope, from, to, today, out, unassigned))
 }

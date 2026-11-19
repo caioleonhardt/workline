@@ -8,11 +8,13 @@ import (
 	"workline/internal/domain"
 )
 
-// quickAddView is where the quick-add bar's next entry goes.
+// quickAddView is where the quick-add bar's next entry goes: the selected
+// activity, or Unassigned (ID 0).
 type quickAddView struct {
 	ID            int64
 	Name, Project string
 	Next          string
+	ClearHref     string // the same page without the selection; empty for Unassigned
 }
 
 type tileView struct {
@@ -38,7 +40,7 @@ type dashboardView struct {
 	AllProjects []domain.Project // choices in the form
 	Panel       *panelView       // nil unless sel names an existing activity
 	Controls    controlsView
-	QuickAdd    *quickAddView // the quick-add bar's target; nil without a selection
+	QuickAdd    quickAddView // the quick-add bar's target
 	QuickKinds  []option
 	Journal     journalView
 	ClearQuick  bool // a successful quick add also replaces the text field with an empty one
@@ -106,6 +108,7 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 	counts := map[domain.Status]int{}
 	creepCount := 0
 	byProject := map[int64][]domain.Activity{}
+	liveOf := map[int64][]domain.Activity{} // every live activity, for filing entries
 	var visibleIDs []int64
 	itemOf := map[int64]domain.ActivityWithTasks{}
 	for _, a := range acts {
@@ -117,6 +120,7 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 			it.Ack = &ack
 		}
 		itemOf[a.ID] = it
+		liveOf[a.ProjectID] = append(liveOf[a.ProjectID], a)
 		if a.ID == f.Sel {
 			panel = buildPanel(it.Activity, projects, it.Tasks, it.Ack, today, uri)
 		}
@@ -137,11 +141,18 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 			visibleIDs = append(visibleIDs, a.ID)
 		}
 	}
-	ids := visibleIDs
-	if panel != nil {
-		ids = []int64{panel.ID} // a selection narrows the journal to its activity
+	var filing []domain.Group
+	for _, p := range projects {
+		if as := liveOf[p.ID]; len(as) > 0 {
+			filing = append(filing, domain.Group{Project: p, Activities: as})
+		}
 	}
-	journal, err := s.buildJournal(ctx, f, uri, ids, panel, itemOf, projects)
+	ids := visibleIDs
+	unassigned := f.Project == 0 // Unassigned entries belong to no project
+	if panel != nil {
+		ids, unassigned = []int64{panel.ID}, false // a selection narrows the journal to its activity
+	}
+	journal, err := s.buildJournal(ctx, f, uri, ids, unassigned, panel, itemOf, projects, filing)
 	if err != nil {
 		return dashboardView{}, err
 	}
@@ -163,10 +174,15 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 		Today:      today.String(), AllProjects: projects, Panel: panel,
 		Controls: buildControls(f, projects, counts, creepCount), QuickKinds: kindOptions(quickKinds, domain.KindUpdate), Journal: journal,
 		Timeline: buildTimeline(f, today, timelineData{Groups: groups, ItemOf: itemOf, Creeps: creeps}),
-		Tiles:    buildTiles(domain.ComputeTiles(tileItems, f.Year, today)),
+		QuickAdd: quickAddView{Name: "Unassigned", Next: uri},
 	}
+	tiles := domain.ComputeTiles(tileItems, f.Year, today)
+	if f.Project == 0 {
+		tiles.OpenTasks += domain.OpenAt(subsOf[0], today) // Unassigned tasks
+	}
+	v.Tiles = buildTiles(tiles)
 	if panel != nil {
-		v.QuickAdd = &quickAddView{ID: panel.ID, Name: panel.Name, Project: panel.ProjectName, Next: uri}
+		v.QuickAdd = quickAddView{ID: panel.ID, Name: panel.Name, Project: panel.ProjectName, Next: uri, ClearHref: panel.CloseHref}
 	}
 	return v, nil
 }

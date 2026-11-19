@@ -20,7 +20,8 @@ func TestExportMarkdownFormat(t *testing.T) {
 		},
 	}
 	got := exportMarkdown("Alpha", date(t, "2026-01-01"), date(t, "2026-11-19"), date(t, "2026-11-19"),
-		[]exportProject{{Name: "Alpha", Activities: []exportActivity{act}}})
+		[]exportProject{{Name: "Alpha", Activities: []exportActivity{act}}},
+		[]domain.JournalEntry{{Date: date(t, "2026-11-19"), Kind: domain.KindUpdate, Text: "Loose note"}})
 	want := "# Workline journal\n" +
 		"2026-01-01 to 2026-11-19 · Alpha · generated 2026-11-19\n" +
 		"\n## Alpha\n" +
@@ -29,12 +30,14 @@ func TestExportMarkdownFormat(t *testing.T) {
 		"- 2026-04-20 14:05 **Decision** — first line\n  second line\n" +
 		"- 2026-05-04 **Task** — Open task\n" +
 		"- 2026-05-05 **Task** — Done task (closed 2026-06-01)\n" +
-		"- 2026-11-18 16:02 **Scope acknowledged** — Scope change acknowledged\n"
+		"- 2026-11-18 16:02 **Scope acknowledged** — Scope change acknowledged\n" +
+		"\n## Unassigned\n\n" +
+		"- 2026-11-19 **Update** — Loose note\n"
 	if got != want {
 		t.Errorf("got:\n%s\nwant:\n%s", got, want)
 	}
 
-	empty := exportMarkdown("all projects", 0, 0, date(t, "2026-11-19"), nil)
+	empty := exportMarkdown("all projects", 0, 0, date(t, "2026-11-19"), nil, nil)
 	if empty != "# Workline journal\nall dates · all projects · generated 2026-11-19\n\nNo journal entries in this range.\n" {
 		t.Errorf("empty: %q", empty)
 	}
@@ -42,7 +45,7 @@ func TestExportMarkdownFormat(t *testing.T) {
 		from, to domain.Date
 		want     string
 	}{{date(t, "2026-01-01"), 0, "from 2026-01-01"}, {0, date(t, "2026-02-01"), "until 2026-02-01"}} {
-		if got := exportMarkdown("x", c.from, c.to, 1+date(t, "2026-01-01"), nil); !strings.Contains(got, c.want+" · x") {
+		if got := exportMarkdown("x", c.from, c.to, 1+date(t, "2026-01-01"), nil, nil); !strings.Contains(got, c.want+" · x") {
 			t.Errorf("range label: %q", got)
 		}
 	}

@@ -10,8 +10,14 @@ import (
 	"workline/internal/domain"
 )
 
-const kafkaTarget = `<span class="target">Journal for <strong>Kafka upgrade readiness</strong> · Order platform modernisation</span>` +
+const kafkaTarget = `<span class="target">Journal for <strong>Kafka upgrade readiness</strong> · Order platform modernisation` +
+	` <a class="clear-target" href="/" hx-get="/" hx-target="#dash" hx-swap="outerHTML" hx-push-url="true" aria-label="Log to Unassigned instead">×</a></span>` +
 	`<input type="hidden" name="activity" value="2"><input type="hidden" name="next" value="/?sel=2">`
+
+// unassignedTarget is the bar's target without a selection (SPEC §10 item 91).
+func unassignedTarget(next string) string {
+	return `<span class="target">Journal for <strong>Unassigned</strong></span><input type="hidden" name="next" value="` + next + `">`
+}
 
 func TestQuickAddBarOutsideTheSwapRegion(t *testing.T) {
 	h, _ := newApp(t)
@@ -23,7 +29,7 @@ func TestQuickAddBarOutsideTheSwapRegion(t *testing.T) {
 		t.Error("the bar must come after the swap region")
 	}
 	wantBody(t, get(h, "/"), `<form id="quickadd" class="quick" method="post" action="/journal" hx-post="/journal" hx-target="#dash" hx-swap="outerHTML">`,
-		`<span id="quickadd-target"></span>`, `<option value="update" selected>Update</option>`,
+		`<span id="quickadd-target">`+unassignedTarget("/")+`</span>`, `<option value="update" selected>Update</option>`,
 		`<textarea id="quickadd-text" name="text" rows="1" aria-label="Journal entry"`)
 	// htmx fragments never contain the bar itself, only the target update
 	frag := hxGet(h, "/?sel=2")
@@ -40,13 +46,13 @@ func TestQuickAddTargetFollowsTheSelection(t *testing.T) {
 	rec := hxGet(h, "/?sel=1&status=done")
 	wantBody(t, rec, `<span id="quickadd-target" hx-swap-oob="innerHTML"><span class="target">Journal for <strong>Consolidate order services into one Go service</strong>`,
 		`name="next" value="/?sel=1&amp;status=done"`)
-	// no selection, an unknown one and an archived project's activity give no target
-	wantBody(t, hxGet(h, "/"), `<span id="quickadd-target" hx-swap-oob="innerHTML"></span>`)
-	wantBody(t, hxGet(h, "/?sel=999"), `<span id="quickadd-target" hx-swap-oob="innerHTML"></span>`)
+	// no selection, an unknown one and an archived project's activity log to Unassigned
+	wantBody(t, hxGet(h, "/"), `<span id="quickadd-target" hx-swap-oob="innerHTML">`+unassignedTarget("/")+`</span>`)
+	wantBody(t, hxGet(h, "/?sel=999"), `<span id="quickadd-target" hx-swap-oob="innerHTML">`+unassignedTarget("/?sel=999")+`</span>`)
 	if err := st.SetProjectArchived(ctx, 1, true); err != nil {
 		t.Fatal(err)
 	}
-	wantBody(t, hxGet(h, "/?sel=2"), `<span id="quickadd-target" hx-swap-oob="innerHTML"></span>`)
+	wantBody(t, hxGet(h, "/?sel=2"), `<span id="quickadd-target" hx-swap-oob="innerHTML">`+unassignedTarget("/?sel=2")+`</span>`)
 }
 
 func TestQuickAddWithoutJS(t *testing.T) {
@@ -71,8 +77,7 @@ func TestQuickAddBarStyles(t *testing.T) {
 	h, _ := newApp(t)
 	css := get(h, "/static/app.css").Body.String()
 	for _, want := range []string{
-		".quick { position: fixed; left: 0; right: 0; bottom: 0;", ".quick:not(:has(.target)) { display: none; }",
-		"body:has(.quick .target) { padding-bottom: 96px; }", "html.js .apply-nojs { display: none; }",
+		".quick { position: fixed; left: 0; right: 0; bottom: 0;", "body:has(.quick) { padding-bottom: 96px; }", "html.js .apply-nojs { display: none; }",
 	} {
 		if !strings.Contains(css, want) {
 			t.Errorf("app.css lacks %q", want)

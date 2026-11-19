@@ -10,7 +10,7 @@ import (
 )
 
 // taskColumns reads a journal entry of kind task as a domain.Task.
-const taskColumns = `id, activity_id, text, date, closed_on, closed_at`
+const taskColumns = `id, coalesce(activity_id, 0), text, date, closed_on, closed_at`
 
 func scanTask(r scanner) (domain.Task, error) {
 	var s domain.Task
@@ -57,7 +57,7 @@ func (s *Store) ListTasks(ctx context.Context, activityID int64) ([]domain.Task,
 		`SELECT `+taskColumns+` FROM journal_entries WHERE kind = 'task' AND activity_id = ? ORDER BY id`, activityID)
 }
 
-// ListAllTasks returns every task ordered by activity, then id.
+// ListAllTasks returns every task ordered by activity (Unassigned first), then id.
 func (s *Store) ListAllTasks(ctx context.Context) ([]domain.Task, error) {
 	return queryTasks(ctx, s.db, `SELECT `+taskColumns+` FROM journal_entries WHERE kind = 'task' ORDER BY activity_id, id`)
 }

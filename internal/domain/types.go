@@ -111,18 +111,19 @@ type Activity struct {
 // zero while open.
 type Task struct {
 	ID         int64
-	ActivityID int64
+	ActivityID int64 // 0: Unassigned
 	Text       string
 	CreatedOn  Date
 	ClosedOn   Date
 	ClosedAt   string // "YYYY-MM-DD HH:MM" local time it was closed; empty if open or unknown
 }
 
-// JournalEntry is a dated note on an activity. An entry of kind task is a
-// task opened on Date; only tasks have ClosedOn and ClosedAt.
+// JournalEntry is a dated note on an activity, or Unassigned when ActivityID
+// is 0. An entry of kind task is a task opened on Date; only tasks have
+// ClosedOn and ClosedAt.
 type JournalEntry struct {
 	ID         int64
-	ActivityID int64
+	ActivityID int64 // 0: Unassigned
 	Date       Date
 	Kind       Kind
 	Text       string
@@ -236,6 +237,8 @@ func (j JournalEntry) Validate() error {
 		return Invalid("journal date is required")
 	case !j.Kind.Valid():
 		return Invalid("unknown journal kind %q", j.Kind)
+	case j.Kind == KindScopeAck && j.ActivityID == 0:
+		return Invalid("an acknowledgement belongs to an activity")
 	case j.LoggedAt != "" && !validStamp(j.LoggedAt):
 		return Invalid("logged time %q is not YYYY-MM-DD HH:MM", j.LoggedAt)
 	case j.Kind == KindTask:

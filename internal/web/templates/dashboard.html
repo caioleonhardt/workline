@@ -4,7 +4,7 @@
 {{template "quickadd" .}}
 {{template "foot" .}}
 
-{{define "quickadd-target"}}{{with .}}<span class="target">Journal for <strong>{{.Name}}</strong> · {{.Project}}</span><input type="hidden" name="activity" value="{{.ID}}"><input type="hidden" name="next" value="{{.Next}}">{{end}}{{end}}
+{{define "quickadd-target"}}<span class="target">Journal for <strong>{{.Name}}</strong>{{if .Project}} · {{.Project}}{{end}}{{if .ClearHref}} <a class="clear-target" href="{{.ClearHref}}" hx-get="{{.ClearHref}}" hx-target="#dash" hx-swap="outerHTML" hx-push-url="true" aria-label="Log to Unassigned instead">×</a>{{end}}</span>{{if .ID}}<input type="hidden" name="activity" value="{{.ID}}">{{end}}<input type="hidden" name="next" value="{{.Next}}">{{end}}
 
 {{define "quickadd-input"}}<textarea id="quickadd-text" name="text" rows="1" aria-label="Journal entry" placeholder="Log to the journal… (Shift+Enter for a new line)" autocomplete="off" aria-keyshortcuts="j" required{{if .}} hx-swap-oob="true"{{end}}></textarea>{{end}}
 

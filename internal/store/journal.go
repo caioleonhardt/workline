@@ -10,7 +10,7 @@ import (
 	"workline/internal/domain"
 )
 
-const journalColumns = `id, activity_id, date, kind, text, logged_at, closed_on, closed_at`
+const journalColumns = `id, coalesce(activity_id, 0), date, kind, text, logged_at, closed_on, closed_at`
 
 func insertJournal(ctx context.Context, q queryer, j domain.JournalEntry) (int64, error) {
 	if err := j.Validate(); err != nil {
@@ -18,7 +18,7 @@ func insertJournal(ctx context.Context, q queryer, j domain.JournalEntry) (int64
 	}
 	res, err := q.ExecContext(ctx,
 		`INSERT INTO journal_entries (activity_id, date, kind, text, logged_at) VALUES (?, ?, ?, ?, ?)`,
-		j.ActivityID, j.Date.String(), string(j.Kind), j.Text, sql.NullString{String: j.LoggedAt, Valid: j.LoggedAt != ""})
+		activityRef(j.ActivityID), j.Date.String(), string(j.Kind), j.Text, sql.NullString{String: j.LoggedAt, Valid: j.LoggedAt != ""})
 	if err != nil {
 		return 0, mapErr(err)
 	}
@@ -32,7 +32,11 @@ func userKind(k domain.Kind) error {
 	return nil
 }
 
-// AddJournal adds a user-written entry; the caller stamps LoggedAt. Kind scope_ack is refused.
+// activityRef stores an activity id, with 0 (Unassigned) as NULL.
+func activityRef(id int64) sql.NullInt64 { return sql.NullInt64{Int64: id, Valid: id != 0} }
+
+// AddJournal adds a user-written entry; the caller stamps LoggedAt. Kind
+// scope_ack is refused. ActivityID 0 logs it Unassigned.
 func (s *Store) AddJournal(ctx context.Context, j domain.JournalEntry) (domain.JournalEntry, error) {
 	if err := userKind(j.Kind); err != nil {
 		return j, err
@@ -78,21 +82,24 @@ func (s *Store) ListJournal(ctx context.Context, activityID int64) ([]domain.Jou
 		 WHERE activity_id = ? ORDER BY date DESC, logged_at IS NULL, logged_at DESC, id DESC`, activityID)
 }
 
-// ListJournalFeed returns up to limit entries of the given activities, newest
-// first (date, then logged time with untimed entries last, then id), and
-// whether more exist beyond the limit.
-func (s *Store) ListJournalFeed(ctx context.Context, activityIDs []int64, limit int) ([]domain.JournalEntry, bool, error) {
-	if len(activityIDs) == 0 || limit <= 0 {
+// ListJournalFeed returns up to limit entries of the given activities (and
+// the Unassigned ones when unassigned is set), newest first (date, then logged
+// time with untimed entries last, then id), and whether more exist beyond the
+// limit.
+func (s *Store) ListJournalFeed(ctx context.Context, activityIDs []int64, unassigned bool, limit int) ([]domain.JournalEntry, bool, error) {
+	if (len(activityIDs) == 0 && !unassigned) || limit <= 0 {
 		return nil, false, nil
 	}
-	args := make([]any, 0, len(activityIDs)+1)
+	args := make([]any, 0, len(activityIDs)+2)
+	args = append(args, unassigned)
 	for _, id := range activityIDs {
 		args = append(args, id)
 	}
 	args = append(args, limit+1)
+	in := strings.TrimPrefix(strings.Repeat(",?", len(activityIDs)), ",")
 	entries, err := s.queryJournal(ctx,
 		`SELECT `+journalColumns+` FROM journal_entries
-		 WHERE activity_id IN (?`+strings.Repeat(",?", len(activityIDs)-1)+`)
+		 WHERE (? AND activity_id IS NULL) OR activity_id IN (`+in+`)
 		 ORDER BY date DESC, logged_at IS NULL, logged_at DESC, id DESC LIMIT ?`, args...)
 	if err != nil {
 		return nil, false, err
@@ -113,11 +120,12 @@ func (s *Store) ListJournalBetween(ctx context.Context, from, to domain.Date) ([
 		 ORDER BY date, logged_at IS NOT NULL, logged_at, id`, from.String(), to.String())
 }
 
-// EditJournal rewrites date, kind and text. scope_ack entries are read-only,
-// and an entry cannot become a task or stop being one. A task's date (the day
-// it was opened) cannot move after the day it was closed.
-func (s *Store) EditJournal(ctx context.Context, id int64, date domain.Date, kind domain.Kind, text string) error {
-	j := domain.JournalEntry{ActivityID: id, Date: date, Kind: kind, Text: text}
+// EditJournal rewrites date, kind and text, and files the entry under
+// *activity (0 for Unassigned) unless activity is nil. scope_ack entries are
+// read-only, and an entry cannot become a task or stop being one. A task's date
+// (the day it was opened) cannot move after the day it was closed.
+func (s *Store) EditJournal(ctx context.Context, id int64, activity *int64, date domain.Date, kind domain.Kind, text string) error {
+	j := domain.JournalEntry{Date: date, Kind: kind, Text: text}
 	if err := userKind(kind); err != nil {
 		return err
 	}
@@ -125,13 +133,20 @@ func (s *Store) EditJournal(ctx context.Context, id int64, date domain.Date, kin
 		return err
 	}
 	res, err := s.db.ExecContext(ctx,
-		`UPDATE journal_entries SET date = ?1, kind = ?2, text = ?3
+		`UPDATE journal_entries SET date = ?1, kind = ?2, text = ?3, activity_id = CASE WHEN ?5 THEN ?6 ELSE activity_id END
 		 WHERE id = ?4 AND kind <> 'scope_ack' AND (kind = 'task') = (?2 = 'task')`,
-		date.String(), string(kind), text, id)
+		date.String(), string(kind), text, id, activity != nil, activityRef(deref(activity)))
 	if err != nil {
 		return fmt.Errorf("edit journal %d: %w", id, mapErr(err))
 	}
 	return s.readOnlyOrMissing(ctx, res, id)
+}
+
+func deref(p *int64) int64 {
+	if p == nil {
+		return 0
+	}
+	return *p
 }
 
 // DeleteJournal removes a user-written entry. scope_ack entries are read-only.

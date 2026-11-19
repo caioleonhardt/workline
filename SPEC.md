@@ -64,7 +64,7 @@ On creation, status defaults to `planned` if `start_date > today`, else `active`
 | field | type | notes |
 |---|---|---|
 | id | int | monotonically increasing, never reused |
-| activity_id | int | FK |
+| activity_id | int, nullable | FK. null = Unassigned (§10 item 91); `scope_ack` entries always have one |
 | date | date | defaults to today; editable. For a task, the day it was opened |
 | kind | enum | `update`, `decision`, `blocker`, `meeting`, `task`, `scope_ack` |
 | text | text | required |
@@ -287,6 +287,7 @@ GET    /static/*                           embedded assets
 6. **Journal workspace.** Journal list below the timeline and a fixed quick-add bar (§10 items 73–76).
 7. **Tasks in the journal.** `workline migrate`; tasks become journal entries of kind `task`; multiline entries (§10 items 83–89).
 8. **Version.** `workline version` (§10 item 90).
+9. **Unassigned entries.** Log without choosing an activity; file entries later (§10 item 91).
 
 Each milestone ends with `go vet ./...` and `go test ./...` green.
 
@@ -382,7 +383,7 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 
 ### Decisions (Milestone 6, journal workspace, 2026-11-19)
 73. **Journal list moves out of the panel** to the timeline's column, directly below the timeline and the same width as it (the panel stays beside both). With nothing selected it is a newest-first feed of entries from all activities visible under the current filters, each tagged with its project and activity (a link that selects it). With an activity selected it shows only that activity's entries. Edit/delete per entry stay (scope_ack read-only). The panel keeps status, burndown, scope and tasks.
-74. **Quick-add bar**: fixed to the bottom of the viewport, shown only when an activity is selected, and displays that activity's name (and project) so it is clear where the entry goes. Fields: kind (default Update; Task adds a task, item 86) and text; Enter logs it with date = today and `logged_at` stamped, Shift+Enter starts a new line (item 89). Backfilling another date is done by editing the entry in the list.
+74. **Quick-add bar**: fixed to the bottom of the viewport, always shown (item 91), and displays that activity's name (and project) so it is clear where the entry goes. Fields: kind (default Update; Task adds a task, item 86) and text; Enter logs it with date = today and `logged_at` stamped, Shift+Enter starts a new line (item 89). Backfilling another date is done by editing the entry in the list.
 75. The bar lives outside the htmx swap region so typed text survives swaps; its target updates when the selection changes. The page reserves bottom space so the bar never covers content. Without JS it is a normal form posting with `next`.
 76. Shortcut `j` focuses the bar's text field (when shown); `Esc` from the field blurs it.
 77. The feed lists all entries (any date) of the visible activities; the period/month only choose activities. 30 entries per page with "Show 30 more" (`feed` param, step 30, max 600), also in the narrowed view.
@@ -401,3 +402,4 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 88. **Activity created** is logged before the initial tasks, so newest-first lists show the tasks above it. The seed keeps the baseline's task ids; its other entries take the ids after them.
 89. **Multiline entries.** Journal text (tasks too) is a `<textarea>` in the quick-add bar and in both Edit forms. The bar's field starts one line high and grows with its content (CSS `field-sizing`, capped at 10 lines). The server turns CRLF into LF and trims trailing blank space; lists show line breaks (`white-space: pre-wrap`), and the export indents continuation lines under their bullet.
 90. **Version.** `workline version` (also `-version`) prints `workline vX.Y.Z (schema N)`, plus ` revision abc1234[, modified]` when the binary carries a VCS stamp. `X.Y.Z` is a constant in `cmd/workline/main.go` that each release bumps together with `CHANGELOG.md`; a test keeps them equal.
+91. **Unassigned entries.** A journal entry (task too) may have no activity (migration 0006 makes `activity_id` nullable and keeps the id counter, so ids are still never reused). The quick-add bar is always shown: it logs to the selected activity, else to **Unassigned**; a × beside a selected target drops the selection. In the feed, Unassigned entries carry an "Unassigned" tag and appear only when neither a project filter nor a selection narrows the feed. Only an Unassigned entry's Edit form has an Activity select (Unassigned, then live activities grouped by project); filing is one-way from the feed, so filed entries do not repeat the activity list in every row. An Edit post without an `activity` field keeps the entry's activity. Unassigned open tasks count in "Open tasks now" when no project filter is set, never on the timeline. The export lists them last under "## Unassigned" when it covers all projects. Moving a task changes its activity's scope figures; an acknowledgement's `last_task_id` compares ids, so a task filed after an ack counts as added only if its id is newer.
