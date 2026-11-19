@@ -395,3 +395,15 @@ func TestCompletionPopupsOpenDownInTheFirstRows(t *testing.T) {
 		t.Error("a single row opens downward")
 	}
 }
+
+// Bins sit inside .bins, which is itself positioned, so each bin must position
+// itself against it; otherwise it collapses to nothing (found in a real browser).
+func TestBinsArePositionedAgainstTheirContainer(t *testing.T) {
+	h, _ := newApp(t)
+	css := get(h, "/static/app.css").Body.String()
+	for _, want := range []string{".bins { left: 0; right: 0; bottom: 16px; height: 44px; }", ".bin { position: absolute; bottom: 0;"} {
+		if !strings.Contains(css, want) {
+			t.Errorf("app.css lacks %q", want)
+		}
+	}
+}
