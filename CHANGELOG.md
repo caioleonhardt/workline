@@ -5,6 +5,17 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
+### Changed
+- Vim-style keys on the journal and timeline pages. `j`/`k` move between entries,
+  `gg`/`G` jump to the first/last, `h`/`l` switch between lists (open tasks,
+  panel tasks, the journal feed). `i` edits the entry, `x` closes or reopens a
+  task, `dd` deletes (after you confirm), and `Enter` opens its activity. `o`
+  focuses the journal bar. `/` searches the entries on the page, and `n`/`N`
+  jump between matches. `[`/`]` page the weeks, `gj`/`gt`/`gp` go to Journal,
+  Timeline or Projects, and `?` lists every key.
+- On the timeline, New activity is now `O` and the project filter `f`. The old
+  `t d u b m` and `j` keys are gone; in the bar, `/t`, `/d`… still choose the kind.
+
 ## [0.8.0] — 2026-11-19
 
 ### Changed
