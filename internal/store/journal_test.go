@@ -312,3 +312,28 @@ func TestUnassignedJournal(t *testing.T) {
 		t.Errorf("filed under a missing activity: %v", err)
 	}
 }
+
+func TestListAllJournal(t *testing.T) {
+	s := newTestStore(t)
+	a := mustActivity(t, s, "P", "2026-01-01", "2026-12-31") // "Activity created" and "first", 2026-01-01
+	for _, e := range []domain.JournalEntry{
+		{ActivityID: a.ID, Date: date(t, "2026-03-01"), Kind: domain.KindUpdate, Text: "untimed"},
+		{ActivityID: a.ID, Date: date(t, "2026-03-01"), Kind: domain.KindUpdate, Text: "timed", LoggedAt: "2026-03-01 08:00"},
+		{Date: date(t, "2026-02-01"), Kind: domain.KindMeeting, Text: "loose"},
+	} {
+		if _, err := s.AddJournal(ctx, e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	es, err := s.ListAllJournal(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out []string
+	for _, e := range es {
+		out = append(out, e.Text)
+	}
+	if got, want := strings.Join(out, "|"), "timed|untimed|loose|first|Activity created"; got != want {
+		t.Errorf("got %q", got)
+	}
+}

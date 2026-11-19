@@ -110,6 +110,14 @@ func (s *Store) ListJournalFeed(ctx context.Context, activityIDs []int64, unassi
 	return entries, false, nil
 }
 
+// ListAllJournal returns every entry, Unassigned included, in the feed's
+// order: newest first (date, then logged time with untimed entries last, then id).
+func (s *Store) ListAllJournal(ctx context.Context) ([]domain.JournalEntry, error) {
+	return s.queryJournal(ctx,
+		`SELECT `+journalColumns+` FROM journal_entries
+		 ORDER BY date DESC, logged_at IS NULL, logged_at DESC, id DESC`)
+}
+
 // ListJournalBetween returns the entries of all activities whose date lies in
 // from..to inclusive (a zero bound is open), oldest first: by date, then
 // logged time with untimed entries first, then id.
