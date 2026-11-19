@@ -54,7 +54,7 @@ func TestCreateActivity(t *testing.T) {
 	if len(subs) != 2 || subs[1].Text != "second" || subs[0].CreatedOn != date(t, "2026-11-01") {
 		t.Errorf("tasks: %+v", subs)
 	}
-	if j, _ := st.ListJournal(ctx, a.ID); len(j) != 1 || j[0].Text != "Activity created" {
+	if j, _ := st.ListJournal(ctx, a.ID); len(j) != 3 || j[0].Text != "Activity created" { // dated today, after the tasks' start date
 		t.Errorf("journal: %+v", j)
 	}
 }

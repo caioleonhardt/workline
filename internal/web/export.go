@@ -49,6 +49,9 @@ func exportMarkdown(scope string, from, to, generated domain.Date, projects []ex
 					when += " " + t
 				}
 				text := strings.ReplaceAll(strings.TrimRight(e.Text, "\n"), "\n", "\n  ")
+				if !e.ClosedOn.IsZero() {
+					text += " (closed " + e.ClosedOn.String() + ")"
+				}
 				fmt.Fprintf(&b, "- %s **%s** — %s\n", when, kindLabel(e.Kind), text)
 			}
 		}

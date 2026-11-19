@@ -73,6 +73,11 @@ func TestValidate(t *testing.T) {
 		{"logged at", func(j *JournalEntry) { j.LoggedAt = "2026-11-18 09:05" }, false},
 		{"logged at without minute", func(j *JournalEntry) { j.LoggedAt = "2026-11-18" }, true},
 		{"logged at with seconds", func(j *JournalEntry) { j.LoggedAt = "2026-11-18 09:05:00" }, true},
+		{"task", func(j *JournalEntry) { j.Kind = KindTask }, false},
+		{"closed task", func(j *JournalEntry) { j.Kind, j.ClosedOn, j.ClosedAt = KindTask, j.Date, "2026-01-02 10:00" }, false},
+		{"task closed before opened", func(j *JournalEntry) { j.Kind, j.ClosedOn = KindTask, d(t, "2026-01-01") }, true},
+		{"closed update", func(j *JournalEntry) { j.ClosedOn = j.Date }, true},
+		{"closed time on update", func(j *JournalEntry) { j.ClosedAt = "2026-01-02 10:00" }, true},
 		{"logged at impossible", func(j *JournalEntry) { j.LoggedAt = "2026-11-18 25:00" }, true},
 	}
 	for _, c := range js {
@@ -152,5 +157,13 @@ func TestInvalidErrorKeepsItsMessageUnderWrapping(t *testing.T) {
 	}
 	if _, perr := ParseDate("soon"); !errors.As(perr, &ie) || ie.Message != `date "soon" is not YYYY-MM-DD` {
 		t.Errorf("ParseDate error: %v", perr)
+	}
+}
+
+func TestJournalEntryTask(t *testing.T) {
+	j := JournalEntry{ID: 7, ActivityID: 2, Date: d(t, "2026-01-02"), Kind: KindTask, Text: "t", ClosedOn: d(t, "2026-01-05"), ClosedAt: "2026-01-05 09:00"}
+	want := Task{ID: 7, ActivityID: 2, Text: "t", CreatedOn: d(t, "2026-01-02"), ClosedOn: d(t, "2026-01-05"), ClosedAt: "2026-01-05 09:00"}
+	if got := j.Task(); got != want {
+		t.Errorf("Task() = %+v, want %+v", got, want)
 	}
 }

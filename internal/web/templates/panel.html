@@ -54,13 +54,14 @@
 <span class="muted mono small" title="opened {{.Created}}{{if .Closed}} · closed {{.Closed}}{{end}}">{{if .Closed}}closed {{.Closed}}{{else}}opened {{.Created}}{{end}}</span>
 <details>
 <summary>Edit</summary>
-<form class="inline" method="post" action="/tasks/{{.ID}}">
+<form class="inline" method="post" action="/journal/{{.ID}}">
 <input type="hidden" name="next" value="{{$.Next}}">
+<input type="hidden" name="kind" value="task">
 <label>Text<input name="text" value="{{.Text}}" required></label>
-<label>Opened<input type="date" name="created_on" value="{{.Created}}" required></label>
+<label>Opened<input type="date" name="date" value="{{.Created}}" required></label>
 <button>Save</button>
 </form>
-<form method="post" action="/tasks/{{.ID}}/delete">
+<form method="post" action="/journal/{{.ID}}/delete">
 <input type="hidden" name="next" value="{{$.Next}}">
 <details><summary>Delete…</summary><button>Confirm delete</button></details>
 </form>
@@ -68,12 +69,7 @@
 </li>
 {{else}}<li class="muted">No tasks.</li>{{end}}
 </ul>
-<form class="inline" method="post" action="/activities/{{.ID}}/tasks">
-<input type="hidden" name="next" value="{{.Next}}">
-<label>New task<input name="text" required></label>
-<label>Opened<input type="date" name="created_on" value="{{.Today}}"></label>
-<button>Add</button>
-</form>
+<p class="muted small">Add tasks from the journal bar with kind Task.</p>
 
 <details>
 <summary>Edit activity</summary>

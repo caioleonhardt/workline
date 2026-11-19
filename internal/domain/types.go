@@ -54,12 +54,13 @@ const (
 	KindBlocker  Kind = "blocker"
 	KindMeeting  Kind = "meeting"
 	KindScopeAck Kind = "scope_ack"
+	KindTask     Kind = "task"
 )
 
 // Valid reports whether k is a known kind.
 func (k Kind) Valid() bool {
 	switch k {
-	case KindUpdate, KindDecision, KindBlocker, KindMeeting, KindScopeAck:
+	case KindUpdate, KindDecision, KindBlocker, KindMeeting, KindScopeAck, KindTask:
 		return true
 	}
 	return false
@@ -105,7 +106,9 @@ type Activity struct {
 	DoneOn      Date // zero unless Status is done
 }
 
-// Task is one checkable item of an activity. ClosedOn is zero while open.
+// Task is one checkable item of an activity: the view of a journal entry of
+// kind task that the burndown, progress and scope rules work on. ClosedOn is
+// zero while open.
 type Task struct {
 	ID         int64
 	ActivityID int64
@@ -115,7 +118,8 @@ type Task struct {
 	ClosedAt   string // "YYYY-MM-DD HH:MM" local time it was closed; empty if open or unknown
 }
 
-// JournalEntry is a dated note on an activity.
+// JournalEntry is a dated note on an activity. An entry of kind task is a
+// task opened on Date; only tasks have ClosedOn and ClosedAt.
 type JournalEntry struct {
 	ID         int64
 	ActivityID int64
@@ -123,6 +127,13 @@ type JournalEntry struct {
 	Kind       Kind
 	Text       string
 	LoggedAt   string // "YYYY-MM-DD HH:MM" local time it was logged; empty for older entries
+	ClosedOn   Date
+	ClosedAt   string
+}
+
+// Task returns the entry as a task.
+func (j JournalEntry) Task() Task {
+	return Task{ID: j.ID, ActivityID: j.ActivityID, Text: j.Text, CreatedOn: j.Date, ClosedOn: j.ClosedOn, ClosedAt: j.ClosedAt}
 }
 
 // stampLayout is the format of JournalEntry.LoggedAt.
@@ -227,6 +238,10 @@ func (j JournalEntry) Validate() error {
 		return Invalid("unknown journal kind %q", j.Kind)
 	case j.LoggedAt != "" && !validStamp(j.LoggedAt):
 		return Invalid("logged time %q is not YYYY-MM-DD HH:MM", j.LoggedAt)
+	case j.Kind == KindTask:
+		return j.Task().Validate()
+	case !j.ClosedOn.IsZero() || j.ClosedAt != "":
+		return Invalid("only a task can be closed")
 	}
 	return nil
 }

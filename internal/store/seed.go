@@ -65,7 +65,7 @@ func loadBaseline() (baseline, error) {
 	return b, nil
 }
 
-// Seed loads the mockup baseline (ids preserved) into an empty database, in
+// Seed loads the mockup baseline (project, activity and task ids preserved) into an empty database, in
 // one transaction. It returns ErrNotEmpty if any project already exists.
 func (s *Store) Seed(ctx context.Context) error {
 	b, err := loadBaseline()
@@ -138,8 +138,8 @@ func insertBaseline(ctx context.Context, tx *sql.Tx, d baselineData, asOf domain
 			return fmt.Errorf("task %d: %w", st.ID, err)
 		}
 		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO subtasks (id, activity_id, text, created_on, closed_on) VALUES (?, ?, ?, ?, ?)`,
-			st.ID, st.ActivityID, st.Text, st.CreatedOn, nullDate(sub.ClosedOn)); err != nil {
+			`INSERT INTO journal_entries (id, activity_id, date, kind, text, closed_on) VALUES (?, ?, ?, 'task', ?, ?)`,
+			st.ID, st.ActivityID, st.CreatedOn, st.Text, nullDate(sub.ClosedOn)); err != nil {
 			return fmt.Errorf("task %d: %w", st.ID, mapErr(err))
 		}
 	}
@@ -151,9 +151,10 @@ func insertBaseline(ctx context.Context, tx *sql.Tx, d baselineData, asOf domain
 		if err := (domain.JournalEntry{Date: date, Kind: domain.Kind(j.Kind), Text: j.Text}).Validate(); err != nil {
 			return fmt.Errorf("journal %d: %w", j.ID, err)
 		}
+		// Tasks keep their ids (scope acks refer to them); other entries follow.
 		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO journal_entries (id, activity_id, date, kind, text) VALUES (?, ?, ?, ?, ?)`,
-			j.ID, j.ActivityID, j.Date, j.Kind, j.Text); err != nil {
+			`INSERT INTO journal_entries (activity_id, date, kind, text) VALUES (?, ?, ?, ?)`,
+			j.ActivityID, j.Date, j.Kind, j.Text); err != nil {
 			return fmt.Errorf("journal %d: %w", j.ID, mapErr(err))
 		}
 	}
@@ -162,7 +163,7 @@ func insertBaseline(ctx context.Context, tx *sql.Tx, d baselineData, asOf domain
 			return err
 		}
 		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO scope_acks (id, activity_id, date, baseline_count, last_subtask_id) VALUES (?, ?, ?, ?, ?)`,
+			`INSERT INTO scope_acks (id, activity_id, date, baseline_count, last_task_id) VALUES (?, ?, ?, ?, ?)`,
 			a.ID, a.ActivityID, a.Date, a.BaselineCount, a.LastTaskID); err != nil {
 			return fmt.Errorf("scope ack %d: %w", a.ID, mapErr(err))
 		}

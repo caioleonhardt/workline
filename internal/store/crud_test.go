@@ -77,7 +77,9 @@ func TestCreateActivity(t *testing.T) {
 		t.Errorf("round trip: %+v vs %+v (%v)", got, a, err)
 	}
 	j, _ := s.ListJournal(ctx, a.ID)
-	if len(j) != 1 || j[0].Text != "Activity created" || j[0].Kind != domain.KindUpdate || j[0].Date != today {
+	// the creation note, then the first task (dated min(today, start) = today), newest first
+	if len(j) != 2 || j[1].Text != "Activity created" || j[1].Kind != domain.KindUpdate || j[1].Date != today ||
+		j[0].Kind != domain.KindTask || j[0].Date != today {
 		t.Errorf("journal: %+v", j)
 	}
 
@@ -255,7 +257,7 @@ func TestCascadeDeletes(t *testing.T) {
 		if _, err := s.AddTask(ctx, a.ID, "t", date(t, "2026-01-01")); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := s.db.ExecContext(ctx, `INSERT INTO scope_acks (activity_id, date, baseline_count, last_subtask_id) VALUES (?, '2026-01-02', 1, 1)`, a.ID); err != nil {
+		if _, err := s.db.ExecContext(ctx, `INSERT INTO scope_acks (activity_id, date, baseline_count, last_task_id) VALUES (?, '2026-01-02', 1, 1)`, a.ID); err != nil {
 			t.Fatal(err)
 		}
 		return a
@@ -265,13 +267,13 @@ func TestCascadeDeletes(t *testing.T) {
 	if err := s.DeleteActivity(ctx, a.ID); err != nil {
 		t.Fatal(err)
 	}
-	if count("activities") != 1 || count("subtasks") != 2 || count("journal_entries") != 1 || count("scope_acks") != 1 {
+	if count("activities") != 1 || count("journal_entries") != 3 || count("scope_acks") != 1 {
 		t.Error("activity delete did not cascade exactly")
 	}
 	if err := s.DeleteProject(ctx, 2); err != nil {
 		t.Fatal(err)
 	}
-	for _, tb := range []string{"activities", "subtasks", "journal_entries", "scope_acks"} {
+	for _, tb := range []string{"activities", "journal_entries", "scope_acks"} {
 		if count(tb) != 0 {
 			t.Errorf("%s not emptied by project delete", tb)
 		}
@@ -320,16 +322,16 @@ func TestTasks(t *testing.T) {
 	if _, err := s.ToggleTask(ctx, st.ID, fixed(d2)); err != nil { // closed again
 		t.Fatal(err)
 	}
-	if err := s.EditTask(ctx, st.ID, "one!", date(t, "2026-03-01")); !errors.Is(err, domain.ErrInvalid) {
+	if err := s.EditJournal(ctx, st.ID, date(t, "2026-03-01"), domain.KindTask, "one!"); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("created after closed: %v", err)
 	}
-	if err := s.EditTask(ctx, st.ID, "one!", d1.AddDays(1)); err != nil {
+	if err := s.EditJournal(ctx, st.ID, d1.AddDays(1), domain.KindTask, "one!"); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.EditTask(ctx, st.ID, "", d1); !errors.Is(err, domain.ErrInvalid) {
+	if err := s.EditJournal(ctx, st.ID, d1, domain.KindTask, ""); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("edit blank: %v", err)
 	}
-	if err := s.EditTask(ctx, 999, "x", d1); !errors.Is(err, ErrNotFound) {
+	if err := s.EditJournal(ctx, 999, d1, domain.KindTask, "x"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("edit missing: %v", err)
 	}
 	subs, err := s.ListTasks(ctx, a.ID)
@@ -339,10 +341,10 @@ func TestTasks(t *testing.T) {
 	if all, _ := s.ListAllTasks(ctx); len(all) != 3 {
 		t.Errorf("list all: %+v", all)
 	}
-	if err := s.DeleteTask(ctx, st.ID); err != nil {
+	if err := s.DeleteJournal(ctx, st.ID); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.DeleteTask(ctx, st.ID); !errors.Is(err, ErrNotFound) {
+	if err := s.DeleteJournal(ctx, st.ID); !errors.Is(err, ErrNotFound) {
 		t.Errorf("delete twice: %v", err)
 	}
 }
@@ -355,7 +357,7 @@ func TestTaskIDsAreNeverReused(t *testing.T) {
 	d := date(t, "2026-02-01")
 	first, _ := s.AddTask(ctx, a.ID, "a", d)
 	last, _ := s.AddTask(ctx, a.ID, "b", d)
-	if err := s.DeleteTask(ctx, last.ID); err != nil {
+	if err := s.DeleteJournal(ctx, last.ID); err != nil {
 		t.Fatal(err)
 	}
 	next, err := s.AddTask(ctx, a.ID, "c", d)

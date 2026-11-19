@@ -18,7 +18,7 @@ func latestScopeAck(ctx context.Context, q queryer, activityID int64) (*domain.S
 	var a domain.ScopeAck
 	var date string
 	err := q.QueryRowContext(ctx,
-		`SELECT id, activity_id, date, baseline_count, last_subtask_id FROM scope_acks
+		`SELECT id, activity_id, date, baseline_count, last_task_id FROM scope_acks
 		 WHERE activity_id = ? ORDER BY id DESC LIMIT 1`, activityID).
 		Scan(&a.ID, &a.ActivityID, &date, &a.BaselineCount, &a.LastTaskID)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -36,7 +36,7 @@ func latestScopeAck(ctx context.Context, q queryer, activityID int64) (*domain.S
 // ListLatestScopeAcks returns each activity's most recent ack, keyed by activity id.
 func (s *Store) ListLatestScopeAcks(ctx context.Context) (map[int64]domain.ScopeAck, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, activity_id, date, baseline_count, last_subtask_id FROM scope_acks
+		`SELECT id, activity_id, date, baseline_count, last_task_id FROM scope_acks
 		 WHERE id IN (SELECT max(id) FROM scope_acks GROUP BY activity_id)`)
 	if err != nil {
 		return nil, fmt.Errorf("list scope acks: %w", err)
@@ -69,7 +69,7 @@ func (s *Store) AckScope(ctx context.Context, activityID int64, clock domain.Clo
 			return err
 		}
 		subs, err := queryTasks(ctx, tx,
-			`SELECT `+taskColumns+` FROM subtasks WHERE activity_id = ? ORDER BY id`, activityID)
+			`SELECT `+taskColumns+` FROM journal_entries WHERE kind = 'task' AND activity_id = ? ORDER BY id`, activityID)
 		if err != nil {
 			return err
 		}
@@ -88,7 +88,7 @@ func (s *Store) AckScope(ctx context.Context, activityID int64, clock domain.Clo
 			}
 		}
 		res, err := tx.ExecContext(ctx,
-			`INSERT INTO scope_acks (activity_id, date, baseline_count, last_subtask_id) VALUES (?, ?, ?, ?)`,
+			`INSERT INTO scope_acks (activity_id, date, baseline_count, last_task_id) VALUES (?, ?, ?, ?)`,
 			activityID, today.String(), ack.BaselineCount, ack.LastTaskID)
 		if err != nil {
 			return mapErr(err)

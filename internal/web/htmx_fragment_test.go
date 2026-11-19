@@ -89,12 +89,11 @@ func TestMutationsAnswerHXWithTheFragment(t *testing.T) {
 		form         url.Values
 		want         string // the address both paths end up at
 	}{
-		{"add task", "/activities/2/tasks", url.Values{"text": {"x"}}, next},
+		{"add task", "/journal", url.Values{"activity": {"2"}, "kind": {"task"}, "text": {"x"}}, next},
 		{"toggle task", "/tasks/1/toggle", nil, next},
-		{"edit task", "/tasks/1", url.Values{"text": {"y"}, "created_on": {"2026-03-01"}}, next},
-		{"delete task", "/tasks/1/delete", nil, next},
+		{"edit task", "/journal/1", url.Values{"kind": {"task"}, "text": {"y"}, "date": {"2026-03-01"}}, next},
 		{"add journal", "/journal", url.Values{"activity": {"2"}, "kind": {"update"}, "text": {"z"}}, next},
-		{"edit journal", "/journal/1", url.Values{"kind": {"update"}, "text": {"z"}, "date": {"2026-03-01"}}, next},
+		{"edit journal", "/journal/47", url.Values{"kind": {"update"}, "text": {"z"}, "date": {"2026-03-01"}}, next}, // seeded entries follow the 46 tasks
 		{"delete journal", "/journal/1/delete", nil, next},
 		{"status", "/activities/2", url.Values{"status": {"active"}}, next},
 		{"edit activity", "/activities/2", url.Values{"project": {"1"}, "name": {"n"}, "start": {"2026-09-01"}, "due": {"2026-12-01"}}, next},
@@ -153,7 +152,7 @@ func TestHXErrorsGoToTheErrorBar(t *testing.T) {
 		status int
 		msg    string
 	}{
-		"validation": {"/activities/2/tasks", url.Values{"text": {" "}}, http.StatusUnprocessableEntity, "Task text is required."},
+		"validation": {"/journal/1", url.Values{"kind": {"update"}, "text": {"x"}, "date": {"2026-03-01"}}, http.StatusUnprocessableEntity, "A task stays a task"},
 		"not found":  {"/tasks/999/toggle", nil, http.StatusNotFound, "Not found."},
 		"This activity is not flagged for scope creep.": {"/activities/3/scope-ack", nil, http.StatusUnprocessableEntity, "This activity is not flagged for scope creep."},
 	} {

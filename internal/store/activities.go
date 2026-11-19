@@ -83,15 +83,20 @@ func (s *Store) CreateActivity(ctx context.Context, in NewActivity, clock domain
 			return err
 		}
 		a.ID = id
+		stamp := domain.Stamp(clock.Now())
+		if _, err := insertJournal(ctx, tx, domain.JournalEntry{
+			ActivityID: id, Date: today, Kind: domain.KindUpdate, Text: "Activity created", LoggedAt: stamp,
+		}); err != nil {
+			return err
+		}
 		for _, text := range in.Tasks {
-			if _, err := insertTask(ctx, tx, domain.Task{ActivityID: id, Text: text, CreatedOn: created}); err != nil {
+			if _, err := insertJournal(ctx, tx, domain.JournalEntry{
+				ActivityID: id, Date: created, Kind: domain.KindTask, Text: text, LoggedAt: stamp,
+			}); err != nil {
 				return err
 			}
 		}
-		_, err = insertJournal(ctx, tx, domain.JournalEntry{
-			ActivityID: id, Date: today, Kind: domain.KindUpdate, Text: "Activity created", LoggedAt: domain.Stamp(clock.Now()),
-		})
-		return err
+		return nil
 	})
 	if err != nil {
 		return domain.Activity{}, fmt.Errorf("create activity %q: %w", in.Name, err)

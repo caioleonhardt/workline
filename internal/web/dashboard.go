@@ -161,7 +161,7 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 		CancelHref: withParam(uri, "new", ""),
 		ShowForm:   f.New,
 		Today:      today.String(), AllProjects: projects, Panel: panel,
-		Controls: buildControls(f, projects, counts, creepCount), QuickKinds: kindOptions(domain.KindUpdate), Journal: journal,
+		Controls: buildControls(f, projects, counts, creepCount), QuickKinds: kindOptions(quickKinds, domain.KindUpdate), Journal: journal,
 		Timeline: buildTimeline(f, today, timelineData{Groups: groups, ItemOf: itemOf, Creeps: creeps}),
 		Tiles:    buildTiles(domain.ComputeTiles(tileItems, f.Year, today)),
 	}

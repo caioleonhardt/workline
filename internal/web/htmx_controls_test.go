@@ -64,5 +64,5 @@ func TestTaskRowsShowOneDate(t *testing.T) {
 		t.Error("both dates shown in the row")
 	}
 	// the opened date stays editable
-	wantBody(t, get(h, "/?sel=2"), `<label>Opened<input type="date" name="created_on" value="2026-09-07" required></label>`)
+	wantBody(t, get(h, "/?sel=2"), `<label>Opened<input type="date" name="date" value="2026-09-07" required></label>`)
 }

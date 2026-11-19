@@ -9,7 +9,8 @@ import (
 	"workline/internal/domain"
 )
 
-const taskColumns = `id, activity_id, text, created_on, closed_on, closed_at`
+// taskColumns reads a journal entry of kind task as a domain.Task.
+const taskColumns = `id, activity_id, text, date, closed_on, closed_at`
 
 func scanTask(r scanner) (domain.Task, error) {
 	var s domain.Task
@@ -44,39 +45,21 @@ func queryTasks(ctx context.Context, q queryer, query string, args ...any) ([]do
 	return out, rows.Err()
 }
 
-func insertTask(ctx context.Context, q queryer, st domain.Task) (int64, error) {
-	if err := st.Validate(); err != nil {
-		return 0, err
-	}
-	res, err := q.ExecContext(ctx,
-		`INSERT INTO subtasks (activity_id, text, created_on) VALUES (?, ?, ?)`,
-		st.ActivityID, st.Text, st.CreatedOn.String())
-	if err != nil {
-		return 0, mapErr(err)
-	}
-	return res.LastInsertId()
-}
-
-// AddTask adds an open task created on createdOn.
+// AddTask logs an open task opened on createdOn, without a logged time.
 func (s *Store) AddTask(ctx context.Context, activityID int64, text string, createdOn domain.Date) (domain.Task, error) {
-	st := domain.Task{ActivityID: activityID, Text: text, CreatedOn: createdOn}
-	id, err := insertTask(ctx, s.db, st)
-	if err != nil {
-		return st, fmt.Errorf("add task to activity %d: %w", activityID, err)
-	}
-	st.ID = id
-	return st, nil
+	j, err := s.AddJournal(ctx, domain.JournalEntry{ActivityID: activityID, Date: createdOn, Kind: domain.KindTask, Text: text})
+	return j.Task(), err
 }
 
 // ListTasks returns an activity's tasks in id order.
 func (s *Store) ListTasks(ctx context.Context, activityID int64) ([]domain.Task, error) {
 	return queryTasks(ctx, s.db,
-		`SELECT `+taskColumns+` FROM subtasks WHERE activity_id = ? ORDER BY id`, activityID)
+		`SELECT `+taskColumns+` FROM journal_entries WHERE kind = 'task' AND activity_id = ? ORDER BY id`, activityID)
 }
 
 // ListAllTasks returns every task ordered by activity, then id.
 func (s *Store) ListAllTasks(ctx context.Context) ([]domain.Task, error) {
-	return queryTasks(ctx, s.db, `SELECT `+taskColumns+` FROM subtasks ORDER BY activity_id, id`)
+	return queryTasks(ctx, s.db, `SELECT `+taskColumns+` FROM journal_entries WHERE kind = 'task' ORDER BY activity_id, id`)
 }
 
 // ToggleTask closes an open task, recording the clock's date and time,
@@ -87,10 +70,10 @@ func (s *Store) ToggleTask(ctx context.Context, id int64, clock domain.Clock) (d
 		return domain.Task{}, domain.Invalid("today is required")
 	}
 	st, err := scanTask(s.db.QueryRowContext(ctx,
-		`UPDATE subtasks SET
+		`UPDATE journal_entries SET
 		   closed_on = CASE WHEN closed_on IS NULL THEN ?1 ELSE NULL END,
 		   closed_at = CASE WHEN closed_on IS NULL THEN ?2 ELSE NULL END
-		 WHERE id = ?3 RETURNING `+taskColumns, today.String(), domain.Stamp(clock.Now()), id))
+		 WHERE id = ?3 AND kind = 'task' RETURNING `+taskColumns, today.String(), domain.Stamp(clock.Now()), id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return st, fmt.Errorf("task %d: %w", id, ErrNotFound)
 	}
@@ -98,27 +81,4 @@ func (s *Store) ToggleTask(ctx context.Context, id int64, clock domain.Clock) (d
 		return st, fmt.Errorf("toggle task %d: %w", id, mapErr(err))
 	}
 	return st, nil
-}
-
-// EditTask changes a task's text and creation date. The database rejects
-// a creation date after the existing closed date.
-func (s *Store) EditTask(ctx context.Context, id int64, text string, createdOn domain.Date) error {
-	if err := (domain.Task{Text: text, CreatedOn: createdOn}).Validate(); err != nil {
-		return err
-	}
-	res, err := s.db.ExecContext(ctx, `UPDATE subtasks SET text = ?, created_on = ? WHERE id = ?`,
-		text, createdOn.String(), id)
-	if err != nil {
-		return fmt.Errorf("edit task %d: %w", id, mapErr(err))
-	}
-	return affected(res, "task", id)
-}
-
-// DeleteTask removes a task.
-func (s *Store) DeleteTask(ctx context.Context, id int64) error {
-	res, err := s.db.ExecContext(ctx, `DELETE FROM subtasks WHERE id = ?`, id)
-	if err != nil {
-		return fmt.Errorf("delete task %d: %w", id, err)
-	}
-	return affected(res, "task", id)
 }

@@ -11,13 +11,22 @@ import (
 type journalRow struct {
 	ID                                int64
 	Date, Time, Kind, KindLabel, Text string // Time is empty for entries without a logged time
+	Closed                            string // a closed task's close date
+	IsTask                            bool   // a task keeps its kind, so its Edit form has no kind select
 	ReadOnly                          bool   // scope_ack entries cannot be edited
 	Kinds                             []option
 }
 
-func kindOptions(cur domain.Kind) []option {
+// noteKinds are the kinds an entry other than a task can be edited to; the
+// quick-add bar also offers task.
+var (
+	noteKinds  = []domain.Kind{domain.KindUpdate, domain.KindDecision, domain.KindBlocker, domain.KindMeeting}
+	quickKinds = []domain.Kind{domain.KindUpdate, domain.KindDecision, domain.KindBlocker, domain.KindMeeting, domain.KindTask}
+)
+
+func kindOptions(kinds []domain.Kind, cur domain.Kind) []option {
 	var out []option
-	for _, k := range []domain.Kind{domain.KindUpdate, domain.KindDecision, domain.KindBlocker, domain.KindMeeting} {
+	for _, k := range kinds {
 		out = append(out, option{string(k), kindLabel(k), k == cur})
 	}
 	return out
@@ -35,7 +44,8 @@ func journalRows(entries []domain.JournalEntry) []journalRow {
 	for _, j := range entries {
 		rows = append(rows, journalRow{
 			ID: j.ID, Date: j.Date.String(), Time: j.Time(), Kind: string(j.Kind), KindLabel: kindLabel(j.Kind), Text: j.Text,
-			ReadOnly: j.Kind == domain.KindScopeAck, Kinds: kindOptions(j.Kind),
+			Closed: j.ClosedOn.String(), IsTask: j.Kind == domain.KindTask,
+			ReadOnly: j.Kind == domain.KindScopeAck, Kinds: kindOptions(noteKinds, j.Kind),
 		})
 	}
 	return rows

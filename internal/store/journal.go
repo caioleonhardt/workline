@@ -10,6 +10,8 @@ import (
 	"workline/internal/domain"
 )
 
+const journalColumns = `id, activity_id, date, kind, text, logged_at, closed_on, closed_at`
+
 func insertJournal(ctx context.Context, q queryer, j domain.JournalEntry) (int64, error) {
 	if err := j.Validate(); err != nil {
 		return 0, err
@@ -53,12 +55,15 @@ func (s *Store) queryJournal(ctx context.Context, query string, args ...any) ([]
 	for rows.Next() {
 		var j domain.JournalEntry
 		var date, kind string
-		var loggedAt sql.NullString
-		if err := rows.Scan(&j.ID, &j.ActivityID, &date, &kind, &j.Text, &loggedAt); err != nil {
+		var loggedAt, closedOn, closedAt sql.NullString
+		if err := rows.Scan(&j.ID, &j.ActivityID, &date, &kind, &j.Text, &loggedAt, &closedOn, &closedAt); err != nil {
 			return nil, fmt.Errorf("scan journal: %w", err)
 		}
-		j.Kind, j.LoggedAt = domain.Kind(kind), loggedAt.String
+		j.Kind, j.LoggedAt, j.ClosedAt = domain.Kind(kind), loggedAt.String, closedAt.String
 		if j.Date, err = parseDate(date); err != nil {
+			return nil, err
+		}
+		if j.ClosedOn, err = parseOptDate(closedOn); err != nil {
 			return nil, err
 		}
 		out = append(out, j)
@@ -69,7 +74,7 @@ func (s *Store) queryJournal(ctx context.Context, query string, args ...any) ([]
 // ListJournal returns an activity's entries, newest first.
 func (s *Store) ListJournal(ctx context.Context, activityID int64) ([]domain.JournalEntry, error) {
 	return s.queryJournal(ctx,
-		`SELECT id, activity_id, date, kind, text, logged_at FROM journal_entries
+		`SELECT `+journalColumns+` FROM journal_entries
 		 WHERE activity_id = ? ORDER BY date DESC, logged_at IS NULL, logged_at DESC, id DESC`, activityID)
 }
 
@@ -86,7 +91,7 @@ func (s *Store) ListJournalFeed(ctx context.Context, activityIDs []int64, limit 
 	}
 	args = append(args, limit+1)
 	entries, err := s.queryJournal(ctx,
-		`SELECT id, activity_id, date, kind, text, logged_at FROM journal_entries
+		`SELECT `+journalColumns+` FROM journal_entries
 		 WHERE activity_id IN (?`+strings.Repeat(",?", len(activityIDs)-1)+`)
 		 ORDER BY date DESC, logged_at IS NULL, logged_at DESC, id DESC LIMIT ?`, args...)
 	if err != nil {
@@ -103,12 +108,14 @@ func (s *Store) ListJournalFeed(ctx context.Context, activityIDs []int64, limit 
 // logged time with untimed entries first, then id.
 func (s *Store) ListJournalBetween(ctx context.Context, from, to domain.Date) ([]domain.JournalEntry, error) {
 	return s.queryJournal(ctx,
-		`SELECT id, activity_id, date, kind, text, logged_at FROM journal_entries
+		`SELECT `+journalColumns+` FROM journal_entries
 		 WHERE (?1 = '' OR date >= ?1) AND (?2 = '' OR date <= ?2)
 		 ORDER BY date, logged_at IS NOT NULL, logged_at, id`, from.String(), to.String())
 }
 
-// EditJournal rewrites date, kind and text. scope_ack entries are read-only.
+// EditJournal rewrites date, kind and text. scope_ack entries are read-only,
+// and an entry cannot become a task or stop being one. A task's date (the day
+// it was opened) cannot move after the day it was closed.
 func (s *Store) EditJournal(ctx context.Context, id int64, date domain.Date, kind domain.Kind, text string) error {
 	j := domain.JournalEntry{ActivityID: id, Date: date, Kind: kind, Text: text}
 	if err := userKind(kind); err != nil {
@@ -118,7 +125,8 @@ func (s *Store) EditJournal(ctx context.Context, id int64, date domain.Date, kin
 		return err
 	}
 	res, err := s.db.ExecContext(ctx,
-		`UPDATE journal_entries SET date = ?, kind = ?, text = ? WHERE id = ? AND kind <> 'scope_ack'`,
+		`UPDATE journal_entries SET date = ?1, kind = ?2, text = ?3
+		 WHERE id = ?4 AND kind <> 'scope_ack' AND (kind = 'task') = (?2 = 'task')`,
 		date.String(), string(kind), text, id)
 	if err != nil {
 		return fmt.Errorf("edit journal %d: %w", id, mapErr(err))
@@ -141,13 +149,15 @@ func (s *Store) readOnlyOrMissing(ctx context.Context, res sql.Result, id int64)
 	if err != nil || n > 0 {
 		return err
 	}
-	var one int
-	err = s.db.QueryRowContext(ctx, `SELECT 1 FROM journal_entries WHERE id = ?`, id).Scan(&one)
-	if errors.Is(err, sql.ErrNoRows) {
+	var kind string
+	err = s.db.QueryRowContext(ctx, `SELECT kind FROM journal_entries WHERE id = ?`, id).Scan(&kind)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		return fmt.Errorf("journal entry %d: %w", id, ErrNotFound)
-	}
-	if err != nil {
+	case err != nil:
 		return err
+	case kind == string(domain.KindScopeAck):
+		return fmt.Errorf("journal entry %d: %w", id, ErrReadOnly)
 	}
-	return fmt.Errorf("journal entry %d: %w", id, ErrReadOnly)
+	return domain.Invalid("a task stays a task, and other entries cannot become tasks")
 }

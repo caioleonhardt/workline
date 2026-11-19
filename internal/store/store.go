@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 
 	_ "modernc.org/sqlite" // database/sql driver
 
@@ -52,7 +53,7 @@ func Open(path string) (*Store, error) {
 	}
 	have, want, err := versions(context.Background(), db)
 	if err == nil && have != 0 && have < want {
-		err = fmt.Errorf("%w: %s is at schema %d, this build needs %d", ErrMigrationNeeded, path, have, want)
+		err = fmt.Errorf("%w: schema %d, this build needs %d", ErrMigrationNeeded, have, want)
 	}
 	if err == nil && have == 0 {
 		err = migrate(context.Background(), db, migrations.FS)
@@ -95,28 +96,71 @@ func versions(ctx context.Context, db *sql.DB) (have, want int, err error) {
 	return have, len(ms), nil
 }
 
+// Migration reports what Migrate did: the schema versions before and after
+// (equal when there was nothing to do) and each table's row count before and
+// after, so the caller can show that no data went missing.
+type Migration struct {
+	From, To      int
+	Before, After map[string]int
+}
+
 // Migrate upgrades the existing database at path to this build's schema and
-// checks its integrity afterwards. It returns the versions before and after;
-// they are equal when there was nothing to do. Callers back up first.
-func Migrate(ctx context.Context, path string) (from, to int, err error) {
+// checks its integrity afterwards. Callers back up first.
+func Migrate(ctx context.Context, path string) (Migration, error) {
+	var m Migration
 	if _, err := os.Stat(path); err != nil {
-		return 0, 0, fmt.Errorf("migrate: %w", err)
+		return m, fmt.Errorf("migrate: %w", err)
 	}
 	db, err := openDB(path)
 	if err != nil {
-		return 0, 0, err
+		return m, err
 	}
 	defer db.Close()
-	if from, to, err = versions(ctx, db); err != nil || from == to {
-		return from, to, err
+	if m.From, m.To, err = versions(ctx, db); err != nil || m.From == m.To {
+		return m, err
+	}
+	if m.Before, err = rowCounts(ctx, db); err != nil {
+		return m, err
 	}
 	if err := migrate(ctx, db, migrations.FS); err != nil {
-		return from, from, fmt.Errorf("migrate %s: %w", path, err)
+		return m, fmt.Errorf("migrate %s: %w", path, err)
 	}
 	if err := checkIntegrity(ctx, db); err != nil {
-		return from, to, fmt.Errorf("migrate %s: %w", path, err)
+		return m, fmt.Errorf("migrate %s: %w", path, err)
 	}
-	return from, to, nil
+	m.After, err = rowCounts(ctx, db)
+	return m, err
+}
+
+// rowCounts returns the number of rows in each table.
+func rowCounts(ctx context.Context, db *sql.DB) (map[string]int, error) {
+	rows, err := db.QueryContext(ctx, `SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`)
+	if err != nil {
+		return nil, fmt.Errorf("list tables: %w", err)
+	}
+	var names []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		names = append(names, name)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	counts := map[string]int{}
+	for _, name := range names {
+		var n int
+		// Table names come from sqlite_schema, not from input; quoted as identifiers.
+		if err := db.QueryRowContext(ctx, `SELECT count(*) FROM "`+strings.ReplaceAll(name, `"`, `""`)+`"`).Scan(&n); err != nil {
+			return nil, fmt.Errorf("count %s: %w", name, err)
+		}
+		counts[name] = n
+	}
+	return counts, nil
 }
 
 // SchemaVersions reports the schema version of the existing database at path

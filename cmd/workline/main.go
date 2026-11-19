@@ -6,12 +6,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"syscall"
 	"time"
@@ -141,11 +143,12 @@ func runMigrateAt(args []string, clock domain.Clock) error {
 	if err := runBackupAt([]string{"-db", *dbPath}, clock); err != nil {
 		return fmt.Errorf("migrate: backup first: %w", err)
 	}
-	from, to, err := store.Migrate(ctx, *dbPath)
+	m, err := store.Migrate(ctx, *dbPath)
 	if err != nil {
 		return fmt.Errorf("%w; the backup above holds the data as it was", err)
 	}
-	fmt.Printf("migrated %s: schema %d → %d\n", *dbPath, from, to)
+	fmt.Printf("migrated %s: schema %d → %d\n", *dbPath, m.From, m.To)
+	printRowCounts(os.Stdout, m.Before, m.After)
 	return nil
 }
 
@@ -186,6 +189,31 @@ func runBackupAt(args []string, clock domain.Clock) error {
 	}
 	fmt.Printf("backed up %s to %s\n", *dbPath, dest)
 	return nil
+}
+
+// printRowCounts lists each table's rows before → after a migration.
+func printRowCounts(w io.Writer, before, after map[string]int) {
+	var names []string
+	for name := range before {
+		names = append(names, name)
+	}
+	for name := range after {
+		if _, ok := before[name]; !ok {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	fmt.Fprintf(w, "  %-16s %6s → %s\n", "table", "rows", "rows after")
+	for _, name := range names {
+		b, a := "-", "removed"
+		if n, ok := before[name]; ok {
+			b = strconv.Itoa(n)
+		}
+		if n, ok := after[name]; ok {
+			a = strconv.Itoa(n)
+		}
+		fmt.Fprintf(w, "  %-16s %6s → %s\n", name, b, a)
+	}
 }
 
 // resolveAddr applies -port (-1 when unset) to -addr and checks the result:

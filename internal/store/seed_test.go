@@ -173,8 +173,7 @@ func TestSeedPreservesBaselineRows(t *testing.T) {
 	counts := map[string]int{
 		"projects":        len(b.Data.Projects),
 		"activities":      len(b.Data.Activities),
-		"subtasks":        len(b.Data.Tasks),
-		"journal_entries": len(b.Data.JournalEntries),
+		"journal_entries": len(b.Data.Tasks) + len(b.Data.JournalEntries),
 		"scope_acks":      len(b.Data.ScopeAcks),
 	}
 	for table, want := range counts {
@@ -212,10 +211,11 @@ func TestSeedPreservesBaselineRows(t *testing.T) {
 	if early == 0 {
 		t.Error("expected activity 9 tasks created before its start_date")
 	}
-	// new task ids continue after the seeded maximum
+	// new task ids continue after every seeded entry (tasks first, then the other entries)
+	want := int64(len(b.Data.Tasks) + len(b.Data.JournalEntries) + 1)
 	st, err := s.AddTask(ctx, 1, "after seed", date(t, "2026-11-18"))
-	if err != nil || st.ID != int64(len(b.Data.Tasks))+1 {
-		t.Errorf("next task id = %d (%v), want %d", st.ID, err, len(b.Data.Tasks)+1)
+	if err != nil || st.ID != want {
+		t.Errorf("next task id = %d (%v), want %d", st.ID, err, want)
 	}
 }
 

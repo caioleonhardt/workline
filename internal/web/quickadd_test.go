@@ -131,7 +131,7 @@ func TestQuickAddErrorsShowInTheBar(t *testing.T) {
 		strings.Contains(body, `id="dash"`) || strings.Contains(body, `id="quickadd-text"`) {
 		t.Errorf("body: %s", body)
 	}
-	if list, _ := st.ListJournal(ctx, 2); len(list) != 4 {
+	if list, _ := st.ListJournal(ctx, 2); len(list) != 10 { // 4 notes and 6 tasks
 		t.Errorf("a rejected entry was stored: %d entries", len(list))
 	}
 	// errors from anywhere else still use the page-top bar

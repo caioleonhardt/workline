@@ -14,6 +14,8 @@ func TestExportMarkdownFormat(t *testing.T) {
 		Entries: []domain.JournalEntry{
 			{Date: date(t, "2026-03-02"), Kind: domain.KindMeeting, Text: "Kick-off"},
 			{Date: date(t, "2026-04-20"), Kind: domain.KindDecision, Text: "first line\nsecond line\n", LoggedAt: "2026-04-20 14:05"},
+			{Date: date(t, "2026-05-04"), Kind: domain.KindTask, Text: "Open task"},
+			{Date: date(t, "2026-05-05"), Kind: domain.KindTask, Text: "Done task", ClosedOn: date(t, "2026-06-01")},
 			{Date: date(t, "2026-11-18"), Kind: domain.KindScopeAck, Text: "Scope change acknowledged", LoggedAt: "2026-11-18 16:02"},
 		},
 	}
@@ -25,6 +27,8 @@ func TestExportMarkdownFormat(t *testing.T) {
 		"\n### Plan\nActive · requested by Manager · 2026-03-02 → 2026-12-18\n\n" +
 		"- 2026-03-02 **Meeting** — Kick-off\n" +
 		"- 2026-04-20 14:05 **Decision** — first line\n  second line\n" +
+		"- 2026-05-04 **Task** — Open task\n" +
+		"- 2026-05-05 **Task** — Done task (closed 2026-06-01)\n" +
 		"- 2026-11-18 16:02 **Scope acknowledged** — Scope change acknowledged\n"
 	if got != want {
 		t.Errorf("got:\n%s\nwant:\n%s", got, want)

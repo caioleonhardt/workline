@@ -24,10 +24,10 @@ func TestJournal(t *testing.T) {
 	newB := add("2026-03-01", "new-b", domain.KindBlocker)
 
 	list, err := s.ListJournal(ctx, a.ID)
-	if err != nil || len(list) != 4 {
+	if err != nil || len(list) != 5 {
 		t.Fatalf("list: %+v %v", list, err)
 	}
-	wantOrder := []string{"new-b", "new-a", "old", "Activity created"} // date desc, id desc
+	wantOrder := []string{"new-b", "new-a", "old", "first", "Activity created"} // date desc, id desc
 	for i, w := range wantOrder {
 		if list[i].Text != w {
 			t.Errorf("order[%d] = %q, want %q", i, list[i].Text, w)
@@ -55,6 +55,14 @@ func TestJournal(t *testing.T) {
 	}
 	if err := s.EditJournal(ctx, 999, date(t, "2026-02-02"), domain.KindUpdate, "x"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("edit missing: %v", err)
+	}
+	// a task keeps its kind, and other entries cannot become tasks
+	if err := s.EditJournal(ctx, old.ID, date(t, "2026-02-02"), domain.KindTask, "edited"); !errors.Is(err, domain.ErrInvalid) {
+		t.Errorf("update into task: %v", err)
+	}
+	task, _ := s.AddTask(ctx, a.ID, "a task", date(t, "2026-02-01"))
+	if err := s.EditJournal(ctx, task.ID, date(t, "2026-02-01"), domain.KindUpdate, "a task"); !errors.Is(err, domain.ErrInvalid) {
+		t.Errorf("task into update: %v", err)
 	}
 	if err := s.DeleteJournal(ctx, newB.ID); err != nil {
 		t.Fatal(err)
@@ -104,7 +112,7 @@ func TestJournalLoggedAt(t *testing.T) {
 	for _, j := range list {
 		got = append(got, j.Text)
 	}
-	want := []string{"same time, later id", "late", "early", "no time", "backfilled, logged later", "Activity created"}
+	want := []string{"same time, later id", "late", "early", "no time", "backfilled, logged later", "first", "Activity created"}
 	if strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Errorf("order:\n got %v\nwant %v", got, want)
 	}
@@ -178,7 +186,7 @@ func TestListJournalBetween(t *testing.T) {
 		}
 		return strings.Join(out, "|")
 	}
-	if got, want := texts("", ""), "Activity created|Activity created|untimed|early|late|may"; got != want {
+	if got, want := texts("", ""), "Activity created|first|Activity created|first|untimed|early|late|may"; got != want {
 		t.Errorf("all: %q, want %q", got, want)
 	}
 	if got, want := texts("2026-03-01", "2026-03-01"), "untimed|early|late"; got != want { // bounds are inclusive
@@ -187,7 +195,7 @@ func TestListJournalBetween(t *testing.T) {
 	if got, want := texts("2026-03-02", ""), "may"; got != want {
 		t.Errorf("from only: %q, want %q", got, want)
 	}
-	if got, want := texts("", "2026-01-01"), "Activity created|Activity created"; got != want {
+	if got, want := texts("", "2026-01-01"), "Activity created|first|Activity created|first"; got != want {
 		t.Errorf("to only: %q, want %q", got, want)
 	}
 	if got := texts("2027-01-01", ""); got != "" {
@@ -225,7 +233,7 @@ func TestListJournalFeed(t *testing.T) {
 	}
 	// newest first, untimed last within a date; activity c is not asked for
 	got, more := texts([]int64{a.ID, b.ID}, 10)
-	if want := "b late|a early|a untimed|b old|Activity created|Activity created"; got != want || more {
+	if want := "b late|a early|a untimed|b old|first|Activity created|first|Activity created"; got != want || more {
 		t.Errorf("feed = %q more=%v, want %q", got, more, want)
 	}
 	// the limit, and the "more" flag only when something is left
@@ -233,11 +241,11 @@ func TestListJournalFeed(t *testing.T) {
 	if got != "b late|a early|a untimed" || !more {
 		t.Errorf("limit 3 = %q more=%v", got, more)
 	}
-	if got, more = texts([]int64{a.ID, b.ID}, 6); more || strings.Count(got, "|") != 5 {
+	if got, more = texts([]int64{a.ID, b.ID}, 8); more || strings.Count(got, "|") != 7 {
 		t.Errorf("limit equal to the count = %q more=%v", got, more)
 	}
 	// one activity; none; no limit
-	if got, _ = texts([]int64{c.ID}, 10); got != "c other activity|Activity created" {
+	if got, _ = texts([]int64{c.ID}, 10); got != "c other activity|first|Activity created" {
 		t.Errorf("one activity = %q", got)
 	}
 	if got, more = texts(nil, 10); got != "" || more {

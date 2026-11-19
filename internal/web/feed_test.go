@@ -14,7 +14,7 @@ func TestFeedListsVisibleActivitiesNewestFirst(t *testing.T) {
 	h, _ := newApp(t)
 	rec := get(h, "/")
 	body := rec.Body.String()
-	wantBody(t, rec, `<h2 id="journal-title">Journal</h2>`, "Kick-off with manager, scope agreed",
+	wantBody(t, rec, `<h2 id="journal-title">Journal</h2>`, `<span class="chip kind-task">Task</span>`,
 		`<a class="tag small" href="/?sel=1">Order platform modernisation › Consolidate order services into one Go service</a>`)
 	for _, done := range []string{"Recommendation sent", "Root cause: node pool autoscaling"} {
 		if strings.Contains(body, done) {
@@ -91,7 +91,7 @@ func TestFeedLimitAndShowMore(t *testing.T) {
 		t.Error("entry beyond the limit shown")
 	}
 	rec = get(h, "/?sel=2&feed=60")
-	if n := count(rec.Body.String()); n != 39 || strings.Contains(rec.Body.String(), "Show 30 more") {
+	if n := count(rec.Body.String()); n != 43 || strings.Contains(rec.Body.String(), "Show 30 more") {
 		t.Errorf("second page: %d entries, more link present: %v", n, strings.Contains(rec.Body.String(), "Show 30 more"))
 	}
 	// the limit also applies to the unnarrowed feed
@@ -119,13 +119,13 @@ func TestJournalLeftThePanel(t *testing.T) {
 	h, _ := newApp(t)
 	body := get(h, "/?sel=2").Body.String()
 	panel := body[strings.Index(body, `id="panel"`):strings.Index(body, `id="journal"`)]
-	if strings.Contains(panel, "<h3>Journal</h3>") || strings.Contains(panel, `action="/journal`) || strings.Contains(panel, "kind-") {
+	if strings.Contains(panel, "<h3>Journal</h3>") || strings.Contains(panel, `class="chip kind-`) {
 		t.Error("the panel still has a journal")
 	}
 	if n := strings.Count(body, `action="/journal"`); n != 1 { // only the quick-add bar logs entries
 		t.Errorf("forms posting to /journal = %d", n)
 	}
-	wantStatus(t, hxPost(h, "/journal/1", url.Values{"kind": {"update"}, "text": {"edited"}, "date": {"2026-03-02"}, "next": {"/?sel=1"}}), http.StatusOK)
+	wantStatus(t, hxPost(h, "/journal/1", url.Values{"kind": {"task"}, "text": {"edited"}, "date": {"2026-03-02"}, "next": {"/?sel=1"}}), http.StatusOK)
 }
 
 // The journal sits in the timeline's column, below it; the panel is beside both

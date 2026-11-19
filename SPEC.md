@@ -60,25 +60,22 @@ All calendar values are **dates** (`YYYY-MM-DD`, user's local time zone) unless 
 
 On creation, status defaults to `planned` if `start_date > today`, else `active`.
 
-### Task
-| field | type | notes |
-|---|---|---|
-| id | int | monotonically increasing |
-| activity_id | int | FK |
-| text | text | required |
-| created_on | date | defaults to today; editable (for backfilling) |
-| closed_on | date, nullable | null = open. Closing sets today; reopening sets null |
-
 ### JournalEntry
 | field | type | notes |
 |---|---|---|
-| id | int | |
+| id | int | monotonically increasing, never reused |
 | activity_id | int | FK |
-| date | date | defaults to today; editable |
-| kind | enum | `update`, `decision`, `blocker`, `meeting`, `scope_ack` |
+| date | date | defaults to today; editable. For a task, the day it was opened |
+| kind | enum | `update`, `decision`, `blocker`, `meeting`, `task`, `scope_ack` |
 | text | text | required |
+| logged_at | datetime, nullable | local time it was logged (§10 item 49) |
+| closed_on | date, nullable | tasks only. null = open. Closing sets today; reopening sets null |
+| closed_at | datetime, nullable | tasks only; local time it was closed (§10 item 53) |
 
 `scope_ack` entries are created only by the Acknowledge action (§5.4), never from the journal form.
+
+### Task
+A **task** is a journal entry of kind `task` (§10 item 84). In the rules below, a task's `created_on` is its entry's `date`.
 
 ### ScopeAck
 | field | type | notes |
@@ -200,7 +197,7 @@ Shown beside the timeline (below it on narrow screens) when `sel` is set.
   - When flagged, a warning shows the reason text and the **Acknowledge and log to journal** button.
   - If acknowledged and not flagged, a confirmation line shows the ack date and baseline.
   - Helper text explains the rule.
-- **Tasks**: checkbox list (toggle closes or reopens), `opened {date}` / `closed {date}` on the right, add form, edit and delete per task.
+- **Tasks**: the activity's `task` entries as a checkbox list (toggle closes or reopens), `opened {date}` / `closed {date}` on the right, edit and delete per task. Tasks are added from the quick-add bar (§10 item 86).
 - **Journal**: moved out of the panel to the journal workspace below the timeline (§10 items 73–79).
 - Edit activity (name, requested by, dates, project) and delete activity.
 
@@ -236,7 +233,7 @@ Match the mockup. Tokens:
 | blocked | chip `#FFEFDD`/`#8F4500`, bar `#E07A12` |
 | done | chip `#E2F3EA`/`#16603E`, bar `#1F8A5B` |
 | scope creep | chip `#FCE7F0`/`#9D1F5F` |
-| journal kinds | update `#16181D`, decision `#5B3AB8`, blocker `#C2410C`, meeting `#155E68`, scope_ack `#9D1F5F` |
+| journal kinds | update `#16181D`, decision `#5B3AB8`, blocker `#C2410C`, meeting `#155E68`, scope_ack `#9D1F5F`, task `#2D6A3E` |
 | today | `#C2410C` |
 | fonts | system sans; system monospace for numbers and dates |
 
@@ -257,13 +254,10 @@ POST   /projects/{id}/delete
 POST   /activities                         create
 POST   /activities/{id}                    update fields / status
 POST   /activities/{id}/delete
-POST   /activities/{id}/tasks           add
-POST   /tasks/{id}/toggle
-POST   /tasks/{id}                      edit
-POST   /tasks/{id}/delete
-POST   /activities/{id}/journal            add
-POST   /journal/{id}                       edit
-POST   /journal/{id}/delete
+POST   /tasks/{id}/toggle                  close or reopen a task entry
+POST   /journal                            add (hidden `activity`; kind `task` adds a task)
+POST   /journal/{id}                       edit (tasks too)
+POST   /journal/{id}/delete                (tasks too)
 POST   /activities/{id}/scope-ack
 GET    /export/journal.md
 GET    /static/*                           embedded assets
@@ -290,6 +284,7 @@ GET    /static/*                           embedded assets
 4. **Detail panel + htmx.** Panel, burndown chart, scope section, acknowledge; htmx partial swaps so selecting, toggling and logging don't reload the page.
 5. **Polish.** Journal Markdown export, backup command, keyboard shortcuts (`n` new activity, `/` focus filter, `Esc` close panel), narrow-screen layout.
 6. **Journal workspace.** Journal list below the timeline and a fixed quick-add bar (§10 items 73–76).
+7. **Tasks in the journal.** `workline migrate`; tasks become journal entries of kind `task`; multiline entries (§10 items 83–89).
 
 Each milestone ends with `go vet ./...` and `go test ./...` green.
 
@@ -327,7 +322,7 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 21. **`done_on`** (activity): set to today when status becomes `done`, cleared when it leaves `done`, kept on done→done; not user-editable. Existing and seeded done activities get `done_on = due_date`. "Done this year" counts `done_on`.
 22. **Initial tasks** entered on the create form get `created_on = min(today, start_date)` so they count as kickoff scope; later tasks default to today.
 23. Deleting an activity's last task is allowed.
-24. Task edits change text and `created_on` only; `closed_on` is set only by toggle. Any future path that sets it must use `ValidateAt(today)`.
+24. Task edits change text and `created_on` (the entry's `date`) only; `closed_on` is set only by toggle. Any future path that sets it must use `ValidateAt(today)`.
 25. **Delete confirmation** without JS: a two-step "Delete…" → "Confirm delete" button (e.g. `<details>`). No inline scripts.
 26. **Routes**: no `POST /projects` (projects are created through the activity form). The new-activity form is inline on the dashboard, shown with `GET /?new=1` (htmx toggles it in M4), as in the mockup.
 27. Rejected forms show a plain error page with a Back link; no sticky re-render in M2.
@@ -394,4 +389,11 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 80. **Whole-row selection**: clicking anywhere on an activity row (label or track) selects it. The activity name remains the one real link, stretched over the row with CSS; completion-dot buttons stay above it and keep their popups.
 81. The empty feed reads "No journal entries for these filters." The export keeps filtering by entry date (period/month range). The quick-add kind keeps the last choice after a successful add.
 82. **Zero-argument commands**: `workline serve` defaults to `127.0.0.1:7357` and the default database (`$XDG_DATA_HOME/workline/workline.db`, else `~/.local/share/workline/workline.db`). `workline backup` with no destination writes `<data dir>/backups/workline-YYYY-MM-DD-HHMM.db` (folder created, mode 0700) and prints the path. Flags only; no environment variables.
-83. **Explicit migrations.** A new (empty) database gets every migration on open. An existing database behind the build's schema is refused by `serve` and `seed`, which point to `workline migrate [-db path]`. `migrate` does nothing on a current database; otherwise it first writes the default dated backup (item 82), then applies the pending migrations (each in its own transaction), runs `PRAGMA foreign_key_check` and `integrity_check`, and prints `schema N → M`. On failure it names the backup.
+83. **Explicit migrations.** A new (empty) database gets every migration on open. An existing database behind the build's schema is refused by `serve` and `seed`, which point to `workline migrate [-db path]`. `migrate` does nothing on a current database; otherwise it first writes the default dated backup (item 82), then applies the pending migrations (each in its own transaction), runs `PRAGMA foreign_key_check` and `integrity_check`, and prints `schema N → M` with each table's row count before → after. On failure it names the backup.
+
+### Decisions (Milestone 7, tasks in the journal, 2026-11-19)
+84. **Tasks are journal entries.** Activities are long-running and keep receiving work, so a task is a journal entry of kind `task` rather than its own table. The rules of §4 are unchanged; they read the `task` entries. Burndown, progress, scope creep and completion dots mean what they did.
+85. **Closing a task** only marks its entry closed (`closed_on`, `closed_at`); no extra entry is logged. In the feed a closed task is struck through with `closed {date}`; the export adds `(closed {date})`.
+86. **Kind is fixed for tasks.** `task` is chosen when logging (quick-add bar, new-activity form); Edit cannot turn an entry into a task or a task into another kind (422). The panel lists the selected activity's tasks with toggle, edit and delete; it no longer has its own add form.
+87. **Migration 0005** rebuilds `journal_entries` with `AUTOINCREMENT`, copies existing entries with their ids, then appends the old subtasks in id order (`date = created_on`, no `logged_at`). `scope_acks.last_subtask_id` becomes `last_task_id`, remapped to the new id of the last task at or before the old value, so the tasks newer than an ack stay the same. The `subtasks` table is dropped.
+88. **Activity created** is logged before the initial tasks, so newest-first lists show the tasks above it. The seed keeps the baseline's task ids; its other entries take the ids after them.
