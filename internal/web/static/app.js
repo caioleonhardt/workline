@@ -36,6 +36,13 @@
       if (button) button.closest('.error-bar').remove();
       var cancel = e.target.closest && e.target.closest('.editor .cancel');
       if (cancel) closeEditor(cancel.closest('.editor'));
+      // A click on a journal row, outside its links, controls and editor, opens
+      // its editor (selecting text does not).
+      var row = e.target.closest && e.target.closest('.feed [data-entry]');
+      if (row && !e.target.closest('a, button, input, select, textarea, label, summary, form') && !String(window.getSelection())) {
+        var d = row.querySelector('details.edit');
+        if (d && !d.open) d.open = true;
+      }
     });
     // Entry editors: opening one focuses its text at the end; Cancel or Esc
     // discards the changes and closes it; Ctrl/Cmd+Enter saves.

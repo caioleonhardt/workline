@@ -43,6 +43,9 @@ func TestShortcutTargetsAndHints(t *testing.T) {
 	if !strings.Contains(css, ".js-only { display: none; }") || !strings.Contains(css, "html.js .js-only { display: block; }") {
 		t.Error("the hint must show only when scripting is on")
 	}
+	if !strings.Contains(css, "html.js .feed details.edit:not([open]) > .edit-toggle:not(:focus-visible) {") {
+		t.Error("with scripting on, the feed's Edit hides until it has keyboard focus")
+	}
 	if !strings.Contains(css, "html.js [data-entry]:focus-visible {") {
 		t.Error("the entry cursor must show only for keyboard focus with scripting on")
 	}
@@ -74,6 +77,7 @@ func TestShortcutScriptRules(t *testing.T) {
 		"if (pattern && hits) fetchHits(mark)",                                                     // marks survive swaps
 		"'E486: Pattern not found on this page: '",                                                 // matches off the page are counted, not reported as none
 		"var HISTORY = 'workline.searches'", "e.key === 'ArrowUp' || (e.ctrlKey && e.key === 'p')", // search history survives Ctrl+Enter
+		"e.target.closest('.feed [data-entry]')", "!String(window.getSelection())", // a click on a journal row opens its editor
 		"fetch('/search/words')", "complete(t, e.shiftKey ? -1 : 1)", "a.clear-search",
 		"name = 'COMMAND'", "name = 'INSERT'", "a.closest('.editor')", // the statusline's mode; the editor counts as Insert
 		"'E486: Pattern not found: '", "'search hit BOTTOM, continuing at TOP'", "'E35: No previous regular expression'",

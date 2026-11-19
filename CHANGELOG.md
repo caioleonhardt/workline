@@ -22,6 +22,9 @@ each release is tagged `vX.Y.Z` in git.
   go forward again. The history is kept across pages.
 - Tasks in the journal feed have a checkbox, so a closed task can be reopened
   from the journal page and the search page, with the mouse or with `x`.
+- Clicking a journal row opens its editor; the Edit button no longer takes
+  space on each row. Task checkboxes in the journal are smaller and line up
+  with the dates.
 
 ## [0.9.0] — 2026-11-19
 
