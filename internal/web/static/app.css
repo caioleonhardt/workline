@@ -196,7 +196,7 @@ body:has(.quick) { padding-bottom: 96px; }
 html.js .apply-nojs { display: none; }
 #journal { grid-area: journal; align-self: start; margin: 0; min-width: 0; }
 #journal .rows li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
-.feed-text { flex: 1 1 280px; min-width: 0; white-space: pre-wrap; }
+.feed-text { flex: 1 1 280px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tag { text-decoration: none; }
 .tag.unassigned { color: var(--muted); font-style: italic; }
 /* Inline editor for journal entries and tasks: the text first, full width and

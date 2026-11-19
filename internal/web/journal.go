@@ -11,6 +11,7 @@ import (
 type journalRow struct {
 	ID                                int64
 	Date, Time, Kind, KindLabel, Text string // Time is empty for entries without a logged time
+	Summary                           string // the first line, with "…" when more follow (SPEC §10 item 107)
 	Closed                            string // a closed task's close date
 	Priority, PriorityLabel           string // a task's priority; empty for none
 	IsTask                            bool   // a task keeps its kind, so its Edit form has no kind select
@@ -55,6 +56,11 @@ func journalRows(entries []domain.JournalEntry) []journalRow {
 			ID: j.ID, Date: j.Date.String(), Time: j.Time(), Kind: string(j.Kind), KindLabel: kindLabel(j.Kind), Text: j.Text,
 			Closed: j.ClosedOn.String(), Priority: string(j.Priority), PriorityLabel: priorityLabel(j.Priority),
 			IsTask: j.Kind == domain.KindTask, ReadOnly: j.Kind == domain.KindScopeAck, Kinds: kindOptions(noteKinds, j.Kind),
+		}
+		if first, rest, more := strings.Cut(j.Text, "\n"); more && strings.TrimSpace(rest) != "" {
+			row.Summary = first + " …"
+		} else {
+			row.Summary = first
 		}
 		if row.IsTask {
 			row.Priorities = priorityOptions(j.Priority)

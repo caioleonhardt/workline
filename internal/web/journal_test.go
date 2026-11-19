@@ -126,12 +126,26 @@ func TestJournalTextIsMultiline(t *testing.T) {
 		t.Fatalf("stored %q", list[0].Text)
 	}
 	id := strconv.FormatInt(list[0].ID, 10)
-	wantBody(t, get(h, "/timeline?sel=2"), "class=\"feed-text\">First line\n\n- detail</span>",
+	// The feed shows the first line and "…"; the editor holds the whole text (SPEC §10 item 107).
+	wantBody(t, get(h, "/timeline?sel=2"), "class=\"feed-text\">First line …</span>",
 		"<textarea class=\"editor-text\" id=\"text-feed-"+id+"\" name=\"text\" rows=\"3\" required>First line\n\n- detail</textarea>",
 		`form="del-feed-`+id+`">Confirm delete</button>`, `<form id="del-feed-`+id+`" method="post" action="/journal/`+id+`/delete">`)
 	wantStatus(t, post(h, "/journal/"+id, url.Values{"kind": {"update"}, "text": {"one\r\ntwo"}, "date": {"2026-11-18"}}), http.StatusSeeOther)
 	if list, _ := st.ListJournal(ctx, 2); list[0].Text != "one\ntwo" {
 		t.Errorf("edited %q", list[0].Text)
+	}
+}
+
+func TestJournalSummary(t *testing.T) {
+	for text, want := range map[string]string{
+		"one line":        "one line",
+		"first\nsecond":   "first …",
+		"first\n\n- more": "first …",
+		"first\n   ":      "first", // only blank space follows
+	} {
+		if got := journalRows([]domain.JournalEntry{{Kind: domain.KindUpdate, Text: text}})[0].Summary; got != want {
+			t.Errorf("%q: summary %q, want %q", text, got, want)
+		}
 	}
 }
 

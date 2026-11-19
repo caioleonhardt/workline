@@ -25,6 +25,9 @@ each release is tagged `vX.Y.Z` in git.
 - Clicking a journal row opens its editor; the Edit button no longer takes
   space on each row. Task checkboxes in the journal are smaller and line up
   with the dates.
+- Each journal row is one line: a multi-line entry shows its first line and
+  "…", and long lines are cut with an ellipsis. Click the row to read and edit
+  the whole text. Every task checkbox now has the same small size.
 
 ## [0.9.0] — 2026-11-19
 
