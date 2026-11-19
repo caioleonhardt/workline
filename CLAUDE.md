@@ -47,4 +47,5 @@ gofmt -l .        # must print nothing
 - Work one milestone at a time (SPEC §9). Start each with a short plan and wait for approval.
 - Before saying a task is done: `gofmt`, `go vet ./...`, `go test ./...` all clean.
 - Commit each finished step without asking. Keep commits small and single-scope, with imperative messages.
+- Note user-visible changes in `CHANGELOG.md` under Unreleased. A release moves them under a new version heading and gets an annotated `vX.Y.Z` tag.
 - If the spec is ambiguous, ask; record the decision in SPEC §10.
