@@ -5,6 +5,8 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-11-19
+
 Upgrading from 0.3.0: run `workline migrate` once before `serve`.
 
 ### Added
@@ -74,7 +76,8 @@ First release.
 - `serve` on 127.0.0.1:7357 and `seed` with the baseline data.
 - CI running gofmt, vet and tests.
 
-[Unreleased]: ../../compare/v0.3.0...HEAD
+[Unreleased]: ../../compare/v0.4.0...HEAD
+[0.4.0]: ../../compare/v0.3.0...v0.4.0
 [0.3.0]: ../../compare/v0.2.0...v0.3.0
 [0.2.0]: ../../compare/v0.1.0...v0.2.0
 [0.1.0]: ../../releases/tag/v0.1.0

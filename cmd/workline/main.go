@@ -70,7 +70,7 @@ func run(args []string) error {
 }
 
 // version is this release; a release commit bumps it with CHANGELOG.md.
-const version = "0.3.0"
+const version = "0.4.0"
 
 // runVersion prints the release, the schema this build needs and, for a build
 // from a git checkout, its revision.
