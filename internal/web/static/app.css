@@ -117,9 +117,10 @@ textarea { border: 1px solid var(--border); border-radius: 8px; padding: 8px; fo
 .done-dot:hover, .done-dot:focus-within { z-index: 6; }
 .done-dot:hover .popup, .done-dot:focus-within .popup { display: block; }
 .dot-sample { width: 10px; height: 10px; border-radius: 5px; background: #16181D; }
-.work { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
-.work > .timeline { flex: 999 1 720px; min-width: 0; margin: 0; }
-.detail { flex: 1 1 360px; min-width: 0; }
+.work { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: auto 1fr; grid-template-areas: "timeline panel" "journal panel"; }
+.work > .timeline { grid-area: timeline; margin: 0; }
+.detail { grid-area: panel; align-self: start; min-width: 0; }
+@media (max-width: 1130px) { .work { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "timeline" "panel" "journal"; } }
 .error-bar { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--creep-bg); color: var(--creep-fg); font-weight: 600; }
 .error-bar button { min-height: 36px; margin-left: auto; }
 html.js .apply { display: none; }
@@ -176,7 +177,7 @@ summary { display: flex; align-items: center; min-height: 44px; cursor: pointer;
 #quickadd-error:empty { display: none; }
 body:has(.quick .target) { padding-bottom: 96px; }
 html.js .apply-nojs { display: none; }
-#journal { margin-top: 20px; }
+#journal { grid-area: journal; align-self: start; margin: 0; min-width: 0; }
 #journal .rows li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
 .feed-text { flex: 1 1 280px; min-width: 0; }
 .tag { text-decoration: none; }

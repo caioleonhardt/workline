@@ -127,3 +127,23 @@ func TestJournalLeftThePanel(t *testing.T) {
 	}
 	wantStatus(t, hxPost(h, "/journal/1", url.Values{"kind": {"update"}, "text": {"edited"}, "date": {"2026-03-02"}, "next": {"/?sel=1"}}), http.StatusOK)
 }
+
+// The journal sits in the timeline's column, below it; the panel is beside both
+// (and, on narrow screens, comes between them). Rects are checked in Firefox.
+func TestJournalIsPartOfTheWorkGrid(t *testing.T) {
+	h, _ := newApp(t)
+	body := get(h, "/?sel=2").Body.String()
+	work := body[strings.Index(body, `<div class="work">`):]
+	if !bodyOrderIn(work, `<section class="card timeline"`, `<aside class="detail"`, `</aside>`, `<section class="card" id="journal"`) {
+		t.Error("work grid order: timeline, panel, journal")
+	}
+	if !strings.Contains(work, "</aside>\n\n<section class=\"card\" id=\"journal\"") || !strings.Contains(work, "</section>\n\n</div>\n</div>") {
+		t.Error("the journal must be the last item inside the work grid, closing it")
+	}
+	css := get(h, "/static/app.css").Body.String()
+	for _, want := range []string{"#journal { grid-area: journal; align-self: start;", `grid-template-areas: "timeline" "panel" "journal"`, "grid-template-rows: auto 1fr;"} {
+		if !strings.Contains(css, want) {
+			t.Errorf("app.css lacks %q", want)
+		}
+	}
+}

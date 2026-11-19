@@ -413,7 +413,7 @@ func TestBinsArePositionedAgainstTheirContainer(t *testing.T) {
 func TestPageIsWideEnoughForTheTimelineBesidePanel(t *testing.T) {
 	h, _ := newApp(t)
 	css := get(h, "/static/app.css").Body.String()
-	for _, want := range []string{"main, .top { max-width: 1400px;", ".work > .timeline { flex: 999 1 720px;", ".detail { flex: 1 1 360px;"} {
+	for _, want := range []string{"main, .top { max-width: 1400px;", "grid-template-columns: minmax(0, 1fr) 360px;", `grid-template-areas: "timeline panel" "journal panel";`, ".detail { grid-area: panel; align-self: start;"} {
 		if !strings.Contains(css, want) {
 			t.Errorf("app.css lacks %q", want)
 		}
