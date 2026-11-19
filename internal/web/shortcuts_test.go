@@ -69,6 +69,9 @@ func TestShortcutScriptRules(t *testing.T) {
 		"'/': openSearch", "n: function () { search(1); }", "N: function () { search(-1); }",
 		"t.id === 'vsearch-text'", // Enter in the search line searches instead of submitting the form
 		"entry.classList.toggle('match', hit)",
+		"name = 'COMMAND'", "name = 'INSERT'", "a.closest('.editor')", // the statusline's mode; the editor counts as Insert
+		"'E486: Pattern not found: '", "'search hit BOTTOM, continuing at TOP'", "'E35: No previous regular expression'",
+		"showcmd(key)", "pane.dataset.pane + ' '",
 		"htmx:afterSettle", // the cursor survives the swap after x, save or delete
 		"document.querySelector('#quickadd-target .target')",
 		"document.getElementById('filter-project')", "a.panel-close", "a.cancel-new", "a.new-activity",

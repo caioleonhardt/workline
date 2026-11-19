@@ -1,5 +1,5 @@
 // Marks the page as scripted (hiding buttons that htmx replaces), floats the completion popups, handles the
-// Vim-style keys (a cursor over journal entries; Enter logs from the journal bar), the entry editors' keys and the error bar's Dismiss, and collapses project groups on the timeline; the state lives in the browser's local storage.
+// Vim-style keys and statusline (a cursor over journal entries; Enter logs from the journal bar), the entry editors' keys and the error bar's Dismiss, and collapses project groups on the timeline; the state lives in the browser's local storage.
 // Without this script every group stays expanded and every button shows.
 (function () {
   document.documentElement.classList.add('js');
@@ -167,6 +167,7 @@
       restore = { pane: panes().indexOf(pane), entry: entriesOf(pane).indexOf(entry) };
     }, true);
     document.addEventListener('htmx:afterSettle', function () {
+      updateStatus();
       if (!restore) return;
       var pane = panes()[restore.pane];
       if (pane) {
@@ -175,10 +176,46 @@
       }
       restore = null;
     });
-    // Search (/) marks the entries whose text contains the query; n and N read the
+    // The statusline (SPEC §10 item 101): mode, messages, pending keys and the
+    // cursor's place, as in Neovim. It sits outside #dash, so swaps keep it.
+    function say(text, error) {
+      var msg = document.getElementById('status-msg');
+      if (!msg) return;
+      msg.textContent = text;
+      msg.classList.toggle('error', !!error);
+    }
+    var cmdTimer = null;
+    function showcmd(text) {
+      var cmd = document.getElementById('status-cmd');
+      if (cmd) cmd.textContent = text;
+      clearTimeout(cmdTimer);
+      if (text) cmdTimer = setTimeout(function () { showcmd(''); }, 1000);
+    }
+    function updateStatus() {
+      var mode = document.getElementById('status-mode');
+      if (!mode) return;
+      var a = document.activeElement, name = 'NORMAL';
+      if (a && a.id === 'vsearch-text') {
+        name = 'COMMAND';
+      } else if (a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.closest('.editor'))) {
+        name = 'INSERT';
+      }
+      mode.textContent = name;
+      mode.className = 'mode ' + name.toLowerCase();
+      var cur = cursor(), pos = '';
+      if (cur) {
+        var pane = cur.closest('[data-pane]'), list = entriesOf(pane);
+        pos = pane.dataset.pane + ' ' + (list.indexOf(cur) + 1) + '/' + list.length;
+      }
+      document.getElementById('status-pos').textContent = pos;
+    }
+    document.addEventListener('focusin', updateStatus);
+    document.addEventListener('focusout', function () { setTimeout(updateStatus, 0); });
+    // Search (/) marks the entries whose text contains the pattern; n and N read the
     // page again, so they keep working after a swap.
-    var query = '', searchFrom = null;
+    var pattern = '', query = '', searchFrom = null;
     function search(delta) {
+      if (!query) return say('E35: No previous regular expression', true);
       var all = Array.prototype.slice.call(document.querySelectorAll('[data-entry]'));
       var found = all.filter(function (entry) {
         var text = entry.querySelector('.feed-text, .check span') || entry;
@@ -186,20 +223,32 @@
         entry.classList.toggle('match', hit);
         return hit;
       });
-      if (!found.length) return;
+      if (!found.length) return say('E486: Pattern not found: ' + pattern, true);
       var at = all.indexOf(cursor()), next = null;
       found.forEach(function (entry) {
         var i = all.indexOf(entry);
         if (delta > 0 ? !next && i > at : i < at || at === -1) next = entry;
       });
-      moveTo(next || found[delta > 0 ? 0 : found.length - 1]);
+      var target = next || found[delta > 0 ? 0 : found.length - 1];
+      moveTo(target);
+      if (next) {
+        say('/' + pattern + '  [' + (found.indexOf(target) + 1) + '/' + found.length + ']');
+      } else {
+        say(delta > 0 ? 'search hit BOTTOM, continuing at TOP' : 'search hit TOP, continuing at BOTTOM', true);
+      }
+    }
+    function clearSearch() {
+      pattern = query = '';
+      document.querySelectorAll('[data-entry].match').forEach(function (entry) { entry.classList.remove('match'); });
+      say('');
     }
     function openSearch() {
       var form = document.querySelector('.vsearch');
       if (!form) return;
       searchFrom = cursor();
+      say('');
       form.hidden = false;
-      form.querySelector('input').select();
+      form.querySelector('input').value = '';
       form.querySelector('input').focus();
     }
     function closeSearch(run) {
@@ -207,10 +256,12 @@
       input.closest('.vsearch').hidden = true;
       if (searchFrom && searchFrom.isConnected) searchFrom.focus();
       else input.blur();
-      if (run) {
-        query = input.value.trim().toLowerCase();
-        search(1);
+      // An empty search repeats the last pattern, as in Vim.
+      if (run && input.value.trim()) {
+        pattern = input.value.trim();
+        query = pattern.toLowerCase();
       }
+      if (run) search(1);
     }
     var pending = '', pendingAt = 0;
     var keys = {
@@ -245,11 +296,7 @@
         if (dialog) dialog.showModal();
       },
       Escape: function () {
-        if (query) {
-          query = '';
-          search(1);
-          return;
-        }
+        if (query) return clearSearch();
         var target = document.querySelector('a.cancel-new') || document.querySelector('a.panel-close');
         if (target) target.click();
       }
@@ -304,9 +351,11 @@
       if (key === 'g' || key === 'd') {
         pending = key;
         pendingAt = Date.now();
+        showcmd(key);
         e.preventDefault();
         return;
       }
+      showcmd('');
       if (keys[key]) {
         e.preventDefault();
         keys[key]();
