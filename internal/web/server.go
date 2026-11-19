@@ -100,7 +100,9 @@ func (s *Server) fail(w http.ResponseWriter, r *http.Request, err error) {
 		slog.Error("request failed", "method", r.Method, "path", r.URL.Path, "err", err)
 	}
 	if isHX(r) {
-		// Show the message in the error bar and leave the dashboard as it is.
+		// Show the message in the error bar and leave the dashboard, the address
+		// bar and the history as they are.
+		w.Header().Set("HX-Push-Url", "false")
 		w.Header().Set("HX-Retarget", "#errors")
 		w.Header().Set("HX-Reswap", "innerHTML")
 		s.render(w, status, "error-bar", msg)
