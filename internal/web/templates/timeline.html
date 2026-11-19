@@ -21,19 +21,19 @@
 <button type="button" class="proj-row proj-toggle" aria-expanded="true"><svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg><span class="proj-name">{{.Name}}</span><span class="small">· {{.CountLabel}}</span><span class="mono small">· {{.PctLabel}}</span>{{if .FlagLabel}}<span class="creep-text small">· {{.FlagLabel}}</span>{{end}}</button>
 {{range .Rows}}{{$st := .Status}}
 <div class="tl-row act-row{{if .Selected}} sel{{end}}">
-<a class="tl-label act-label" href="{{.Href}}"{{if .Selected}} aria-current="true"{{end}}>
-<span class="act-name">{{.Name}}</span>
+<div class="tl-label act-label">
+<a class="act-name" href="{{.Href}}"{{if .Selected}} aria-current="true"{{end}}>{{.Name}}</a>
 <span class="act-meta"><span class="chip {{.Status}}">{{.StatusLabel}}</span>{{if .ScopeChip}}<span class="chip creep">{{.ScopeChip}}</span>{{end}}<span class="mono small">{{.OpenLabel}}</span></span>
 <span class="muted small">{{.Dates}}</span>
-</a>
+</div>
 <div class="tl-track">
 <span class="span-line {{.Status}}" aria-hidden="true" style="left:{{.SpanLeft}}%;width:{{.SpanWidth}}%"></span>
 {{if .HasPlan}}<span class="plan {{.Status}}" aria-hidden="true" style="left:{{.PlanLeft}}%;width:{{.PlanWidth}}%"></span>{{end}}
 <span class="bins" aria-hidden="true">{{range .Bins}}<span class="bin {{$st}}" style="left:{{.Left}}%;width:{{.Width}}%;height:{{.Height}}%"></span>{{end}}</span>
 {{range .Done}}<span class="done-dot {{.Align}}{{if .Down}} down{{end}}" style="left:{{.Left}}%"><button type="button" class="dot" aria-label="{{.Label}}" aria-describedby="{{.ID}}"></button><span class="popup" id="{{.ID}}"><strong>{{.Day}}</strong><ul>{{range .Items}}<li>{{if .Time}}<span class="mono">{{.Time}}</span> {{end}}{{.Text}}</li>{{end}}</ul></span></span>{{end}}
 <span class="pct mono small" aria-hidden="true" style="left:{{.PctLeft}}%">{{.PctLabel}}</span>
-<a class="bar-link" href="{{.Href}}" aria-label="{{.Tip}}" style="left:{{.SpanLeft}}%;width:{{.SpanWidth}}%"></a>
 </div>
+<a class="row-link" href="{{.Href}}" title="{{.Tip}}" tabindex="-1" aria-hidden="true"></a>
 </div>
 {{end}}
 </div>

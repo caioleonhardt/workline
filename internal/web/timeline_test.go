@@ -88,7 +88,7 @@ func TestTimelineGroupsAndRows(t *testing.T) {
 		}
 	}
 	// the selected row's link carries aria-current; the scope chip names the added subtasks
-	row := regexp.MustCompile(`(?s)<a class="tl-label act-label" href="[^"]*" aria-current="true">.*?</a>`).FindString(body)
+	row := regexp.MustCompile(`(?s)<div class="tl-label act-label">\s*<a class="act-name" href="[^"]*" aria-current="true">.*?</div>`).FindString(body)
 	for _, want := range []string{"Consolidate order services", "Active", "Scope &#43;4", "3 open / 8", "2026-03-02 → 2026-12-18 · Manager"} {
 		if !strings.Contains(row, want) {
 			t.Errorf("selected row lacks %q: %s", want, row)
@@ -112,11 +112,11 @@ func TestTimelineColumnLoadFuture(t *testing.T) {
 // rowTrack returns the markup of an activity's track, from its name to its bar link.
 func rowTrack(t *testing.T, body, name string) string {
 	t.Helper()
-	i := strings.Index(body, `<span class="act-name">`+name)
+	i := strings.Index(body, `>`+name+`</a>`)
 	if i < 0 {
 		t.Fatalf("row %q not found", name)
 	}
-	j := strings.Index(body[i:], `class="bar-link"`)
+	j := strings.Index(body[i:], `class="row-link"`)
 	return body[i : i+j+250]
 }
 
@@ -127,7 +127,7 @@ func TestTimelineRowSpanPlanAndLabel(t *testing.T) {
 		`class="span-line active" aria-hidden="true" style="left:16.44%;width:80.00%"`,
 		`class="plan active" aria-hidden="true" style="left:87.95%;width:8.49%"`, // today..due
 		`style="left:92.00%">63%`, // label sits at the due date, capped at 92%
-		`aria-label="Consolidate order services into one Go service: 63% done, 3 open subtasks. Show details"`,
+		`title="Consolidate order services into one Go service: 63% done, 3 open subtasks. Show details" tabindex="-1" aria-hidden="true"`,
 	} {
 		if !strings.Contains(row, want) {
 			t.Errorf("year row lacks %q:\n%s", want, row)
@@ -373,7 +373,7 @@ func TestCompletionPopupsOpenDownInTheFirstRows(t *testing.T) {
 	// all default activities: six rows, so rows 1 and 2 (Kafka, Consolidate) open down
 	body := get(h, "/").Body.String()
 	var order []string
-	for _, m := range regexp.MustCompile(`<span class="act-name">([^<]*)</span>`).FindAllStringSubmatch(body, -1) {
+	for _, m := range regexp.MustCompile(`<a class="act-name" href="[^"]*"(?: aria-current="true")?>([^<]*)</a>`).FindAllStringSubmatch(body, -1) {
 		order = append(order, m[1])
 	}
 	if len(order) != 6 {
@@ -448,5 +448,30 @@ func TestNarrowScreenRules(t *testing.T) {
 	}
 	if strings.Contains(css, "left: 300px") {
 		t.Error("the overlay must follow --label-w")
+	}
+}
+
+// Whole-row selection (SPEC §10 item 80): the name is the one link in the
+// accessibility tree and the tab order; a pointer-only overlay covers the row.
+func TestRowSelectionOverlayIsPointerOnly(t *testing.T) {
+	h, _ := newApp(t)
+	body := get(h, "/").Body.String()
+	rows := strings.Count(body, `class="tl-row act-row`)
+	if rows != 6 || strings.Count(body, `class="act-name" href="`) != rows || strings.Count(body, `class="row-link"`) != rows {
+		t.Fatalf("rows=%d names=%d overlays=%d", rows, strings.Count(body, `class="act-name" href="`), strings.Count(body, `class="row-link"`))
+	}
+	for _, m := range regexp.MustCompile(`<a class="row-link"[^>]*>`).FindAllString(body, -1) {
+		if !strings.Contains(m, `tabindex="-1"`) || !strings.Contains(m, `aria-hidden="true"`) {
+			t.Errorf("overlay is reachable by keyboard or assistive technology: %s", m)
+		}
+	}
+	if strings.Contains(body, "bar-link") {
+		t.Error("the duplicate bar link is gone")
+	}
+	css := get(h, "/static/app.css").Body.String()
+	for _, want := range []string{".row-link { position: absolute; inset: 0; z-index: 3;", ".done-dot { z-index: 4; }"} {
+		if !strings.Contains(css, want) {
+			t.Errorf("app.css lacks %q", want)
+		}
 	}
 }
