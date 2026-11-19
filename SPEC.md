@@ -370,3 +370,4 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 62. Panel burndown heights are relative to the activity's total subtasks (as in the mockup).
 63. **HX validation errors** (422) show in a small error bar above the dashboard (`HX-Retarget`/`HX-Reswap`), leaving the dashboard as it was. Without JS, item 27's error page applies.
 64. With nothing selected, the panel shows "Select an activity to see its burndown, scope, subtasks and journal." 
+65. A period shows only activities whose start–due range overlaps it (open activities do not carry past their due date). Projects with no visible activity are hidden.
