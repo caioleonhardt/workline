@@ -38,7 +38,7 @@ func TestSubtasksAreCheckboxes(t *testing.T) {
 		t.Errorf("checked = %d, want 2", got)
 	}
 	for _, want := range []string{
-		`<form class="inline" method="post" action="/subtasks/13/toggle" hx-trigger="change, submit">`,
+		`<form class="inline sub-toggle" method="post" action="/subtasks/13/toggle" hx-trigger="change, submit">`,
 		`<span class="done-text">Compatibility matrix</span>`,
 		`<button class="apply">Reopen</button>`, `<button class="apply">Close</button>`,
 	} {
@@ -46,4 +46,23 @@ func TestSubtasksAreCheckboxes(t *testing.T) {
 			t.Errorf("missing %q", want)
 		}
 	}
+}
+
+// A subtask is one line: one date (closed, else opened) with both in the tooltip.
+func TestSubtaskRowsShowOneDate(t *testing.T) {
+	h, _ := newApp(t)
+	body := get(h, "/?sel=2").Body.String() // Kafka: 2 closed, 4 open
+	for _, want := range []string{
+		`<span class="muted mono small" title="opened 2026-09-07 · closed 2026-10-05">closed 2026-10-05</span>`,
+		`<span class="muted mono small" title="opened 2026-10-05">opened 2026-10-05</span>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("missing %q", want)
+		}
+	}
+	if strings.Contains(body, "opened 2026-09-07 · closed") && strings.Contains(body, ">opened 2026-09-07 · closed") {
+		t.Error("both dates shown in the row")
+	}
+	// the opened date stays editable
+	wantBody(t, get(h, "/?sel=2"), `<label>Opened<input type="date" name="created_on" value="2026-09-07" required></label>`)
 }
