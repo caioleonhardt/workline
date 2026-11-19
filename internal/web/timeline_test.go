@@ -431,3 +431,22 @@ func TestTodayChipHasItsOwnStrip(t *testing.T) {
 		}
 	}
 }
+
+// Narrow screens (SPEC §10 item 70): sticky labels, a 160px label column on
+// phones, wrapping stat boxes and 44px disclosure summaries. Checked in Firefox
+// at phone, tablet and wide sizes; this keeps the rules from being dropped.
+func TestNarrowScreenRules(t *testing.T) {
+	h, _ := newApp(t)
+	css := get(h, "/static/app.css").Body.String()
+	for _, want := range []string{
+		"--label-w: 300px;", ".tl-label { position: sticky; left: 0;", "@media (max-width: 640px) { :root { --label-w: 160px; }",
+		"grid-template-columns: repeat(auto-fit, minmax(96px, 1fr))", "summary { display: flex; align-items: center; min-height: 44px;",
+	} {
+		if !strings.Contains(css, want) {
+			t.Errorf("app.css lacks %q", want)
+		}
+	}
+	if strings.Contains(css, "left: 300px") {
+		t.Error("the overlay must follow --label-w")
+	}
+}
