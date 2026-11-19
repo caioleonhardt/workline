@@ -52,20 +52,24 @@ func TestShortcutScriptRules(t *testing.T) {
 		"if (!window.worklineBound)", // registered once although app.js re-runs after every swap
 		"e.ctrlKey || e.altKey || e.metaKey",
 		"/^(INPUT|TEXTAREA|SELECT|SUMMARY)$/.test(t.tagName)",
-		"e.key === 'n' && !cancel", "e.key === 'Escape'", "e.key === '/'",
-		"e.key === 'j' || barKinds[e.key]", "document.querySelector('#quickadd-target .target')", // j, t, d, u, b, m focus the bar
-		"t: 'task', d: 'decision', u: 'update', b: 'blocker', m: 'meeting'", "select.value = kind",
-		"} else if (focusBar()) {",             // / focuses the bar where there is no filter, instead of the browser's quick find
+		"e.key === 'Escape'",
 		"t.id === 'quickadd-text'", "t.blur()", // Esc in the bar's field only blurs it
 		"e.key === 'Enter' && !e.shiftKey && !e.isComposing", "t.form.requestSubmit()", // Enter logs, Shift+Enter is a newline
+		"if (document.querySelector('dialog[open]')) return;",              // the keys dialog keeps its keys
+		"t.matches('[data-entry]') && t.querySelector('a.tag')",            // Enter on a link or button stays theirs
+		"if (key === 'g' || key === 'd')", "Date.now() - pendingAt < 1000", // gg, gj, gt, gp, dd
+		"gg:", "G:", "h:", "l:", "i:", "dd:", "x:", "o: focusBar", "'[':", "']':", "gj:", "gt:", "gp:", "O:", "f:", "'?':", "Escape:",
+		"d.querySelector('details.confirm').open = true", // dd only opens the confirm step
+		"htmx:afterSettle", // the cursor survives the swap after x, save or delete
+		"document.querySelector('#quickadd-target .target')",
 		"document.getElementById('filter-project')", "a.panel-close", "a.cancel-new", "a.new-activity",
 	} {
 		if !strings.Contains(js, want) {
 			t.Errorf("app.js lacks %q", want)
 		}
 	}
-	if strings.Count(js, "addEventListener('keydown'") != 1 || strings.Count(js, "addEventListener('click'") != 2 {
-		t.Error("document listeners: one keydown, one click here and one for the project toggles")
+	if strings.Count(js, "addEventListener('keydown'") != 1 || strings.Count(js, "addEventListener('click'") != 2 || strings.Count(js, "addEventListener('submit'") != 1 {
+		t.Error("document listeners: one keydown, one submit, one click here and one for the project toggles")
 	}
 }
 
