@@ -147,3 +147,11 @@ func TestJournalIsPartOfTheWorkGrid(t *testing.T) {
 		}
 	}
 }
+
+func TestEmptyFeedText(t *testing.T) {
+	h, _ := newApp(t)
+	wantBody(t, get(h, "/?status="), `<li class="muted">No journal entries for these filters.</li>`)
+	if strings.Contains(get(h, "/").Body.String(), "No journal entries for these filters.") {
+		t.Error("empty text shown for a non-empty feed")
+	}
+}
