@@ -144,3 +144,53 @@ func TestAckScopeStampsJournalEntry(t *testing.T) {
 		t.Errorf("ack entry: %+v", list[0])
 	}
 }
+
+func TestListJournalBetween(t *testing.T) {
+	s := newTestStore(t)
+	a := mustActivity(t, s, "P", "2026-01-01", "2026-12-31") // "Activity created", 2026-01-01 09:30
+	b := mustActivity(t, s, "Q", "2026-01-01", "2026-12-31")
+	add := func(id int64, day, at, text string) {
+		t.Helper()
+		if _, err := s.AddJournal(ctx, domain.JournalEntry{ActivityID: id, Date: date(t, day), Kind: domain.KindUpdate, Text: text, LoggedAt: at}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	add(a.ID, "2026-03-01", "2026-03-01 17:00", "late")
+	add(b.ID, "2026-03-01", "2026-03-01 08:00", "early")
+	add(a.ID, "2026-03-01", "", "untimed")
+	add(a.ID, "2026-05-01", "", "may")
+	texts := func(from, to string) string {
+		t.Helper()
+		var f, to2 domain.Date
+		if from != "" {
+			f = date(t, from)
+		}
+		if to != "" {
+			to2 = date(t, to)
+		}
+		es, err := s.ListJournalBetween(ctx, f, to2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []string
+		for _, e := range es {
+			out = append(out, e.Text)
+		}
+		return strings.Join(out, "|")
+	}
+	if got, want := texts("", ""), "Activity created|Activity created|untimed|early|late|may"; got != want {
+		t.Errorf("all: %q, want %q", got, want)
+	}
+	if got, want := texts("2026-03-01", "2026-03-01"), "untimed|early|late"; got != want { // bounds are inclusive
+		t.Errorf("one day: %q, want %q", got, want)
+	}
+	if got, want := texts("2026-03-02", ""), "may"; got != want {
+		t.Errorf("from only: %q, want %q", got, want)
+	}
+	if got, want := texts("", "2026-01-01"), "Activity created|Activity created"; got != want {
+		t.Errorf("to only: %q, want %q", got, want)
+	}
+	if got := texts("2027-01-01", ""); got != "" {
+		t.Errorf("empty range: %q", got)
+	}
+}

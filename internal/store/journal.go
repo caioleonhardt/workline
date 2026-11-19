@@ -42,11 +42,8 @@ func (s *Store) AddJournal(ctx context.Context, j domain.JournalEntry) (domain.J
 	return j, nil
 }
 
-// ListJournal returns an activity's entries, newest first.
-func (s *Store) ListJournal(ctx context.Context, activityID int64) ([]domain.JournalEntry, error) {
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, activity_id, date, kind, text, logged_at FROM journal_entries
-		 WHERE activity_id = ? ORDER BY date DESC, logged_at IS NULL, logged_at DESC, id DESC`, activityID)
+func (s *Store) queryJournal(ctx context.Context, query string, args ...any) ([]domain.JournalEntry, error) {
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list journal: %w", err)
 	}
@@ -66,6 +63,23 @@ func (s *Store) ListJournal(ctx context.Context, activityID int64) ([]domain.Jou
 		out = append(out, j)
 	}
 	return out, rows.Err()
+}
+
+// ListJournal returns an activity's entries, newest first.
+func (s *Store) ListJournal(ctx context.Context, activityID int64) ([]domain.JournalEntry, error) {
+	return s.queryJournal(ctx,
+		`SELECT id, activity_id, date, kind, text, logged_at FROM journal_entries
+		 WHERE activity_id = ? ORDER BY date DESC, logged_at IS NULL, logged_at DESC, id DESC`, activityID)
+}
+
+// ListJournalBetween returns the entries of all activities whose date lies in
+// from..to inclusive (a zero bound is open), oldest first: by date, then
+// logged time with untimed entries first, then id.
+func (s *Store) ListJournalBetween(ctx context.Context, from, to domain.Date) ([]domain.JournalEntry, error) {
+	return s.queryJournal(ctx,
+		`SELECT id, activity_id, date, kind, text, logged_at FROM journal_entries
+		 WHERE (?1 = '' OR date >= ?1) AND (?2 = '' OR date <= ?2)
+		 ORDER BY date, logged_at IS NOT NULL, logged_at, id`, from.String(), to.String())
 }
 
 // EditJournal rewrites date, kind and text. scope_ack entries are read-only.
