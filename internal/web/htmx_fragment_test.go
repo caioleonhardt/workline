@@ -89,10 +89,10 @@ func TestMutationsAnswerHXWithTheFragment(t *testing.T) {
 		form         url.Values
 		want         string // the address both paths end up at
 	}{
-		{"add subtask", "/activities/2/subtasks", url.Values{"text": {"x"}}, next},
-		{"toggle subtask", "/subtasks/1/toggle", nil, next},
-		{"edit subtask", "/subtasks/1", url.Values{"text": {"y"}, "created_on": {"2026-03-01"}}, next},
-		{"delete subtask", "/subtasks/1/delete", nil, next},
+		{"add task", "/activities/2/tasks", url.Values{"text": {"x"}}, next},
+		{"toggle task", "/tasks/1/toggle", nil, next},
+		{"edit task", "/tasks/1", url.Values{"text": {"y"}, "created_on": {"2026-03-01"}}, next},
+		{"delete task", "/tasks/1/delete", nil, next},
 		{"add journal", "/journal", url.Values{"activity": {"2"}, "kind": {"update"}, "text": {"z"}}, next},
 		{"edit journal", "/journal/1", url.Values{"kind": {"update"}, "text": {"z"}, "date": {"2026-03-01"}}, next},
 		{"delete journal", "/journal/1/delete", nil, next},
@@ -136,11 +136,11 @@ func TestCreateActivityAnswersHXWithTheNewSelection(t *testing.T) {
 func TestHXToggleUpdatesPanelTimelineAndTiles(t *testing.T) {
 	h, _ := newApp(t)
 	before := get(h, "/?sel=1").Body.String()
-	wantStatus(t, hxPost(h, "/subtasks/1/toggle", url.Values{"next": {"/?sel=1"}}), http.StatusOK)
+	wantStatus(t, hxPost(h, "/tasks/1/toggle", url.Values{"next": {"/?sel=1"}}), http.StatusOK)
 	rec := hxGet(h, "/?sel=1")
 	body := rec.Body.String()
-	if !strings.Contains(before, "5 of 8 subtasks done") || !strings.Contains(body, "4 of 8 subtasks done") ||
-		!strings.Contains(body, "4 open / 8") || tileValue(t, body, "Open subtasks now") != 18 {
+	if !strings.Contains(before, "5 of 8 tasks done") || !strings.Contains(body, "4 of 8 tasks done") ||
+		!strings.Contains(body, "4 open / 8") || tileValue(t, body, "Open tasks now") != 18 {
 		t.Error("toggle did not reach the panel, timeline and tiles")
 	}
 }
@@ -153,8 +153,8 @@ func TestHXErrorsGoToTheErrorBar(t *testing.T) {
 		status int
 		msg    string
 	}{
-		"validation": {"/activities/2/subtasks", url.Values{"text": {" "}}, http.StatusUnprocessableEntity, "Subtask text is required."},
-		"not found":  {"/subtasks/999/toggle", nil, http.StatusNotFound, "Not found."},
+		"validation": {"/activities/2/tasks", url.Values{"text": {" "}}, http.StatusUnprocessableEntity, "Task text is required."},
+		"not found":  {"/tasks/999/toggle", nil, http.StatusNotFound, "Not found."},
 		"This activity is not flagged for scope creep.": {"/activities/3/scope-ack", nil, http.StatusUnprocessableEntity, "This activity is not flagged for scope creep."},
 	} {
 		form := url.Values{"next": {"/?sel=2"}}
@@ -187,7 +187,7 @@ func TestHXErrorsGoToTheErrorBar(t *testing.T) {
 
 // leaksInternals reports error-chain context that belongs in logs, not on screen.
 func leaksInternals(body string) bool {
-	for _, s := range []string{"invalid value", "add subtask to", "toggle subtask", "acknowledge scope", "constraint", "sqlite"} {
+	for _, s := range []string{"invalid value", "add task to", "toggle task", "acknowledge scope", "constraint", "sqlite"} {
 		if strings.Contains(body, s) {
 			return true
 		}

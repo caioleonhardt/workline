@@ -4,12 +4,12 @@ package domain
 type Tiles struct {
 	Active, Blocked, Planned int
 	DoneThisYear             int // done activities whose done date falls in the year
-	OpenSubtasks             int // of activities that are not done
+	OpenTasks                int // of activities that are not done
 	ScopeFlags               int
 }
 
 // ComputeTiles summarises the given activities as of today.
-func ComputeTiles(items []ActivityWithSubtasks, year int, today Date) Tiles {
+func ComputeTiles(items []ActivityWithTasks, year int, today Date) Tiles {
 	var t Tiles
 	for _, it := range items {
 		switch it.Status {
@@ -25,8 +25,8 @@ func ComputeTiles(items []ActivityWithSubtasks, year int, today Date) Tiles {
 			}
 			continue
 		}
-		t.OpenSubtasks += OpenAt(it.Subtasks, today)
-		if ScopeCreep(it.Activity, it.Subtasks, it.Ack, today).Flagged {
+		t.OpenTasks += OpenAt(it.Tasks, today)
+		if ScopeCreep(it.Activity, it.Tasks, it.Ack, today).Flagged {
 			t.ScopeFlags++
 		}
 	}

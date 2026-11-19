@@ -107,7 +107,7 @@ func TestQuickAddSuccessClearsTheField(t *testing.T) {
 	// the text field is replaced only by a successful quick add: not by other
 	// swaps (toggle, selection, filters) and not by the panel's own journal form
 	for name, rec := range map[string]*httptest.ResponseRecorder{
-		"toggle":    hxPostFrom(h, "/subtasks/1/toggle", url.Values{"next": {"/?sel=1"}}, "toggle-form"),
+		"toggle":    hxPostFrom(h, "/tasks/1/toggle", url.Values{"next": {"/?sel=1"}}, "toggle-form"),
 		"select":    hxGet(h, "/?sel=1"),
 		"filter":    hxGet(h, "/?period=q4"),
 		"panel add": hxPostFrom(h, "/journal", url.Values{"activity": {"2"}, "kind": {"update"}, "text": {"x"}, "next": {"/?sel=2"}}, "panel-journal"),
@@ -135,7 +135,7 @@ func TestQuickAddErrorsShowInTheBar(t *testing.T) {
 		t.Errorf("a rejected entry was stored: %d entries", len(list))
 	}
 	// errors from anywhere else still use the page-top bar
-	other := hxPostFrom(h, "/subtasks/999/toggle", url.Values{"next": {"/?sel=2"}}, "toggle-form")
+	other := hxPostFrom(h, "/tasks/999/toggle", url.Values{"next": {"/?sel=2"}}, "toggle-form")
 	if other.Header().Get("HX-Retarget") != "#errors" {
 		t.Errorf("other error retarget = %q", other.Header().Get("HX-Retarget"))
 	}

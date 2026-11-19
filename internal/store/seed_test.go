@@ -62,11 +62,11 @@ func TestSeedMatchesGolden(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	allSubs, err := s.ListAllSubtasks(ctx)
+	allSubs, err := s.ListAllTasks(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	subsOf := map[int64][]domain.Subtask{}
+	subsOf := map[int64][]domain.Task{}
 	for _, st := range allSubs {
 		subsOf[st.ActivityID] = append(subsOf[st.ActivityID], st)
 	}
@@ -86,7 +86,7 @@ func TestSeedMatchesGolden(t *testing.T) {
 			tiles["scope_flags"]++
 		}
 		tiles[string(a.Status)]++
-		tiles["open_subtasks"] += domain.OpenAt(subsOf[a.ID], asOf)
+		tiles["open_tasks"] += domain.OpenAt(subsOf[a.ID], asOf)
 	}
 	for k, want := range exp.TilesRaw {
 		if tiles[k] != want {
@@ -111,7 +111,7 @@ func TestSeedMatchesGolden(t *testing.T) {
 			continue
 		}
 		n := 0
-		var subs []domain.Subtask
+		var subs []domain.Task
 		for _, a := range acts {
 			if a.ProjectID == p.ID {
 				n++
@@ -173,7 +173,7 @@ func TestSeedPreservesBaselineRows(t *testing.T) {
 	counts := map[string]int{
 		"projects":        len(b.Data.Projects),
 		"activities":      len(b.Data.Activities),
-		"subtasks":        len(b.Data.Subtasks),
+		"subtasks":        len(b.Data.Tasks),
 		"journal_entries": len(b.Data.JournalEntries),
 		"scope_acks":      len(b.Data.ScopeAcks),
 	}
@@ -189,20 +189,20 @@ func TestSeedPreservesBaselineRows(t *testing.T) {
 	if j, _ := s.ListJournal(ctx, 1); len(j) == 0 || j[0].LoggedAt != "" {
 		t.Errorf("seeded entries must have no logged time: %+v", j)
 	}
-	if subs, _ := s.ListSubtasks(ctx, 3); len(subs) == 0 || subs[0].ClosedOn.IsZero() || subs[0].ClosedAt != "" {
-		t.Errorf("seeded closed subtasks must have no close time: %+v", subs)
+	if subs, _ := s.ListTasks(ctx, 3); len(subs) == 0 || subs[0].ClosedOn.IsZero() || subs[0].ClosedAt != "" {
+		t.Errorf("seeded closed tasks must have no close time: %+v", subs)
 	}
 	for _, id := range []int64{3, 4, 8} {
 		if a, _ := s.GetActivity(ctx, id); a.DoneOn.IsZero() || a.DoneOn.String() != a.Due.String() {
 			t.Errorf("activity %d: done_on = %v, want its due date", id, a.DoneOn)
 		}
 	}
-	// ids preserved, and activity 9's subtasks predate its start (allowed)
+	// ids preserved, and activity 9's tasks predate its start (allowed)
 	a9, err := s.GetActivity(ctx, 9)
 	if err != nil {
 		t.Fatal(err)
 	}
-	subs, _ := s.ListSubtasks(ctx, 9)
+	subs, _ := s.ListTasks(ctx, 9)
 	early := 0
 	for _, st := range subs {
 		if st.CreatedOn.Before(a9.Start) {
@@ -210,12 +210,12 @@ func TestSeedPreservesBaselineRows(t *testing.T) {
 		}
 	}
 	if early == 0 {
-		t.Error("expected activity 9 subtasks created before its start_date")
+		t.Error("expected activity 9 tasks created before its start_date")
 	}
-	// new subtask ids continue after the seeded maximum
-	st, err := s.AddSubtask(ctx, 1, "after seed", date(t, "2026-11-18"))
-	if err != nil || st.ID != int64(len(b.Data.Subtasks))+1 {
-		t.Errorf("next subtask id = %d (%v), want %d", st.ID, err, len(b.Data.Subtasks)+1)
+	// new task ids continue after the seeded maximum
+	st, err := s.AddTask(ctx, 1, "after seed", date(t, "2026-11-18"))
+	if err != nil || st.ID != int64(len(b.Data.Tasks))+1 {
+		t.Errorf("next task id = %d (%v), want %d", st.ID, err, len(b.Data.Tasks)+1)
 	}
 }
 

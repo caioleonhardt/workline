@@ -94,10 +94,10 @@ func TestColumnStateAndLoad(t *testing.T) {
 		t.Error("december")
 	}
 
-	mk := func(start, due string, subs ...Subtask) ActivityWithSubtasks {
-		return ActivityWithSubtasks{Activity: act(t, start, due), Subtasks: subs}
+	mk := func(start, due string, subs ...Task) ActivityWithTasks {
+		return ActivityWithTasks{Activity: act(t, start, due), Tasks: subs}
 	}
-	acts := []ActivityWithSubtasks{
+	acts := []ActivityWithTasks{
 		mk("2026-01-05", "2026-02-27", sub(t, 1, "2026-01-05", "2026-02-01"), sub(t, 2, "2026-01-06", "")), // Q1 only, 1 open leftover
 		mk("2026-03-02", "2026-12-18", sub(t, 3, "2026-03-02", ""), sub(t, 4, "2026-11-01", "")),           // Q1..Q4
 		mk("2026-11-23", "2026-12-31", sub(t, 5, "2026-11-23", "")),                                        // starts after today
@@ -119,7 +119,7 @@ func TestColumnStateAndLoad(t *testing.T) {
 	}
 
 	future := Column{Label: "Q1", Start: d(t, "2027-01-01"), End: d(t, "2027-03-31")}
-	fa := []ActivityWithSubtasks{mk("2026-12-01", "2027-01-15"), mk("2027-02-01", "2027-02-10"), mk("2026-01-01", "2026-12-31")}
+	fa := []ActivityWithTasks{mk("2026-12-01", "2027-01-15"), mk("2027-02-01", "2027-02-10"), mk("2026-01-01", "2026-12-31")}
 	if l := ColumnLoad(future, fa, today); !l.Planned || l.Label() != "2 planned" {
 		t.Errorf("future: %q", l.Label())
 	}

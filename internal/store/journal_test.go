@@ -134,8 +134,8 @@ func TestJournalLoggedAt(t *testing.T) {
 func TestAckScopeStampsJournalEntry(t *testing.T) {
 	s := newTestStore(t)
 	a := mustActivity(t, s, "P", "2026-06-01", "2026-12-31")
-	s.AddSubtask(ctx, a.ID, "n1", date(t, "2026-11-10"))
-	s.AddSubtask(ctx, a.ID, "n2", date(t, "2026-11-10"))
+	s.AddTask(ctx, a.ID, "n1", date(t, "2026-11-10"))
+	s.AddTask(ctx, a.ID, "n2", date(t, "2026-11-10"))
 	if _, err := s.AckScope(ctx, a.ID, domain.FixedClock{D: date(t, "2026-11-18"), Hour: 16, Minute: 2}); err != nil {
 		t.Fatal(err)
 	}

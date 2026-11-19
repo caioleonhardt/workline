@@ -72,7 +72,7 @@ type rowView struct {
 
 type binView struct{ Left, Width, Height pct }
 
-// doneDot marks a day on which an activity had subtasks closed; its popup lists them.
+// doneDot marks a day on which an activity had tasks closed; its popup lists them.
 type doneDot struct {
 	Left  pct
 	ID    string // of the popup, for aria-describedby
@@ -98,7 +98,7 @@ const (
 // timelineData is what the dashboard hands to buildTimeline.
 type timelineData struct {
 	Groups []domain.Group
-	ItemOf map[int64]domain.ActivityWithSubtasks
+	ItemOf map[int64]domain.ActivityWithTasks
 	Creeps map[int64]domain.Creep
 }
 
@@ -146,13 +146,13 @@ func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 	if f.Period != domain.PeriodYear {
 		l.step = 2
 	}
-	var visible []domain.ActivityWithSubtasks
+	var visible []domain.ActivityWithTasks
 	var drawn [][]domain.Bin
 	for _, g := range d.Groups {
 		for _, a := range g.Activities {
 			it := d.ItemOf[a.ID]
 			visible = append(visible, it)
-			l.bins[it.ID] = domain.ClipBins(domain.Burndown(it.Activity, it.Subtasks, l.step, today), from, to)
+			l.bins[it.ID] = domain.ClipBins(domain.Burndown(it.Activity, it.Tasks, l.step, today), from, to)
 			drawn = append(drawn, l.bins[it.ID])
 		}
 	}
@@ -193,11 +193,11 @@ func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 	rowNo := 0
 	for _, g := range d.Groups {
 		gv := groupView{ID: g.Project.ID, Name: g.Project.Name, CountLabel: plural(len(g.Activities), "activity", "activities")}
-		var subs []domain.Subtask
+		var subs []domain.Task
 		flags := 0
 		for _, a := range g.Activities {
 			it := d.ItemOf[a.ID]
-			subs = append(subs, it.Subtasks...)
+			subs = append(subs, it.Tasks...)
 			c := d.Creeps[a.ID]
 			if c.Flagged {
 				flags++
@@ -215,17 +215,17 @@ func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 	return v
 }
 
-func buildRow(f Filter, l layout, it domain.ActivityWithSubtasks, c domain.Creep, popupsDown bool) rowView {
+func buildRow(f Filter, l layout, it domain.ActivityWithTasks, c domain.Creep, popupsDown bool) rowView {
 	ax, today := l.ax, l.today
 	r := rowView{
 		ID: it.ID, Name: it.Name, Href: f.WithSel(it.ID).URL(), Selected: it.ID == f.Sel,
 		Status: string(it.Status), StatusLabel: capitalize(string(it.Status)),
-		OpenLabel: fmt.Sprintf("%d open / %d", domain.OpenAt(it.Subtasks, today), len(it.Subtasks)),
+		OpenLabel: fmt.Sprintf("%d open / %d", domain.OpenAt(it.Tasks, today), len(it.Tasks)),
 		Dates:     fmt.Sprintf("%s → %s · %s", it.Start, it.Due, it.RequestedBy),
 	}
-	progress := domain.Progress(it.Status, it.Subtasks)
+	progress := domain.Progress(it.Status, it.Tasks)
 	r.PctLabel = strconv.Itoa(progress) + "%"
-	r.Tip = fmt.Sprintf("%s: %s done, %d open subtasks. Show details", it.Name, r.PctLabel, domain.OpenAt(it.Subtasks, today))
+	r.Tip = fmt.Sprintf("%s: %s done, %d open tasks. Show details", it.Name, r.PctLabel, domain.OpenAt(it.Tasks, today))
 	r.SpanLeft, r.SpanWidth = ax.span(it.Start, it.Due)
 	r.SpanWidth = max(r.SpanWidth, 0.6)
 	r.PctLeft = min(92, ax.pos(it.Due.AddDays(1)))
@@ -251,13 +251,13 @@ func buildRow(f Filter, l layout, it domain.ActivityWithSubtasks, c domain.Creep
 	return r
 }
 
-// completionDots returns one dot per day in the period on which a subtask of
-// the activity was closed. Within a day, subtasks without a close time come
+// completionDots returns one dot per day in the period on which a task of
+// the activity was closed. Within a day, tasks without a close time come
 // first, then by time, then by id.
-func completionDots(l layout, it domain.ActivityWithSubtasks, down bool) []doneDot {
-	byDay := map[domain.Date][]domain.Subtask{}
+func completionDots(l layout, it domain.ActivityWithTasks, down bool) []doneDot {
+	byDay := map[domain.Date][]domain.Task{}
 	var days []domain.Date
-	for _, st := range it.Subtasks {
+	for _, st := range it.Tasks {
 		if st.ClosedOn.IsZero() || st.ClosedOn.Before(l.from) || st.ClosedOn.After(l.to) {
 			continue
 		}
@@ -270,12 +270,12 @@ func completionDots(l layout, it domain.ActivityWithSubtasks, down bool) []doneD
 	var dots []doneDot
 	for _, day := range days {
 		subs := byDay[day]
-		slices.SortFunc(subs, func(a, b domain.Subtask) int {
+		slices.SortFunc(subs, func(a, b domain.Task) int {
 			return cmp.Or(strings.Compare(a.ClosedAt, b.ClosedAt), cmp.Compare(a.ID, b.ID))
 		})
 		d := doneDot{
 			Left: l.ax.pos(day), ID: fmt.Sprintf("done-%d-%s", it.ID, day), Day: day.String(), Align: "center",
-			Label: plural(len(subs), "subtask", "subtasks") + " completed on " + day.String(), Down: down,
+			Label: plural(len(subs), "task", "tasks") + " completed on " + day.String(), Down: down,
 		}
 		if d.Left < 15 {
 			d.Align = "left"

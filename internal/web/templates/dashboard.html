@@ -46,7 +46,7 @@
 <select name="priority"><option value="">None</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
 <label>Start<input type="date" name="start" value="{{.Today}}" required></label>
 <label>Due<input type="date" name="due" required></label>
-<label>First subtasks (one per line, at least one)<textarea name="subtasks" rows="4" required></textarea></label>
+<label>First tasks (one per line, at least one)<textarea name="tasks" rows="4" required></textarea></label>
 <p><button>Create</button> <a class="cancel-new" href="{{.CancelHref}}">Cancel</a></p>
 </form>
 </section>
@@ -59,7 +59,7 @@
 {{template "timeline" .Timeline}}
 <script src="/static/app.js"></script>
 <aside class="detail" aria-label="Activity detail">
-{{with .Panel}}{{template "panel" .}}{{else}}<section class="card"><p class="muted">Select an activity to see its burndown, scope, subtasks and journal.</p></section>{{end}}
+{{with .Panel}}{{template "panel" .}}{{else}}<section class="card"><p class="muted">Select an activity to see its burndown, scope, tasks and journal.</p></section>{{end}}
 </aside>
 {{template "journal" .Journal}}
 </div>

@@ -40,7 +40,7 @@ func TestTilesMatchBaselineGolden(t *testing.T) {
 	body := get(h, "/").Body.String()
 	for label, key := range map[string]string{
 		"Active": "active", "Blocked": "blocked", "Planned": "planned", "Done this year": "done",
-		"Open subtasks now": "open_subtasks", "Scope creep flags": "scope_flags",
+		"Open tasks now": "open_tasks", "Scope creep flags": "scope_flags",
 	} {
 		if got, want := tileValue(t, body, label), golden.Expected.Tiles[key]; got != want {
 			t.Errorf("tile %s = %d, want %d", label, got, want)
@@ -55,13 +55,13 @@ func TestTilesFollowProjectFilterOnly(t *testing.T) {
 	if tileValue(t, body, "Active") != 3 || tileValue(t, body, "Scope creep flags") != 0 || tileValue(t, body, "Done this year") != 0 {
 		t.Errorf("project 3 tiles wrong")
 	}
-	// done activities leave "open subtasks now"; their done date drives "Done this year"
+	// done activities leave "open tasks now"; their done date drives "Done this year"
 	if err := st.SetActivityStatus(ctx, 2, domain.StatusDone, date(t, testToday)); err != nil {
 		t.Fatal(err)
 	}
 	body = get(h, "/").Body.String()
-	if got := tileValue(t, body, "Open subtasks now"); got != 13 { // 17 minus Kafka's 4
-		t.Errorf("open subtasks = %d", got)
+	if got := tileValue(t, body, "Open tasks now"); got != 13 { // 17 minus Kafka's 4
+		t.Errorf("open tasks = %d", got)
 	}
 	if tileValue(t, body, "Done this year") != 4 || tileValue(t, get(h, "/?year=2025").Body.String(), "Done this year") != 0 {
 		t.Error("done this year follows the selected year")

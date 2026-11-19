@@ -87,7 +87,7 @@ func TestTimelineGroupsAndRows(t *testing.T) {
 			t.Errorf("missing %q", want)
 		}
 	}
-	// the selected row's link carries aria-current; the scope chip names the added subtasks
+	// the selected row's link carries aria-current; the scope chip names the added tasks
 	row := regexp.MustCompile(`(?s)<div class="tl-label act-label">\s*<a class="act-name" href="[^"]*" aria-current="true">.*?</div>`).FindString(body)
 	for _, want := range []string{"Consolidate order services", "Active", "Scope &#43;4", "3 open / 8", "2026-03-02 → 2026-12-18 · Manager"} {
 		if !strings.Contains(row, want) {
@@ -103,7 +103,7 @@ func TestTimelineGroupsAndRows(t *testing.T) {
 
 func TestTimelineColumnLoadFuture(t *testing.T) {
 	h, st := newApp(t)
-	if _, err := st.CreateActivity(ctx, store.NewActivity{ProjectID: 1, Name: "Next year", Start: date(t, "2027-02-01"), Due: date(t, "2027-03-01"), Subtasks: []string{"x"}}, domain.FixedClock{D: date(t, testToday)}); err != nil {
+	if _, err := st.CreateActivity(ctx, store.NewActivity{ProjectID: 1, Name: "Next year", Start: date(t, "2027-02-01"), Due: date(t, "2027-03-01"), Tasks: []string{"x"}}, domain.FixedClock{D: date(t, testToday)}); err != nil {
 		t.Fatal(err)
 	}
 	wantBody(t, get(h, "/?year=2027"), "1 planned")
@@ -127,7 +127,7 @@ func TestTimelineRowSpanPlanAndLabel(t *testing.T) {
 		`class="span-line active" aria-hidden="true" style="left:16.44%;width:80.00%"`,
 		`class="plan active" aria-hidden="true" style="left:87.95%;width:8.49%"`, // today..due
 		`style="left:92.00%">63%`, // label sits at the due date, capped at 92%
-		`title="Consolidate order services into one Go service: 63% done, 3 open subtasks. Show details" tabindex="-1" aria-hidden="true"`,
+		`title="Consolidate order services into one Go service: 63% done, 3 open tasks. Show details" tabindex="-1" aria-hidden="true"`,
 	} {
 		if !strings.Contains(row, want) {
 			t.Errorf("year row lacks %q:\n%s", want, row)
@@ -197,7 +197,7 @@ func TestTimelineHasNoJournalDots(t *testing.T) {
 	if strings.Contains(body, "dot-mark") || strings.Contains(body, "</i>Journal entry") {
 		t.Error("journal entries must not appear on the timeline")
 	}
-	wantBody(t, get(h, "/"), "Activity: open subtasks (taller = more open)", "Until due date")
+	wantBody(t, get(h, "/"), "Activity: open tasks (taller = more open)", "Until due date")
 }
 
 func TestProjectRowIsAnExpandedToggle(t *testing.T) {
@@ -233,27 +233,27 @@ func maxBinHeight(t *testing.T, body string) float64 {
 	return top
 }
 
-// A subtask open from Tuesday to Friday is invisible in weekly samples but
+// A task open from Tuesday to Friday is invisible in weekly samples but
 // shows in 2-day bins; heights must be scaled to the bins drawn (SPEC §10 item 48).
 func TestQuarterBinsNeverExceedFullHeight(t *testing.T) {
 	h, st := newApp(t)
 	a, err := st.CreateActivity(ctx, store.NewActivity{
 		NewProjectName: "Short work", Name: "Tue to Fri", Start: date(t, "2026-11-02"), Due: date(t, "2026-12-31"),
-		Subtasks: []string{"closed at once"}, // created Mon Nov 2
+		Tasks: []string{"closed at once"}, // created Mon Nov 2
 	}, domain.FixedClock{D: date(t, testToday)})
 	if err != nil {
 		t.Fatal(err)
 	}
-	subs, _ := st.ListSubtasks(ctx, a.ID)
-	if _, err := st.ToggleSubtask(ctx, subs[0].ID, domain.FixedClock{D: date(t, "2026-11-02")}); err != nil {
+	subs, _ := st.ListTasks(ctx, a.ID)
+	if _, err := st.ToggleTask(ctx, subs[0].ID, domain.FixedClock{D: date(t, "2026-11-02")}); err != nil {
 		t.Fatal(err)
 	}
 	for i := 0; i < 6; i++ {
-		s, err := st.AddSubtask(ctx, a.ID, "tue-fri", date(t, "2026-11-03")) // Tuesday
+		s, err := st.AddTask(ctx, a.ID, "tue-fri", date(t, "2026-11-03")) // Tuesday
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := st.ToggleSubtask(ctx, s.ID, domain.FixedClock{D: date(t, "2026-11-06")}); err != nil { // Friday
+		if _, err := st.ToggleTask(ctx, s.ID, domain.FixedClock{D: date(t, "2026-11-06")}); err != nil { // Friday
 			t.Fatal(err)
 		}
 	}
@@ -276,12 +276,12 @@ func TestCompletionDotsOnePerDay(t *testing.T) {
 	h, st := newApp(t)
 	const name = "Kafka upgrade readiness"
 	row := rowTrack(t, get(h, "/").Body.String(), name)
-	// seeded: one subtask closed on Oct 5 and one on Oct 19, neither with a time
+	// seeded: one task closed on Oct 5 and one on Oct 19, neither with a time
 	if n := strings.Count(row, `class="done-dot center`); n != 2 {
 		t.Fatalf("dots = %d, want 2:\n%s", n, row)
 	}
 	for _, want := range []string{
-		`class="done-dot center down" style="left:75.89%"><button type="button" class="dot" aria-label="1 subtask completed on 2026-10-05" aria-describedby="done-2-2026-10-05">`,
+		`class="done-dot center down" style="left:75.89%"><button type="button" class="dot" aria-label="1 task completed on 2026-10-05" aria-describedby="done-2-2026-10-05">`,
 		`<span class="popup" id="done-2-2026-10-05"><strong>2026-10-05</strong><ul><li>Compatibility matrix</li></ul>`,
 		`style="left:79.73%"`,
 	} {
@@ -300,11 +300,11 @@ func TestCompletionDotsOnePerDay(t *testing.T) {
 	// a day with several closures is still one dot; the popup lists them by time, then id
 	close := func(text string, created, closedOn string, hour, minute int) {
 		t.Helper()
-		sub, err := st.AddSubtask(ctx, 2, text, date(t, created))
+		sub, err := st.AddTask(ctx, 2, text, date(t, created))
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := st.ToggleSubtask(ctx, sub.ID, domain.FixedClock{D: date(t, closedOn), Hour: hour, Minute: minute}); err != nil {
+		if _, err := st.ToggleTask(ctx, sub.ID, domain.FixedClock{D: date(t, closedOn), Hour: hour, Minute: minute}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -320,7 +320,7 @@ func TestCompletionDotsOnePerDay(t *testing.T) {
 	if !bodyOrderIn(popup, "Compatibility matrix", `<span class="mono">08:10</span> morning`, `<span class="mono">08:10</span> same minute, later id`, `<span class="mono">15:45</span> afternoon`) {
 		t.Errorf("popup order: %s", popup)
 	}
-	wantBody(t, get(h, "/"), "4 subtasks completed on 2026-10-05")
+	wantBody(t, get(h, "/"), "4 tasks completed on 2026-10-05")
 }
 
 func bodyOrderIn(s string, parts ...string) bool {
@@ -337,12 +337,12 @@ func bodyOrderIn(s string, parts ...string) bool {
 
 func TestCompletionPopupsStayInsideTheTrack(t *testing.T) {
 	h, st := newApp(t)
-	sub, _ := st.AddSubtask(ctx, 2, "early", date(t, "2026-01-02"))
-	if _, err := st.ToggleSubtask(ctx, sub.ID, domain.FixedClock{D: date(t, "2026-01-03")}); err != nil {
+	sub, _ := st.AddTask(ctx, 2, "early", date(t, "2026-01-02"))
+	if _, err := st.ToggleTask(ctx, sub.ID, domain.FixedClock{D: date(t, "2026-01-03")}); err != nil {
 		t.Fatal(err)
 	}
-	sub, _ = st.AddSubtask(ctx, 2, "today", date(t, "2026-11-01"))
-	if _, err := st.ToggleSubtask(ctx, sub.ID, domain.FixedClock{D: date(t, testToday)}); err != nil {
+	sub, _ = st.AddTask(ctx, 2, "today", date(t, "2026-11-01"))
+	if _, err := st.ToggleTask(ctx, sub.ID, domain.FixedClock{D: date(t, testToday)}); err != nil {
 		t.Fatal(err)
 	}
 	row := rowTrack(t, get(h, "/").Body.String(), "Kafka upgrade readiness")
@@ -355,7 +355,7 @@ func TestCompletionPopupsStayInsideTheTrack(t *testing.T) {
 	if q4 := rowTrack(t, get(h, "/?period=q4").Body.String(), "Kafka upgrade readiness"); strings.Contains(q4, "2026-01-03") {
 		t.Error("dot outside the period")
 	}
-	wantBody(t, get(h, "/"), "Subtasks completed")
+	wantBody(t, get(h, "/"), "Tasks completed")
 }
 
 // Popups open upward and fit above any row; the first two rows open downward

@@ -18,7 +18,7 @@ type panelView struct {
 	ProjectName, Name, RequestedBy       string
 	Start, Due                           string
 	Today                                string
-	Subtasks                             []subtaskRow
+	Tasks                                []taskRow
 	Scope                                scopeView
 	Chart                                chartView
 	Status                               string
@@ -43,10 +43,10 @@ func priorityOptions(cur domain.Priority) []option {
 	return out
 }
 
-func buildPanel(a domain.Activity, projects []domain.Project, subs []domain.Subtask, ack *domain.ScopeAck, today domain.Date, next string) *panelView {
+func buildPanel(a domain.Activity, projects []domain.Project, subs []domain.Task, ack *domain.ScopeAck, today domain.Date, next string) *panelView {
 	p := &panelView{
 		Next: next, ID: a.ID, Name: a.Name, RequestedBy: a.RequestedBy,
-		Start: a.Start.String(), Due: a.Due.String(), Today: today.String(), Subtasks: subtaskRows(subs),
+		Start: a.Start.String(), Due: a.Due.String(), Today: today.String(), Tasks: taskRows(subs),
 		Scope: buildScope(a, subs, ack, today),
 		Chart: buildChart(a, subs, today), Status: string(a.Status), CloseHref: withParam(next, "sel", ""),
 		Progress: domain.Progress(a.Status, subs), Total: len(subs),

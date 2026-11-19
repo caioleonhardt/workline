@@ -1,15 +1,15 @@
 # Workline
 
-Local-first tracker for a tech lead's work: projects, subtasks, journals, and burndown timelines with scope-creep signals.
+Local-first tracker for a tech lead's work: projects, tasks, journals, and burndown timelines with scope-creep signals.
 
-Workline tracks everything you are asked to do, not only what lives in Jira. Activities are grouped by project, broken into subtasks, documented in a dated journal, and drawn on a year or quarter timeline as burndowns of open subtasks over time.
+Workline tracks everything you are asked to do, not only what lives in Jira. Activities are grouped by project, broken into tasks, documented in a dated journal, and drawn on a year or quarter timeline as burndowns of open tasks over time.
 
 It is a single Go binary with an embedded SQLite database. It works offline, listens on `127.0.0.1` only, and makes no outbound network calls.
 
 ## Features
 
 - **Timeline dashboard** by year or quarter, grouped by project, with filters for project, month, status and scope creep. Every view is a bookmarkable URL.
-- **Burndowns** computed from subtask open/close dates, never entered by hand.
+- **Burndowns** computed from task open/close dates, never entered by hand.
 - **Scope-creep signal** when an activity grows 75% past its baseline, or when work arrives faster than it closes over the last 30 days. Acknowledging it resets the baseline and logs the change to the journal.
 - **Journal** per activity, exportable as Markdown for 1:1 preparation.
 - **Keyboard shortcuts**: `n` new activity, `/` focus filter, `Esc` close panel.

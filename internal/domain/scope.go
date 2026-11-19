@@ -20,17 +20,17 @@ type Creep struct {
 }
 
 // ScopeCreep applies §4.4. ack is the latest ScopeAck, or nil.
-func ScopeCreep(a Activity, subs []Subtask, ack *ScopeAck, today Date) Creep {
+func ScopeCreep(a Activity, subs []Task, ack *ScopeAck, today Date) Creep {
 	total := len(subs)
 	windowStart := today.AddDays(-Window)
 	c := Creep{Total: total}
 
-	var newer []Subtask
+	var newer []Task
 	if ack != nil {
 		c.Acked, c.AckDate = true, ack.Date
 		c.Baseline = ack.BaselineCount
 		for _, s := range subs {
-			if s.ID > ack.LastSubtaskID {
+			if s.ID > ack.LastTaskID {
 				newer = append(newer, s)
 			}
 		}
@@ -76,7 +76,7 @@ func (c Creep) Reasons() []string {
 		if c.Acked {
 			since = "the acknowledgement on " + c.AckDate.String()
 		}
-		out = append(out, fmt.Sprintf("Grew from %d to %d subtasks since %s (+%d%%).", c.Baseline, c.Total, since, c.GrowthPct))
+		out = append(out, fmt.Sprintf("Grew from %d to %d tasks since %s (+%d%%).", c.Baseline, c.Total, since, c.GrowthPct))
 	}
 	if c.OutpacingFlag {
 		out = append(out, fmt.Sprintf("In the last %d days %d added vs %d closed: work is arriving faster than it closes.", Window, c.Add30, c.Close30))
@@ -90,6 +90,6 @@ func AckJournalText(c Creep) string {
 	if c.Added > 0 {
 		growth = fmt.Sprintf(" (+%d%%)", c.GrowthPct)
 	}
-	return fmt.Sprintf("Scope change acknowledged: %d → %d subtasks%s; last %d days +%d / −%d. New baseline: %d.",
+	return fmt.Sprintf("Scope change acknowledged: %d → %d tasks%s; last %d days +%d / −%d. New baseline: %d.",
 		c.Baseline, c.Total, growth, Window, c.Add30, c.Close30, c.Total)
 }

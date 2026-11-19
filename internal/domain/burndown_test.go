@@ -18,8 +18,8 @@ func binStr(bins []Bin) [][3]any {
 }
 
 func TestBurndownTimeline(t *testing.T) {
-	// Mon 2026-03-02. Subtask 1 open all along, 2 created 03-09 closed 03-16.
-	subs := []Subtask{sub(t, 1, "2026-03-02", ""), sub(t, 2, "2026-03-09", "2026-03-16")}
+	// Mon 2026-03-02. Task 1 open all along, 2 created 03-09 closed 03-16.
+	subs := []Task{sub(t, 1, "2026-03-02", ""), sub(t, 2, "2026-03-09", "2026-03-16")}
 	a := act(t, "2026-03-02", "2026-03-22") // 21 days = 3 exact weeks
 
 	got := binStr(Burndown(a, subs, 7, d(t, "2026-12-01")))
@@ -90,7 +90,7 @@ func TestBurndownTimeline(t *testing.T) {
 }
 
 func TestBurndownDetail(t *testing.T) {
-	subs := []Subtask{sub(t, 1, "2026-03-02", ""), sub(t, 2, "2026-03-09", "2026-03-16"), sub(t, 3, "2026-03-10", "")}
+	subs := []Task{sub(t, 1, "2026-03-02", ""), sub(t, 2, "2026-03-09", "2026-03-16"), sub(t, 3, "2026-03-10", "")}
 	a := act(t, "2026-03-02", "2026-03-26") // 25 days: 3 full weeks + 4-day bin
 	bins := BurndownDetail(a, subs, d(t, "2026-03-17"))
 	want := [][3]any{

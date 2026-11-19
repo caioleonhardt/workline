@@ -25,7 +25,7 @@ type journalView struct {
 
 // buildJournal loads the feed for the given activities: newest first, feedStep
 // entries at a time (SPEC §10 items 73 and 77).
-func (s *Server) buildJournal(ctx context.Context, f Filter, uri string, ids []int64, selected *panelView, itemOf map[int64]domain.ActivityWithSubtasks, projects []domain.Project) (journalView, error) {
+func (s *Server) buildJournal(ctx context.Context, f Filter, uri string, ids []int64, selected *panelView, itemOf map[int64]domain.ActivityWithTasks, projects []domain.Project) (journalView, error) {
 	entries, more, err := s.store.ListJournalFeed(ctx, ids, f.Feed)
 	if err != nil {
 		return journalView{}, err

@@ -10,7 +10,7 @@
 <label>Status<select name="status">{{range .Statuses}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
 <button class="apply">Save status</button>
 </form>
-<div class="progress"><strong class="mono">{{.Progress}}%</strong><span class="muted small">{{.Closed}} of {{.Total}} subtasks done</span></div>
+<div class="progress"><strong class="mono">{{.Progress}}%</strong><span class="muted small">{{.Closed}} of {{.Total}} tasks done</span></div>
 </div>
 
 <h3>Burndown</h3>
@@ -19,7 +19,7 @@
 {{range .Chart.Bins}}<div class="cbin" title="{{.Tip}}"><span class="scope {{$.Status}}{{if .Ahead}} ahead{{end}}" style="height:{{.Scope}}%"></span><span class="open {{$.Status}}" style="height:{{.Open}}%"></span>{{if .Today}}<i class="today-mark"></i>{{end}}</div>{{end}}
 </div>
 <p class="axis mono small muted"><span>{{.Chart.StartLabel}}</span><span>{{.Chart.EndLabel}}</span></p>
-<p class="legend-inline small muted"><span><i class="swatch open-sample {{.Status}}"></i>Open</span><span><i class="swatch scope-sample {{.Status}}"></i>Scope (all subtasks)</span><span><i class="swatch ahead-sample"></i>Ahead</span></p>
+<p class="legend-inline small muted"><span><i class="swatch open-sample {{.Status}}"></i>Open</span><span><i class="swatch scope-sample {{.Status}}"></i>Scope (all tasks)</span><span><i class="swatch ahead-sample"></i>Ahead</span></p>
 <table class="sr-only"><caption>Burndown by week</caption><thead><tr><th>Week of</th><th>Open</th><th>Scope</th></tr></thead><tbody>
 {{range .Chart.Rows}}<tr><td>{{.Week}}</td>{{if .Ahead}}<td colspan="2">ahead</td>{{else}}<td>{{.Open}}</td><td>{{.Scope}}</td>{{end}}</tr>
 {{end}}</tbody></table>
@@ -40,13 +40,13 @@
 </form>
 </div>
 {{else if .Scope.AckNote}}<p class="muted">{{.Scope.AckNote}}</p>{{end}}
-<p class="muted">Flagged when scope grows 75%+ over its baseline (kickoff, or the last acknowledgement), or when more subtasks are added than closed over 30 days.</p>
+<p class="muted">Flagged when scope grows 75%+ over its baseline (kickoff, or the last acknowledgement), or when more tasks are added than closed over 30 days.</p>
 
-<h3>Subtasks</h3>
+<h3>Tasks</h3>
 <ul class="rows">
-{{range .Subtasks}}
+{{range .Tasks}}
 <li class="sub">
-<form class="inline sub-toggle" method="post" action="/subtasks/{{.ID}}/toggle" hx-trigger="change, submit">
+<form class="inline sub-toggle" method="post" action="/tasks/{{.ID}}/toggle" hx-trigger="change, submit">
 <input type="hidden" name="next" value="{{$.Next}}">
 <label class="check"><input type="checkbox"{{if .Closed}} checked{{end}}><span{{if .Closed}} class="done-text"{{end}}>{{.Text}}</span></label>
 <button class="apply">{{if .Closed}}Reopen{{else}}Close{{end}}</button>
@@ -54,23 +54,23 @@
 <span class="muted mono small" title="opened {{.Created}}{{if .Closed}} · closed {{.Closed}}{{end}}">{{if .Closed}}closed {{.Closed}}{{else}}opened {{.Created}}{{end}}</span>
 <details>
 <summary>Edit</summary>
-<form class="inline" method="post" action="/subtasks/{{.ID}}">
+<form class="inline" method="post" action="/tasks/{{.ID}}">
 <input type="hidden" name="next" value="{{$.Next}}">
 <label>Text<input name="text" value="{{.Text}}" required></label>
 <label>Opened<input type="date" name="created_on" value="{{.Created}}" required></label>
 <button>Save</button>
 </form>
-<form method="post" action="/subtasks/{{.ID}}/delete">
+<form method="post" action="/tasks/{{.ID}}/delete">
 <input type="hidden" name="next" value="{{$.Next}}">
 <details><summary>Delete…</summary><button>Confirm delete</button></details>
 </form>
 </details>
 </li>
-{{else}}<li class="muted">No subtasks.</li>{{end}}
+{{else}}<li class="muted">No tasks.</li>{{end}}
 </ul>
-<form class="inline" method="post" action="/activities/{{.ID}}/subtasks">
+<form class="inline" method="post" action="/activities/{{.ID}}/tasks">
 <input type="hidden" name="next" value="{{.Next}}">
-<label>New subtask<input name="text" required></label>
+<label>New task<input name="text" required></label>
 <label>Opened<input type="date" name="created_on" value="{{.Today}}"></label>
 <button>Add</button>
 </form>
@@ -93,7 +93,7 @@
 <summary>Delete…</summary>
 <form method="post" action="/activities/{{.ID}}/delete">
 <input type="hidden" name="next" value="{{.Next}}">
-<p class="muted">Deletes the activity with its subtasks and journal.</p>
+<p class="muted">Deletes the activity with its tasks and journal.</p>
 <button>Confirm delete</button>
 </form>
 </details>

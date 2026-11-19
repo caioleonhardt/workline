@@ -34,7 +34,7 @@ func (s *Server) createActivity(w http.ResponseWriter, r *http.Request) {
 		Name:        r.PostFormValue("name"),
 		RequestedBy: r.PostFormValue("requested_by"),
 		Priority:    domain.Priority(r.PostFormValue("priority")),
-		Subtasks:    formLines(r.PostFormValue("subtasks")),
+		Tasks:       formLines(r.PostFormValue("tasks")),
 	}
 	var err error
 	if r.PostFormValue("project") == "new" {

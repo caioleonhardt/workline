@@ -34,13 +34,13 @@ type baselineData struct {
 		StartDate   string `json:"start_date"`
 		DueDate     string `json:"due_date"`
 	} `json:"activities"`
-	Subtasks []struct {
+	Tasks []struct {
 		ID         int64   `json:"id"`
 		ActivityID int64   `json:"activity_id"`
 		Text       string  `json:"text"`
 		CreatedOn  string  `json:"created_on"`
 		ClosedOn   *string `json:"closed_on"`
-	} `json:"subtasks"`
+	} `json:"tasks"`
 	JournalEntries []struct {
 		ID         int64  `json:"id"`
 		ActivityID int64  `json:"activity_id"`
@@ -53,7 +53,7 @@ type baselineData struct {
 		ActivityID    int64  `json:"activity_id"`
 		Date          string `json:"date"`
 		BaselineCount int    `json:"baseline_count"`
-		LastSubtaskID int64  `json:"last_subtask_id"`
+		LastTaskID    int64  `json:"last_task_id"`
 	} `json:"scope_acks"`
 }
 
@@ -123,24 +123,24 @@ func insertBaseline(ctx context.Context, tx *sql.Tx, d baselineData, asOf domain
 			return fmt.Errorf("activity %d: %w", a.ID, mapErr(err))
 		}
 	}
-	for _, st := range d.Subtasks {
+	for _, st := range d.Tasks {
 		created, err := domain.ParseDate(st.CreatedOn)
 		if err != nil {
 			return err
 		}
-		sub := domain.Subtask{ID: st.ID, Text: st.Text, CreatedOn: created}
+		sub := domain.Task{ID: st.ID, Text: st.Text, CreatedOn: created}
 		if st.ClosedOn != nil {
 			if sub.ClosedOn, err = domain.ParseDate(*st.ClosedOn); err != nil {
 				return err
 			}
 		}
 		if err := sub.ValidateAt(asOf); err != nil {
-			return fmt.Errorf("subtask %d: %w", st.ID, err)
+			return fmt.Errorf("task %d: %w", st.ID, err)
 		}
 		if _, err := tx.ExecContext(ctx,
 			`INSERT INTO subtasks (id, activity_id, text, created_on, closed_on) VALUES (?, ?, ?, ?, ?)`,
 			st.ID, st.ActivityID, st.Text, st.CreatedOn, nullDate(sub.ClosedOn)); err != nil {
-			return fmt.Errorf("subtask %d: %w", st.ID, mapErr(err))
+			return fmt.Errorf("task %d: %w", st.ID, mapErr(err))
 		}
 	}
 	for _, j := range d.JournalEntries {
@@ -163,7 +163,7 @@ func insertBaseline(ctx context.Context, tx *sql.Tx, d baselineData, asOf domain
 		}
 		if _, err := tx.ExecContext(ctx,
 			`INSERT INTO scope_acks (id, activity_id, date, baseline_count, last_subtask_id) VALUES (?, ?, ?, ?, ?)`,
-			a.ID, a.ActivityID, a.Date, a.BaselineCount, a.LastSubtaskID); err != nil {
+			a.ID, a.ActivityID, a.Date, a.BaselineCount, a.LastTaskID); err != nil {
 			return fmt.Errorf("scope ack %d: %w", a.ID, mapErr(err))
 		}
 	}

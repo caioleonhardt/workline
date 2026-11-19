@@ -21,10 +21,10 @@ func mustPanic(t *testing.T, name string, f func()) {
 	f()
 }
 
-// sub builds a subtask; closed is "" for open.
-func sub(t *testing.T, id int64, created, closed string) Subtask {
+// sub builds a task; closed is "" for open.
+func sub(t *testing.T, id int64, created, closed string) Task {
 	t.Helper()
-	s := Subtask{ID: id, CreatedOn: d(t, created)}
+	s := Task{ID: id, CreatedOn: d(t, created)}
 	if closed != "" {
 		s.ClosedOn = d(t, closed)
 	}

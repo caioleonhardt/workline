@@ -126,7 +126,7 @@ func (c Column) OverlapsMonth(year int, m time.Month) bool {
 // ColumnLoad summarises the visible activities for one column (§4.5, SPEC §10
 // decision 8): both Count and Open consider activities overlapping the column
 // that had started by min(column end, today).
-func ColumnLoad(c Column, acts []ActivityWithSubtasks, today Date) Load {
+func ColumnLoad(c Column, acts []ActivityWithTasks, today Date) Load {
 	l := Load{Planned: c.Start.After(today)}
 	ref := c.End
 	if today.Before(ref) {
@@ -144,7 +144,7 @@ func ColumnLoad(c Column, acts []ActivityWithSubtasks, today Date) Load {
 			continue
 		}
 		l.Count++
-		l.Open += OpenAt(a.Subtasks, ref)
+		l.Open += OpenAt(a.Tasks, ref)
 	}
 	return l
 }

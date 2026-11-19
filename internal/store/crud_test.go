@@ -65,7 +65,7 @@ func TestCreateActivity(t *testing.T) {
 	p, _ := s.CreateProject(ctx, "P")
 
 	a, err := s.CreateActivity(ctx, NewActivity{ProjectID: p.ID, Name: "A", RequestedBy: "Me",
-		Start: date(t, "2026-12-01"), Due: date(t, "2026-12-31"), Subtasks: []string{"one"}}, fixed(today))
+		Start: date(t, "2026-12-01"), Due: date(t, "2026-12-31"), Tasks: []string{"one"}}, fixed(today))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,13 +81,13 @@ func TestCreateActivity(t *testing.T) {
 		t.Errorf("journal: %+v", j)
 	}
 
-	cur, _ := s.CreateActivity(ctx, NewActivity{ProjectID: p.ID, Name: "B", Start: today, Due: today, Subtasks: []string{"one"}}, fixed(today))
+	cur, _ := s.CreateActivity(ctx, NewActivity{ProjectID: p.ID, Name: "B", Start: today, Due: today, Tasks: []string{"one"}}, fixed(today))
 	if cur.Status != domain.StatusActive {
 		t.Errorf("start today should be active: %+v", cur)
 	}
 
 	// new project path creates the project in the same transaction
-	n, err := s.CreateActivity(ctx, NewActivity{NewProjectName: "Fresh", Name: "C", Start: today, Due: today, Subtasks: []string{"one"}}, fixed(today))
+	n, err := s.CreateActivity(ctx, NewActivity{NewProjectName: "Fresh", Name: "C", Start: today, Due: today, Tasks: []string{"one"}}, fixed(today))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,12 +97,12 @@ func TestCreateActivity(t *testing.T) {
 
 	// invalid input: neither / both project fields, due < start
 	for name, in := range map[string]NewActivity{
-		"neither":  {Name: "x", Start: today, Due: today, Subtasks: []string{"x"}},
-		"both":     {ProjectID: p.ID, NewProjectName: "y", Name: "x", Start: today, Due: today, Subtasks: []string{"x"}},
-		"inverted": {NewProjectName: "Ghost", Name: "x", Start: today, Due: today.AddDays(-1), Subtasks: []string{"x"}},
-		"blank":    {NewProjectName: "Ghost", Name: " ", Start: today, Due: today, Subtasks: []string{"x"}},
-		"dup name": {NewProjectName: "fresh", Name: "x", Start: today, Due: today, Subtasks: []string{"x"}},
-		"bad proj": {ProjectID: 999, Name: "x", Start: today, Due: today, Subtasks: []string{"x"}},
+		"neither":  {Name: "x", Start: today, Due: today, Tasks: []string{"x"}},
+		"both":     {ProjectID: p.ID, NewProjectName: "y", Name: "x", Start: today, Due: today, Tasks: []string{"x"}},
+		"inverted": {NewProjectName: "Ghost", Name: "x", Start: today, Due: today.AddDays(-1), Tasks: []string{"x"}},
+		"blank":    {NewProjectName: "Ghost", Name: " ", Start: today, Due: today, Tasks: []string{"x"}},
+		"dup name": {NewProjectName: "fresh", Name: "x", Start: today, Due: today, Tasks: []string{"x"}},
+		"bad proj": {ProjectID: 999, Name: "x", Start: today, Due: today, Tasks: []string{"x"}},
 	} {
 		if _, err := s.CreateActivity(ctx, in, fixed(today)); err == nil {
 			t.Errorf("%s: expected error", name)
@@ -111,23 +111,23 @@ func TestCreateActivity(t *testing.T) {
 	if ps, _ := s.ListProjects(ctx, true); len(ps) != 2 {
 		t.Errorf("failed creations leaked a project: %+v", ps)
 	}
-	if _, err := s.CreateActivity(ctx, NewActivity{ProjectID: 999, Name: "x", Start: today, Due: today, Subtasks: []string{"x"}}, fixed(today)); !errors.Is(err, domain.ErrInvalid) {
+	if _, err := s.CreateActivity(ctx, NewActivity{ProjectID: 999, Name: "x", Start: today, Due: today, Tasks: []string{"x"}}, fixed(today)); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("FK failure should be ErrInvalid")
 	}
 }
 
-func TestCreateActivitySubtasks(t *testing.T) {
+func TestCreateActivityTasks(t *testing.T) {
 	s := newTestStore(t)
 	today := date(t, "2026-11-18")
-	mk := func(start string, subtasks ...string) (domain.Activity, error) {
-		return s.CreateActivity(ctx, NewActivity{NewProjectName: start, Name: "A", Start: date(t, start), Due: date(t, "2027-12-31"), Subtasks: subtasks}, fixed(today))
+	mk := func(start string, tasks ...string) (domain.Activity, error) {
+		return s.CreateActivity(ctx, NewActivity{NewProjectName: start, Name: "A", Start: date(t, start), Due: date(t, "2027-12-31"), Tasks: tasks}, fixed(today))
 	}
-	// started in the past: subtasks dated at start so they count as kickoff scope
+	// started in the past: tasks dated at start so they count as kickoff scope
 	a, err := mk("2026-06-01", "one", "two")
 	if err != nil {
 		t.Fatal(err)
 	}
-	subs, _ := s.ListSubtasks(ctx, a.ID)
+	subs, _ := s.ListTasks(ctx, a.ID)
 	if len(subs) != 2 || subs[0].CreatedOn != date(t, "2026-06-01") || subs[1].Text != "two" {
 		t.Errorf("past start: %+v", subs)
 	}
@@ -140,20 +140,20 @@ func TestCreateActivitySubtasks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if subs, _ := s.ListSubtasks(ctx, b.ID); subs[0].CreatedOn != today {
+	if subs, _ := s.ListTasks(ctx, b.ID); subs[0].CreatedOn != today {
 		t.Errorf("future start: %+v", subs)
 	}
-	// no subtask or a blank one: nothing is written, not even the project
-	for _, subtasks := range [][]string{nil, {" "}, {"ok", ""}} {
-		if _, err := mk("2026-07-01", subtasks...); !errors.Is(err, domain.ErrInvalid) {
-			t.Errorf("subtasks %q: %v", subtasks, err)
+	// no task or a blank one: nothing is written, not even the project
+	for _, tasks := range [][]string{nil, {" "}, {"ok", ""}} {
+		if _, err := mk("2026-07-01", tasks...); !errors.Is(err, domain.ErrInvalid) {
+			t.Errorf("tasks %q: %v", tasks, err)
 		}
 	}
 	if ps, _ := s.ListProjects(ctx, true); len(ps) != 2 {
 		t.Errorf("failed creations leaked rows: %+v", ps)
 	}
-	if all, _ := s.ListAllSubtasks(ctx); len(all) != 3 {
-		t.Errorf("failed creations leaked subtasks: %+v", all)
+	if all, _ := s.ListAllTasks(ctx); len(all) != 3 {
+		t.Errorf("failed creations leaked tasks: %+v", all)
 	}
 }
 
@@ -252,7 +252,7 @@ func TestCascadeDeletes(t *testing.T) {
 	}
 	fill := func(name string) domain.Activity {
 		a := mustActivity(t, s, name, "2026-01-01", "2026-12-31")
-		if _, err := s.AddSubtask(ctx, a.ID, "t", date(t, "2026-01-01")); err != nil {
+		if _, err := s.AddTask(ctx, a.ID, "t", date(t, "2026-01-01")); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := s.db.ExecContext(ctx, `INSERT INTO scope_acks (activity_id, date, baseline_count, last_subtask_id) VALUES (?, '2026-01-02', 1, 1)`, a.ID); err != nil {
@@ -278,87 +278,87 @@ func TestCascadeDeletes(t *testing.T) {
 	}
 }
 
-func TestSubtasks(t *testing.T) {
+func TestTasks(t *testing.T) {
 	s := newTestStore(t)
 	a := mustActivity(t, s, "P", "2026-01-01", "2026-12-31")
 	d1, d2 := date(t, "2026-02-01"), date(t, "2026-02-10")
 
-	st, err := s.AddSubtask(ctx, a.ID, "one", d1)
+	st, err := s.AddTask(ctx, a.ID, "one", d1)
 	if err != nil || st.ID == 0 {
 		t.Fatal(st, err)
 	}
-	if _, err := s.AddSubtask(ctx, a.ID, " ", d1); !errors.Is(err, domain.ErrInvalid) {
+	if _, err := s.AddTask(ctx, a.ID, " ", d1); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("blank: %v", err)
 	}
-	if _, err := s.AddSubtask(ctx, 999, "x", d1); !errors.Is(err, domain.ErrInvalid) {
+	if _, err := s.AddTask(ctx, 999, "x", d1); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("missing activity: %v", err)
 	}
 	// created before activity start is allowed
-	if _, err := s.AddSubtask(ctx, a.ID, "early", date(t, "2025-06-01")); err != nil {
-		t.Errorf("pre-start subtask: %v", err)
+	if _, err := s.AddTask(ctx, a.ID, "early", date(t, "2025-06-01")); err != nil {
+		t.Errorf("pre-start task: %v", err)
 	}
 
-	closed, err := s.ToggleSubtask(ctx, st.ID, fixed(d2))
+	closed, err := s.ToggleTask(ctx, st.ID, fixed(d2))
 	if err != nil || closed.ClosedOn != d2 || closed.Text != "one" || closed.ClosedAt != "2026-02-10 09:30" {
 		t.Errorf("close: %+v %v", closed, err)
 	}
-	reopened, err := s.ToggleSubtask(ctx, st.ID, fixed(d2))
+	reopened, err := s.ToggleTask(ctx, st.ID, fixed(d2))
 	if err != nil || !reopened.ClosedOn.IsZero() || reopened.ClosedAt != "" {
 		t.Errorf("reopen: %+v %v", reopened, err)
 	}
-	if _, err := s.ToggleSubtask(ctx, 999, fixed(d2)); !errors.Is(err, ErrNotFound) {
+	if _, err := s.ToggleTask(ctx, 999, fixed(d2)); !errors.Is(err, ErrNotFound) {
 		t.Errorf("toggle missing: %v", err)
 	}
-	if _, err := s.ToggleSubtask(ctx, st.ID, fixed(0)); !errors.Is(err, domain.ErrInvalid) {
+	if _, err := s.ToggleTask(ctx, st.ID, fixed(0)); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("toggle zero today: %v", err)
 	}
 	// closing before creation violates closed_on >= created_on
-	if _, err := s.ToggleSubtask(ctx, st.ID, fixed(date(t, "2026-01-01"))); !errors.Is(err, domain.ErrInvalid) {
+	if _, err := s.ToggleTask(ctx, st.ID, fixed(date(t, "2026-01-01"))); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("close before created: %v", err)
 	}
 
-	if _, err := s.ToggleSubtask(ctx, st.ID, fixed(d2)); err != nil { // closed again
+	if _, err := s.ToggleTask(ctx, st.ID, fixed(d2)); err != nil { // closed again
 		t.Fatal(err)
 	}
-	if err := s.EditSubtask(ctx, st.ID, "one!", date(t, "2026-03-01")); !errors.Is(err, domain.ErrInvalid) {
+	if err := s.EditTask(ctx, st.ID, "one!", date(t, "2026-03-01")); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("created after closed: %v", err)
 	}
-	if err := s.EditSubtask(ctx, st.ID, "one!", d1.AddDays(1)); err != nil {
+	if err := s.EditTask(ctx, st.ID, "one!", d1.AddDays(1)); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.EditSubtask(ctx, st.ID, "", d1); !errors.Is(err, domain.ErrInvalid) {
+	if err := s.EditTask(ctx, st.ID, "", d1); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("edit blank: %v", err)
 	}
-	if err := s.EditSubtask(ctx, 999, "x", d1); !errors.Is(err, ErrNotFound) {
+	if err := s.EditTask(ctx, 999, "x", d1); !errors.Is(err, ErrNotFound) {
 		t.Errorf("edit missing: %v", err)
 	}
-	subs, err := s.ListSubtasks(ctx, a.ID)
+	subs, err := s.ListTasks(ctx, a.ID)
 	if err != nil || len(subs) != 3 || subs[1].Text != "one!" || subs[1].ClosedOn != d2 || subs[1].CreatedOn != d1.AddDays(1) {
 		t.Errorf("list: %+v %v", subs, err)
 	}
-	if all, _ := s.ListAllSubtasks(ctx); len(all) != 3 {
+	if all, _ := s.ListAllTasks(ctx); len(all) != 3 {
 		t.Errorf("list all: %+v", all)
 	}
-	if err := s.DeleteSubtask(ctx, st.ID); err != nil {
+	if err := s.DeleteTask(ctx, st.ID); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.DeleteSubtask(ctx, st.ID); !errors.Is(err, ErrNotFound) {
+	if err := s.DeleteTask(ctx, st.ID); !errors.Is(err, ErrNotFound) {
 		t.Errorf("delete twice: %v", err)
 	}
 }
 
-// Deleting the newest subtask must never let its id be handed out again,
-// otherwise ScopeAck.LastSubtaskID would misclassify the new subtask.
-func TestSubtaskIDsAreNeverReused(t *testing.T) {
+// Deleting the newest task must never let its id be handed out again,
+// otherwise ScopeAck.LastTaskID would misclassify the new task.
+func TestTaskIDsAreNeverReused(t *testing.T) {
 	s := newTestStore(t)
 	a := mustActivity(t, s, "P", "2026-01-01", "2026-12-31")
 	d := date(t, "2026-02-01")
-	first, _ := s.AddSubtask(ctx, a.ID, "a", d)
-	last, _ := s.AddSubtask(ctx, a.ID, "b", d)
-	if err := s.DeleteSubtask(ctx, last.ID); err != nil {
+	first, _ := s.AddTask(ctx, a.ID, "a", d)
+	last, _ := s.AddTask(ctx, a.ID, "b", d)
+	if err := s.DeleteTask(ctx, last.ID); err != nil {
 		t.Fatal(err)
 	}
-	next, err := s.AddSubtask(ctx, a.ID, "c", d)
+	next, err := s.AddTask(ctx, a.ID, "c", d)
 	if err != nil {
 		t.Fatal(err)
 	}

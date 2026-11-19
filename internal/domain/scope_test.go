@@ -5,17 +5,17 @@ import (
 	"testing"
 )
 
-// many returns n subtasks with ids from firstID, all created and closed on the given days.
-func many(t *testing.T, firstID int64, n int, created, closed string) []Subtask {
-	var out []Subtask
+// many returns n tasks with ids from firstID, all created and closed on the given days.
+func many(t *testing.T, firstID int64, n int, created, closed string) []Task {
+	var out []Task
 	for i := 0; i < n; i++ {
 		out = append(out, sub(t, firstID+int64(i), created, closed))
 	}
 	return out
 }
 
-func cat(parts ...[]Subtask) []Subtask {
-	var out []Subtask
+func cat(parts ...[]Task) []Task {
+	var out []Task
 	for _, p := range parts {
 		out = append(out, p...)
 	}
@@ -33,19 +33,19 @@ func TestScopeCreep(t *testing.T) {
 	mkAct := func(s Status) Activity {
 		return Activity{Status: s, Start: d(t, "2026-06-01"), Due: d(t, "2026-12-31")}
 	}
-	old := func(first int64, n int) []Subtask { return many(t, first, n, "2026-06-01", "") }
+	old := func(first int64, n int) []Task { return many(t, first, n, "2026-06-01", "") }
 	ack := func(baseline int, lastID int64) *ScopeAck {
-		return &ScopeAck{ID: 1, Date: d(t, "2026-10-01"), BaselineCount: baseline, LastSubtaskID: lastID}
+		return &ScopeAck{ID: 1, Date: d(t, "2026-10-01"), BaselineCount: baseline, LastTaskID: lastID}
 	}
 
 	tests := []struct {
 		name   string
 		status Status
-		subs   []Subtask
+		subs   []Task
 		ack    *ScopeAck
 		want   got
 	}{
-		{"no subtasks", StatusActive, nil, nil, got{}},
+		{"no tasks", StatusActive, nil, nil, got{}},
 		{"all newer than grace: baseline 0, no growth flag", StatusActive,
 			many(t, 1, 3, "2026-06-09", ""), nil, got{Baseline: 0, Added: 3}},
 		{"created on cutoff is baseline", StatusActive,
@@ -75,7 +75,7 @@ func TestScopeCreep(t *testing.T) {
 			got{Baseline: 10, Added: 1, Growth: 10, Add30: 1, Outpacing: true, Flagged: true}},
 		{"closed on today-30 excluded from close30", StatusActive,
 			many(t, 1, 3, "2026-06-01", "2026-10-19"), nil, got{Baseline: 3}},
-		{"close30 counts old subtasks too", StatusActive,
+		{"close30 counts old tasks too", StatusActive,
 			many(t, 1, 3, "2026-06-01", "2026-10-20"), nil, got{Baseline: 3, Close30: 3}},
 		{"both flags", StatusActive,
 			cat(old(1, 2), many(t, 3, 3, "2026-11-10", "")), nil,
@@ -128,7 +128,7 @@ func TestScopeCreep(t *testing.T) {
 func TestReasonsAndAckText(t *testing.T) {
 	both := Creep{Baseline: 4, Total: 8, Added: 4, GrowthPct: 100, Add30: 5, Close30: 2, GrowthFlag: true, OutpacingFlag: true, Flagged: true}
 	want := []string{
-		"Grew from 4 to 8 subtasks since kickoff (+100%).",
+		"Grew from 4 to 8 tasks since kickoff (+100%).",
 		"In the last 30 days 5 added vs 2 closed: work is arriving faster than it closes.",
 	}
 	if got := both.Reasons(); !reflect.DeepEqual(got, want) {
@@ -137,7 +137,7 @@ func TestReasonsAndAckText(t *testing.T) {
 
 	acked := both
 	acked.Acked, acked.AckDate, acked.OutpacingFlag = true, d(t, "2026-10-01"), false
-	if got := acked.Reasons(); !reflect.DeepEqual(got, []string{"Grew from 4 to 8 subtasks since the acknowledgement on 2026-10-01 (+100%)."}) {
+	if got := acked.Reasons(); !reflect.DeepEqual(got, []string{"Grew from 4 to 8 tasks since the acknowledgement on 2026-10-01 (+100%)."}) {
 		t.Errorf("acked reasons: %q", got)
 	}
 	if got := (Creep{}).Reasons(); len(got) != 0 {
@@ -145,12 +145,12 @@ func TestReasonsAndAckText(t *testing.T) {
 	}
 
 	if got, w := AckJournalText(both),
-		"Scope change acknowledged: 4 → 8 subtasks (+100%); last 30 days +5 / −2. New baseline: 8."; got != w {
+		"Scope change acknowledged: 4 → 8 tasks (+100%); last 30 days +5 / −2. New baseline: 8."; got != w {
 		t.Errorf("ack text: %q", got)
 	}
 	none := Creep{Baseline: 3, Total: 3, Add30: 0, Close30: 1}
 	if got, w := AckJournalText(none),
-		"Scope change acknowledged: 3 → 3 subtasks; last 30 days +0 / −1. New baseline: 3."; got != w {
+		"Scope change acknowledged: 3 → 3 tasks; last 30 days +0 / −1. New baseline: 3."; got != w {
 		t.Errorf("ack text without growth: %q", got)
 	}
 }

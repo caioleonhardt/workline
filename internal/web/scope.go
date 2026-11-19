@@ -15,7 +15,7 @@ type scopeView struct {
 	AckNote                                    string // set when acknowledged and no longer flagged
 }
 
-func buildScope(a domain.Activity, subs []domain.Subtask, ack *domain.ScopeAck, today domain.Date) scopeView {
+func buildScope(a domain.Activity, subs []domain.Task, ack *domain.ScopeAck, today domain.Date) scopeView {
 	c := domain.ScopeCreep(a, subs, ack, today)
 	v := scopeView{
 		BaselineLabel: "At kickoff", Baseline: c.Baseline, Total: c.Total, GrowthPct: c.GrowthPct,
@@ -24,7 +24,7 @@ func buildScope(a domain.Activity, subs []domain.Subtask, ack *domain.ScopeAck, 
 	if c.Acked {
 		v.BaselineLabel = "Baseline (ack " + c.AckDate.String() + ")"
 		if !c.Flagged {
-			v.AckNote = "Scope change acknowledged on " + c.AckDate.String() + " with a baseline of " + strconv.Itoa(c.Baseline) + " subtasks."
+			v.AckNote = "Scope change acknowledged on " + c.AckDate.String() + " with a baseline of " + strconv.Itoa(c.Baseline) + " tasks."
 		}
 	}
 	return v

@@ -20,8 +20,8 @@ func TestAckScope(t *testing.T) {
 	s := newTestStore(t)
 	today := date(t, "2026-11-18")
 	a := mustActivity(t, s, "P", "2026-06-01", "2026-12-31") // kickoff cutoff 2026-06-08
-	for i := 0; i < 1; i++ {                                 // plus the subtask made with the activity: baseline 2
-		s.AddSubtask(ctx, a.ID, "base", date(t, "2026-06-01"))
+	for i := 0; i < 1; i++ {                                 // plus the task made with the activity: baseline 2
+		s.AddTask(ctx, a.ID, "base", date(t, "2026-06-01"))
 	}
 
 	// not flagged yet: refused, nothing written
@@ -36,20 +36,20 @@ func TestAckScope(t *testing.T) {
 		t.Errorf("refused ack left an ack: %+v %v", ack, err)
 	}
 
-	// grow: 3 newer subtasks in the window => growth 150%, add30 3 > close30 0
-	var last domain.Subtask
+	// grow: 3 newer tasks in the window => growth 150%, add30 3 > close30 0
+	var last domain.Task
 	for i := 0; i < 3; i++ {
-		last, _ = s.AddSubtask(ctx, a.ID, "new", date(t, "2026-11-10"))
+		last, _ = s.AddTask(ctx, a.ID, "new", date(t, "2026-11-10"))
 	}
 	ack, err := s.AckScope(ctx, a.ID, fixed(today))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ack.BaselineCount != 5 || ack.LastSubtaskID != last.ID || ack.Date != today || ack.ID == 0 {
+	if ack.BaselineCount != 5 || ack.LastTaskID != last.ID || ack.Date != today || ack.ID == 0 {
 		t.Errorf("ack: %+v", ack)
 	}
 	j, _ := s.ListJournal(ctx, a.ID)
-	wantText := "Scope change acknowledged: 2 → 5 subtasks (+150%); last 30 days +3 / −0. New baseline: 5."
+	wantText := "Scope change acknowledged: 2 → 5 tasks (+150%); last 30 days +3 / −0. New baseline: 5."
 	if j[0].Kind != domain.KindScopeAck || j[0].Text != wantText || j[0].Date != today {
 		t.Errorf("journal: %+v", j[0])
 	}
@@ -59,7 +59,7 @@ func TestAckScope(t *testing.T) {
 	if err != nil || got == nil || *got != ack {
 		t.Fatalf("latest: %+v %v", got, err)
 	}
-	subs, _ := s.ListSubtasks(ctx, a.ID)
+	subs, _ := s.ListTasks(ctx, a.ID)
 	act, _ := s.GetActivity(ctx, a.ID)
 	if c := domain.ScopeCreep(act, subs, got, today); c.Flagged {
 		t.Errorf("still flagged after ack: %+v", c)
@@ -70,13 +70,13 @@ func TestAckScope(t *testing.T) {
 
 	// regrow past 75% of the new baseline (5): 4 more => 80%; latest ack wins
 	for i := 0; i < 4; i++ {
-		last, _ = s.AddSubtask(ctx, a.ID, "more", date(t, "2026-11-12"))
+		last, _ = s.AddTask(ctx, a.ID, "more", date(t, "2026-11-12"))
 	}
 	ack2, err := s.AckScope(ctx, a.ID, fixed(today))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ack2.ID <= ack.ID || ack2.BaselineCount != 9 || ack2.LastSubtaskID != last.ID {
+	if ack2.ID <= ack.ID || ack2.BaselineCount != 9 || ack2.LastTaskID != last.ID {
 		t.Errorf("second ack: %+v", ack2)
 	}
 	if latest, _ := s.LatestScopeAck(ctx, a.ID); latest == nil || latest.ID != ack2.ID {
@@ -99,8 +99,8 @@ func TestAckScopeMissingActivityWritesNothing(t *testing.T) {
 func TestAckScopeRollsBackWhenJournalFails(t *testing.T) {
 	s := newTestStore(t)
 	a := mustActivity(t, s, "P", "2026-06-01", "2026-12-31")
-	s.AddSubtask(ctx, a.ID, "base", date(t, "2026-06-01"))
-	s.AddSubtask(ctx, a.ID, "new", date(t, "2026-11-10"))
+	s.AddTask(ctx, a.ID, "base", date(t, "2026-06-01"))
+	s.AddTask(ctx, a.ID, "new", date(t, "2026-11-10"))
 	// A trigger makes the journal insert fail after the ack insert succeeded.
 	if _, err := s.db.ExecContext(ctx, `CREATE TRIGGER no_ack_journal BEFORE INSERT ON journal_entries
 		WHEN NEW.kind = 'scope_ack' BEGIN SELECT RAISE(ABORT, 'boom'); END`); err != nil {
@@ -123,15 +123,15 @@ func TestListLatestScopeAcks(t *testing.T) {
 		t.Fatalf("empty: %v %v", got, err)
 	}
 	for _, id := range []int64{a.ID, b.ID} {
-		s.AddSubtask(ctx, id, "new", date(t, "2026-11-10"))
-		s.AddSubtask(ctx, id, "new", date(t, "2026-11-10"))
+		s.AddTask(ctx, id, "new", date(t, "2026-11-10"))
+		s.AddTask(ctx, id, "new", date(t, "2026-11-10"))
 	}
 	first, err := s.AckScope(ctx, a.ID, fixed(today))
 	if err != nil {
 		t.Fatal(err)
 	}
 	for i := 0; i < 4; i++ {
-		s.AddSubtask(ctx, a.ID, "more", date(t, "2026-11-12"))
+		s.AddTask(ctx, a.ID, "more", date(t, "2026-11-12"))
 	}
 	second, err := s.AckScope(ctx, a.ID, fixed(today))
 	if err != nil {

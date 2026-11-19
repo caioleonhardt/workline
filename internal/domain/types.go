@@ -105,8 +105,8 @@ type Activity struct {
 	DoneOn      Date // zero unless Status is done
 }
 
-// Subtask is one checkable item of an activity. ClosedOn is zero while open.
-type Subtask struct {
+// Task is one checkable item of an activity. ClosedOn is zero while open.
+type Task struct {
 	ID         int64
 	ActivityID int64
 	Text       string
@@ -148,15 +148,15 @@ type ScopeAck struct {
 	ActivityID    int64
 	Date          Date
 	BaselineCount int
-	LastSubtaskID int64
+	LastTaskID    int64
 }
 
-// ActivityWithSubtasks pairs an activity with its subtasks and its latest
+// ActivityWithTasks pairs an activity with its tasks and its latest
 // scope acknowledgement, if any.
-type ActivityWithSubtasks struct {
+type ActivityWithTasks struct {
 	Activity
-	Subtasks []Subtask
-	Ack      *ScopeAck
+	Tasks []Task
+	Ack   *ScopeAck
 }
 
 func validStamp(s string) bool {
@@ -187,14 +187,14 @@ func (a Activity) Validate() error {
 	return nil
 }
 
-// Validate checks the subtask's own fields. created_on may precede the
+// Validate checks the task's own fields. created_on may precede the
 // activity's start (SPEC §10 decision 10).
-func (s Subtask) Validate() error {
+func (s Task) Validate() error {
 	switch {
 	case blank(s.Text):
-		return Invalid("subtask text is required")
+		return Invalid("task text is required")
 	case s.CreatedOn.IsZero():
-		return Invalid("subtask created date is required")
+		return Invalid("task created date is required")
 	case !s.ClosedOn.IsZero() && s.ClosedOn.Before(s.CreatedOn):
 		return Invalid("closed date %s is before created date %s", s.ClosedOn, s.CreatedOn)
 	case s.ClosedAt != "" && !validStamp(s.ClosedAt):
@@ -205,8 +205,8 @@ func (s Subtask) Validate() error {
 	return nil
 }
 
-// ValidateAt is Validate plus: a subtask cannot be closed after today.
-func (s Subtask) ValidateAt(today Date) error {
+// ValidateAt is Validate plus: a task cannot be closed after today.
+func (s Task) ValidateAt(today Date) error {
 	if err := s.Validate(); err != nil {
 		return err
 	}

@@ -113,7 +113,7 @@
         "due_date": "2026-12-31"
       }
     ],
-    "subtasks": [
+    "tasks": [
       {
         "id": 1,
         "activity_id": 1,
@@ -636,7 +636,7 @@
       "blocked": 1,
       "planned": 1,
       "done": 3,
-      "open_subtasks": 17,
+      "open_tasks": 17,
       "scope_flags": 2
     },
     "projects": [

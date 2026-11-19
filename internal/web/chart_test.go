@@ -9,15 +9,15 @@ import (
 )
 
 func TestBuildChart(t *testing.T) {
-	sub := func(id int64, created, closed string) domain.Subtask {
-		s := domain.Subtask{ID: id, CreatedOn: date(t, created)}
+	sub := func(id int64, created, closed string) domain.Task {
+		s := domain.Task{ID: id, CreatedOn: date(t, created)}
 		if closed != "" {
 			s.ClosedOn = date(t, closed)
 		}
 		return s
 	}
 	a := domain.Activity{Status: domain.StatusActive, Start: date(t, "2026-11-02"), Due: date(t, "2026-12-06")}
-	subs := []domain.Subtask{
+	subs := []domain.Task{
 		sub(1, "2026-11-02", "2026-11-10"), sub(2, "2026-11-02", ""), sub(3, "2026-11-09", ""), sub(4, "2026-11-17", ""),
 	}
 	c := buildChart(a, subs, date(t, testToday)) // Wednesday of the third week
@@ -42,13 +42,13 @@ func TestBuildChart(t *testing.T) {
 		t.Errorf("bins:\n got %+v\nwant %+v", got, want)
 	}
 	if c.Peak != 3 || c.StartLabel != "2026-11-02" || c.EndLabel != "2026-12-06" || len(c.Rows) != 5 ||
-		c.Summary != "Burndown by week: peak 3 open of 4 subtasks" {
+		c.Summary != "Burndown by week: peak 3 open of 4 tasks" {
 		t.Errorf("chart: %+v", c)
 	}
 	if c.Rows[2] != (chartRow{"2026-11-16", 3, 4, false}) || !c.Rows[3].Ahead {
 		t.Errorf("rows: %+v", c.Rows)
 	}
-	// no subtasks: nothing to divide by, nothing drawn
+	// no tasks: nothing to divide by, nothing drawn
 	empty := buildChart(a, nil, date(t, testToday))
 	if empty.Peak != 0 || empty.Bins[0].Open != 0 || empty.Bins[0].Scope != 0 {
 		t.Errorf("empty chart: %+v", empty.Bins[0])
@@ -57,16 +57,16 @@ func TestBuildChart(t *testing.T) {
 
 func TestPanelShowsBurndown(t *testing.T) {
 	h, _ := newApp(t)
-	body := get(h, "/?sel=2").Body.String() // Kafka: 12 weeks, the last one ahead; 6 subtasks
+	body := get(h, "/?sel=2").Body.String() // Kafka: 12 weeks, the last one ahead; 6 tasks
 	for _, want := range []string{
 		`peak 4 open · weekly`,
-		`<div class="chart" role="img" aria-label="Burndown by week: peak 4 open of 6 subtasks">`,
+		`<div class="chart" role="img" aria-label="Burndown by week: peak 4 open of 6 tasks">`,
 		`title="Week of 2026-10-05: 4 open of 5"`,
 		`<span class="scope blocked" style="height:83.33%"></span><span class="open blocked" style="height:66.67%"></span>`, // week of Oct 5
 		`<span class="scope blocked ahead" style="height:100.00%"></span>`,
 		`<span>2026-09-07</span><span>2026-11-27</span>`,
 		`<tr><td>2026-11-23</td><td colspan="2">ahead</td></tr>`,
-		`Scope (all subtasks)`,
+		`Scope (all tasks)`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)

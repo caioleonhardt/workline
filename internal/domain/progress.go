@@ -6,8 +6,8 @@ func percent(n, d int) int {
 	return (200*n + d) / (2 * d)
 }
 
-// OpenAt counts subtasks created on or before t and not closed by t (§4.1).
-func OpenAt(subs []Subtask, t Date) int {
+// OpenAt counts tasks created on or before t and not closed by t (§4.1).
+func OpenAt(subs []Task, t Date) int {
 	n := 0
 	for _, s := range subs {
 		if !s.CreatedOn.After(t) && (s.ClosedOn.IsZero() || s.ClosedOn.After(t)) {
@@ -17,8 +17,8 @@ func OpenAt(subs []Subtask, t Date) int {
 	return n
 }
 
-// ScopeAt counts subtasks created on or before t (§4.1).
-func ScopeAt(subs []Subtask, t Date) int {
+// ScopeAt counts tasks created on or before t (§4.1).
+func ScopeAt(subs []Task, t Date) int {
 	n := 0
 	for _, s := range subs {
 		if !s.CreatedOn.After(t) {
@@ -28,7 +28,7 @@ func ScopeAt(subs []Subtask, t Date) int {
 	return n
 }
 
-func countClosed(subs []Subtask) int {
+func countClosed(subs []Task) int {
 	n := 0
 	for _, s := range subs {
 		if !s.ClosedOn.IsZero() {
@@ -39,7 +39,7 @@ func countClosed(subs []Subtask) int {
 }
 
 // Progress is an activity's completion percentage (§4.2).
-func Progress(status Status, subs []Subtask) int {
+func Progress(status Status, subs []Task) int {
 	if len(subs) == 0 {
 		if status == StatusDone {
 			return 100
@@ -49,9 +49,9 @@ func Progress(status Status, subs []Subtask) int {
 	return percent(countClosed(subs), len(subs))
 }
 
-// ProjectProgress is closed/total over the given subtasks (the subtasks of the
+// ProjectProgress is closed/total over the given tasks (the tasks of the
 // project's visible activities). It is 0 when there are none.
-func ProjectProgress(subs []Subtask) int {
+func ProjectProgress(subs []Task) int {
 	if len(subs) == 0 {
 		return 0
 	}

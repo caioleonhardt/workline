@@ -3,7 +3,7 @@ package domain
 import "testing"
 
 func TestOpenAndScopeAt(t *testing.T) {
-	subs := []Subtask{
+	subs := []Task{
 		sub(t, 1, "2026-03-10", ""),           // open from 03-10
 		sub(t, 2, "2026-03-10", "2026-03-15"), // closed 03-15
 		sub(t, 3, "2026-03-20", "2026-03-20"), // created and closed same day
@@ -33,13 +33,13 @@ func TestOpenAndScopeAt(t *testing.T) {
 		t.Error("empty")
 	}
 	// closed one day after t is still open at t
-	if OpenAt([]Subtask{sub(t, 1, "2026-03-10", "2026-03-11")}, d(t, "2026-03-10")) != 1 {
+	if OpenAt([]Task{sub(t, 1, "2026-03-10", "2026-03-11")}, d(t, "2026-03-10")) != 1 {
 		t.Error("closed on t+1 should be open at t")
 	}
 }
 
-func closedN(t *testing.T, closed, total int) []Subtask {
-	var subs []Subtask
+func closedN(t *testing.T, closed, total int) []Task {
+	var subs []Task
 	for i := 0; i < total; i++ {
 		c := ""
 		if i < closed {

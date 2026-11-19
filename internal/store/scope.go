@@ -20,7 +20,7 @@ func latestScopeAck(ctx context.Context, q queryer, activityID int64) (*domain.S
 	err := q.QueryRowContext(ctx,
 		`SELECT id, activity_id, date, baseline_count, last_subtask_id FROM scope_acks
 		 WHERE activity_id = ? ORDER BY id DESC LIMIT 1`, activityID).
-		Scan(&a.ID, &a.ActivityID, &date, &a.BaselineCount, &a.LastSubtaskID)
+		Scan(&a.ID, &a.ActivityID, &date, &a.BaselineCount, &a.LastTaskID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -46,7 +46,7 @@ func (s *Store) ListLatestScopeAcks(ctx context.Context) (map[int64]domain.Scope
 	for rows.Next() {
 		var a domain.ScopeAck
 		var date string
-		if err := rows.Scan(&a.ID, &a.ActivityID, &date, &a.BaselineCount, &a.LastSubtaskID); err != nil {
+		if err := rows.Scan(&a.ID, &a.ActivityID, &date, &a.BaselineCount, &a.LastTaskID); err != nil {
 			return nil, fmt.Errorf("scan scope ack: %w", err)
 		}
 		if a.Date, err = parseDate(date); err != nil {
@@ -68,8 +68,8 @@ func (s *Store) AckScope(ctx context.Context, activityID int64, clock domain.Clo
 		if err != nil {
 			return err
 		}
-		subs, err := querySubtasks(ctx, tx,
-			`SELECT `+subtaskColumns+` FROM subtasks WHERE activity_id = ? ORDER BY id`, activityID)
+		subs, err := queryTasks(ctx, tx,
+			`SELECT `+taskColumns+` FROM subtasks WHERE activity_id = ? ORDER BY id`, activityID)
 		if err != nil {
 			return err
 		}
@@ -83,13 +83,13 @@ func (s *Store) AckScope(ctx context.Context, activityID int64, clock domain.Clo
 		}
 		ack = domain.ScopeAck{ActivityID: activityID, Date: today, BaselineCount: len(subs)}
 		for _, st := range subs {
-			if st.ID > ack.LastSubtaskID {
-				ack.LastSubtaskID = st.ID
+			if st.ID > ack.LastTaskID {
+				ack.LastTaskID = st.ID
 			}
 		}
 		res, err := tx.ExecContext(ctx,
 			`INSERT INTO scope_acks (activity_id, date, baseline_count, last_subtask_id) VALUES (?, ?, ?, ?)`,
-			activityID, today.String(), ack.BaselineCount, ack.LastSubtaskID)
+			activityID, today.String(), ack.BaselineCount, ack.LastTaskID)
 		if err != nil {
 			return mapErr(err)
 		}

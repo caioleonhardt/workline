@@ -23,7 +23,7 @@ type tileView struct {
 func buildTiles(t domain.Tiles) []tileView {
 	return []tileView{
 		{"Active", "active", t.Active}, {"Blocked", "blocked", t.Blocked}, {"Planned", "planned", t.Planned},
-		{"Done this year", "done", t.DoneThisYear}, {"Open subtasks now", "", t.OpenSubtasks},
+		{"Done this year", "done", t.DoneThisYear}, {"Open tasks now", "", t.OpenTasks},
 		{"Scope creep flags", "creep", t.ScopeFlags},
 	}
 }
@@ -84,7 +84,7 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 	if err != nil {
 		return dashboardView{}, err
 	}
-	subs, err := s.store.ListAllSubtasks(ctx)
+	subs, err := s.store.ListAllTasks(ctx)
 	if err != nil {
 		return dashboardView{}, err
 	}
@@ -92,7 +92,7 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 	if err != nil {
 		return dashboardView{}, err
 	}
-	subsOf := map[int64][]domain.Subtask{}
+	subsOf := map[int64][]domain.Task{}
 	for _, st := range subs {
 		subsOf[st.ActivityID] = append(subsOf[st.ActivityID], st)
 	}
@@ -101,24 +101,24 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 		live[p.ID] = true
 	}
 	var panel *panelView
-	var tileItems []domain.ActivityWithSubtasks // the project filter only, not period or status
+	var tileItems []domain.ActivityWithTasks // the project filter only, not period or status
 	creeps := map[int64]domain.Creep{}
 	counts := map[domain.Status]int{}
 	creepCount := 0
 	byProject := map[int64][]domain.Activity{}
 	var visibleIDs []int64
-	itemOf := map[int64]domain.ActivityWithSubtasks{}
+	itemOf := map[int64]domain.ActivityWithTasks{}
 	for _, a := range acts {
 		if !live[a.ProjectID] {
 			continue
 		}
-		it := domain.ActivityWithSubtasks{Activity: a, Subtasks: subsOf[a.ID]}
+		it := domain.ActivityWithTasks{Activity: a, Tasks: subsOf[a.ID]}
 		if ack, ok := acks[a.ID]; ok {
 			it.Ack = &ack
 		}
 		itemOf[a.ID] = it
 		if a.ID == f.Sel {
-			panel = buildPanel(it.Activity, projects, it.Subtasks, it.Ack, today, uri)
+			panel = buildPanel(it.Activity, projects, it.Tasks, it.Ack, today, uri)
 		}
 		if f.Project == 0 || a.ProjectID == f.Project {
 			tileItems = append(tileItems, it)
@@ -126,7 +126,7 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 		if !f.inScope(a) {
 			continue
 		}
-		creep := domain.ScopeCreep(a, it.Subtasks, it.Ack, today)
+		creep := domain.ScopeCreep(a, it.Tasks, it.Ack, today)
 		creeps[a.ID] = creep
 		counts[a.Status]++
 		if creep.Flagged {

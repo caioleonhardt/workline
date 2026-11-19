@@ -10,7 +10,7 @@ import (
 )
 
 // NewActivity is the input of CreateActivity. Exactly one of ProjectID and
-// NewProjectName must be set, and Subtasks needs at least one text.
+// NewProjectName must be set, and Tasks needs at least one text.
 type NewActivity struct {
 	ProjectID      int64
 	NewProjectName string
@@ -18,7 +18,7 @@ type NewActivity struct {
 	RequestedBy    string
 	Priority       domain.Priority
 	Start, Due     domain.Date
-	Subtasks       []string
+	Tasks          []string
 }
 
 const activityColumns = `id, project_id, name, requested_by, status, priority, start_date, due_date, done_on`
@@ -48,16 +48,16 @@ func scanActivity(r scanner) (domain.Activity, error) {
 }
 
 // CreateActivity creates the activity (and the project, if NewProjectName is
-// set), its first subtasks and the "Activity created" journal entry in one
-// transaction. The subtasks are dated min(today, start) so they count as
+// set), its first tasks and the "Activity created" journal entry in one
+// transaction. The tasks are dated min(today, start) so they count as
 // kickoff scope (SPEC §10 item 22).
 func (s *Store) CreateActivity(ctx context.Context, in NewActivity, clock domain.Clock) (domain.Activity, error) {
 	today := clock.Today()
 	if (in.ProjectID == 0) == (in.NewProjectName == "") {
 		return domain.Activity{}, domain.Invalid("choose an existing project or name a new one, not both")
 	}
-	if len(in.Subtasks) == 0 {
-		return domain.Activity{}, domain.Invalid("an activity needs at least one subtask")
+	if len(in.Tasks) == 0 {
+		return domain.Activity{}, domain.Invalid("an activity needs at least one task")
 	}
 	created := in.Start
 	if today.Before(created) {
@@ -83,8 +83,8 @@ func (s *Store) CreateActivity(ctx context.Context, in NewActivity, clock domain
 			return err
 		}
 		a.ID = id
-		for _, text := range in.Subtasks {
-			if _, err := insertSubtask(ctx, tx, domain.Subtask{ActivityID: id, Text: text, CreatedOn: created}); err != nil {
+		for _, text := range in.Tasks {
+			if _, err := insertTask(ctx, tx, domain.Task{ActivityID: id, Text: text, CreatedOn: created}); err != nil {
 				return err
 			}
 		}
@@ -175,7 +175,7 @@ func (s *Store) SetActivityStatus(ctx context.Context, id int64, status domain.S
 	return affected(res, "activity", id)
 }
 
-// DeleteActivity removes an activity and, by cascade, its subtasks, journal and acks.
+// DeleteActivity removes an activity and, by cascade, its tasks, journal and acks.
 func (s *Store) DeleteActivity(ctx context.Context, id int64) error {
 	res, err := s.db.ExecContext(ctx, `DELETE FROM activities WHERE id = ?`, id)
 	if err != nil {

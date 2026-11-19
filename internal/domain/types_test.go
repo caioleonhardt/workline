@@ -35,27 +35,27 @@ func TestValidate(t *testing.T) {
 		}
 	}
 
-	st := Subtask{Text: "t", CreatedOn: d(t, "2026-01-02")}
+	st := Task{Text: "t", CreatedOn: d(t, "2026-01-02")}
 	subs := []struct {
 		name string
-		mut  func(*Subtask)
+		mut  func(*Task)
 		bad  bool
 	}{
-		{"ok open", func(*Subtask) {}, false},
-		{"ok closed same day", func(s *Subtask) { s.ClosedOn = s.CreatedOn }, false},
-		{"blank", func(s *Subtask) { s.Text = "" }, true},
-		{"no created", func(s *Subtask) { s.CreatedOn = 0 }, true},
-		{"closed before created", func(s *Subtask) { s.ClosedOn = d(t, "2026-01-01") }, true},
-		{"closed at", func(s *Subtask) { s.ClosedOn, s.ClosedAt = d(t, "2026-02-03"), "2026-02-03 17:40" }, false},
-		{"closed at on another day", func(s *Subtask) { s.ClosedOn, s.ClosedAt = d(t, "2026-02-03"), "2026-02-04 17:40" }, true},
-		{"closed at while open", func(s *Subtask) { s.ClosedAt = "2026-02-03 17:40" }, true},
-		{"closed at malformed", func(s *Subtask) { s.ClosedOn, s.ClosedAt = d(t, "2026-02-03"), "2026-02-03" }, true},
+		{"ok open", func(*Task) {}, false},
+		{"ok closed same day", func(s *Task) { s.ClosedOn = s.CreatedOn }, false},
+		{"blank", func(s *Task) { s.Text = "" }, true},
+		{"no created", func(s *Task) { s.CreatedOn = 0 }, true},
+		{"closed before created", func(s *Task) { s.ClosedOn = d(t, "2026-01-01") }, true},
+		{"closed at", func(s *Task) { s.ClosedOn, s.ClosedAt = d(t, "2026-02-03"), "2026-02-03 17:40" }, false},
+		{"closed at on another day", func(s *Task) { s.ClosedOn, s.ClosedAt = d(t, "2026-02-03"), "2026-02-04 17:40" }, true},
+		{"closed at while open", func(s *Task) { s.ClosedAt = "2026-02-03 17:40" }, true},
+		{"closed at malformed", func(s *Task) { s.ClosedOn, s.ClosedAt = d(t, "2026-02-03"), "2026-02-03" }, true},
 	}
 	for _, c := range subs {
 		s := st
 		c.mut(&s)
 		if err := s.Validate(); (err != nil) != c.bad {
-			t.Errorf("subtask %s: err=%v", c.name, err)
+			t.Errorf("task %s: err=%v", c.name, err)
 		}
 	}
 
@@ -84,7 +84,7 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-func TestSubtaskValidateAt(t *testing.T) {
+func TestTaskValidateAt(t *testing.T) {
 	today := d(t, "2026-11-18")
 	for _, c := range []struct {
 		name   string
@@ -96,7 +96,7 @@ func TestSubtaskValidateAt(t *testing.T) {
 		{"closed yesterday", "2026-11-17", false},
 		{"closed tomorrow", "2026-11-19", true},
 	} {
-		s := Subtask{Text: "t", CreatedOn: d(t, "2026-01-01")}
+		s := Task{Text: "t", CreatedOn: d(t, "2026-01-01")}
 		if c.closed != "" {
 			s.ClosedOn = d(t, c.closed)
 		}
@@ -105,7 +105,7 @@ func TestSubtaskValidateAt(t *testing.T) {
 			t.Errorf("%s: err=%v", c.name, err)
 		}
 	}
-	if err := (Subtask{}).ValidateAt(today); err == nil {
+	if err := (Task{}).ValidateAt(today); err == nil {
 		t.Error("base validation must still apply")
 	}
 }

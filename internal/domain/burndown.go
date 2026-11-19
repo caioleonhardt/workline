@@ -23,7 +23,7 @@ func checkActivity(a Activity) {
 // Burndown returns the timeline series: bins of step days from a.Start to
 // min(a.Due, today, a.DoneOn) (§4.3, SPEC §10 item 45). It is empty when the
 // activity starts after that end.
-func Burndown(a Activity, subs []Subtask, step int, today Date) []Bin {
+func Burndown(a Activity, subs []Task, step int, today Date) []Bin {
 	assert(step > 0, "step must be positive")
 	checkActivity(a)
 	end := a.Due
@@ -47,7 +47,7 @@ func Burndown(a Activity, subs []Subtask, step int, today Date) []Bin {
 // BurndownDetail returns the detail-panel series: weekly bins over the full
 // a.Start..a.Due span. Bins starting after today are Ahead. A bin that
 // straddles today is measured at today.
-func BurndownDetail(a Activity, subs []Subtask, today Date) []Bin {
+func BurndownDetail(a Activity, subs []Task, today Date) []Bin {
 	checkActivity(a)
 	var bins []Bin
 	for start := a.Start; !start.After(a.Due); start = start.AddDays(WeekStep) {

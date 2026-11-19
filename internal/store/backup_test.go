@@ -35,9 +35,9 @@ func TestBackupCopiesALiveDatabase(t *testing.T) {
 	}
 	defer b.Close()
 	ps, _ := b.ListProjects(ctx, true)
-	subs, _ := b.ListAllSubtasks(ctx)
+	subs, _ := b.ListAllTasks(ctx)
 	if len(ps) != 4 || len(subs) != 46 {
-		t.Errorf("backup has %d projects, %d subtasks", len(ps), len(subs))
+		t.Errorf("backup has %d projects, %d tasks", len(ps), len(subs))
 	}
 	// the server can still write while and after a backup
 	if _, err := s.CreateProject(ctx, "later"); err != nil {

@@ -38,7 +38,7 @@ func newTestStore(t *testing.T) *Store {
 // mustActivity creates a project and an activity in it.
 func mustActivity(t *testing.T, s *Store, project string, start, due string) domain.Activity {
 	t.Helper()
-	a, err := s.CreateActivity(ctx, NewActivity{NewProjectName: project, Name: "act", Start: date(t, start), Due: date(t, due), Subtasks: []string{"first"}}, fixed(date(t, "2026-01-01")))
+	a, err := s.CreateActivity(ctx, NewActivity{NewProjectName: project, Name: "act", Start: date(t, start), Due: date(t, due), Tasks: []string{"first"}}, fixed(date(t, "2026-01-01")))
 	if err != nil {
 		t.Fatal(err)
 	}

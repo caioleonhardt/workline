@@ -27,10 +27,10 @@ func TestAutoSubmitControlsKeepTheirButtons(t *testing.T) {
 	}
 }
 
-func TestSubtasksAreCheckboxes(t *testing.T) {
+func TestTasksAreCheckboxes(t *testing.T) {
 	h, _ := newApp(t)
 	body := get(h, "/?sel=2").Body.String()
-	// Kafka: six subtasks, two closed; each is a checkbox in a form that toggles it
+	// Kafka: six tasks, two closed; each is a checkbox in a form that toggles it
 	if got := strings.Count(body, `<input type="checkbox"`); got != 6 {
 		t.Errorf("checkboxes = %d, want 6", got)
 	}
@@ -38,7 +38,7 @@ func TestSubtasksAreCheckboxes(t *testing.T) {
 		t.Errorf("checked = %d, want 2", got)
 	}
 	for _, want := range []string{
-		`<form class="inline sub-toggle" method="post" action="/subtasks/13/toggle" hx-trigger="change, submit">`,
+		`<form class="inline sub-toggle" method="post" action="/tasks/13/toggle" hx-trigger="change, submit">`,
 		`<span class="done-text">Compatibility matrix</span>`,
 		`<button class="apply">Reopen</button>`, `<button class="apply">Close</button>`,
 	} {
@@ -48,8 +48,8 @@ func TestSubtasksAreCheckboxes(t *testing.T) {
 	}
 }
 
-// A subtask is one line: one date (closed, else opened) with both in the tooltip.
-func TestSubtaskRowsShowOneDate(t *testing.T) {
+// A task is one line: one date (closed, else opened) with both in the tooltip.
+func TestTaskRowsShowOneDate(t *testing.T) {
 	h, _ := newApp(t)
 	body := get(h, "/?sel=2").Body.String() // Kafka: 2 closed, 4 open
 	for _, want := range []string{

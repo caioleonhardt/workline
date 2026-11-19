@@ -14,7 +14,7 @@ func newForm(over url.Values) url.Values {
 	f := url.Values{
 		"next": {"/?new=1&status=active&status=blocked"}, "project": {"1"}, "name": {"Pilot"},
 		"requested_by": {"Manager"}, "priority": {"high"}, "start": {"2026-11-01"}, "due": {"2026-12-01"},
-		"subtasks": {"first\n\n  second  \n"},
+		"tasks": {"first\n\n  second  \n"},
 	}
 	for k, v := range over {
 		f[k] = v
@@ -24,7 +24,7 @@ func newForm(over url.Values) url.Values {
 
 func TestNewActivityFormShownOnlyWithNew(t *testing.T) {
 	h, _ := newApp(t)
-	wantBody(t, get(h, "/?new=1"), `action="/activities"`, "+ New project…", "First subtasks")
+	wantBody(t, get(h, "/?new=1"), `action="/activities"`, "+ New project…", "First tasks")
 	rec := get(h, "/")
 	wantStatus(t, rec, http.StatusOK)
 	if body := rec.Body.String(); strings.Contains(body, `action="/activities"`) {
@@ -50,9 +50,9 @@ func TestCreateActivity(t *testing.T) {
 	if a.Name != "Pilot" || a.Priority != domain.PriorityHigh || a.Status != domain.StatusActive || a.ProjectID != 1 {
 		t.Errorf("activity: %+v", a)
 	}
-	subs, _ := st.ListSubtasks(ctx, a.ID)
+	subs, _ := st.ListTasks(ctx, a.ID)
 	if len(subs) != 2 || subs[1].Text != "second" || subs[0].CreatedOn != date(t, "2026-11-01") {
-		t.Errorf("subtasks: %+v", subs)
+		t.Errorf("tasks: %+v", subs)
 	}
 	if j, _ := st.ListJournal(ctx, a.ID); len(j) != 1 || j[0].Text != "Activity created" {
 		t.Errorf("journal: %+v", j)
@@ -79,7 +79,7 @@ func TestCreateActivityWithNewProject(t *testing.T) {
 func TestCreateActivityRejections(t *testing.T) {
 	h, st := newApp(t)
 	for name, over := range map[string]url.Values{
-		"no subtasks":      {"subtasks": {" \n \n"}},
+		"no tasks":         {"tasks": {" \n \n"}},
 		"blank name":       {"name": {" "}},
 		"due before start": {"due": {"2026-10-01"}},
 		"bad date":         {"start": {"11/01/2026"}},
@@ -105,8 +105,8 @@ func TestPanelShownForSel(t *testing.T) {
 	h, _ := newApp(t)
 	rec := get(h, "/?sel=2")
 	wantStatus(t, rec, http.StatusOK)
-	wantBody(t, rec, `id="panel"`, "Kafka upgrade readiness", "2 of 6 subtasks done", "33%", `aria-current="true"`)
-	wantBody(t, get(h, "/"), `<aside class="detail" aria-label="Activity detail">`, "Select an activity to see its burndown, scope, subtasks and journal.")
+	wantBody(t, rec, `id="panel"`, "Kafka upgrade readiness", "2 of 6 tasks done", "33%", `aria-current="true"`)
+	wantBody(t, get(h, "/"), `<aside class="detail" aria-label="Activity detail">`, "Select an activity to see its burndown, scope, tasks and journal.")
 	for _, target := range []string{"/?sel=999", "/?sel=abc", "/?sel="} {
 		if body := get(h, target).Body.String(); strings.Contains(body, `id="panel"`) {
 			t.Errorf("%s shows a panel", target)
@@ -148,8 +148,8 @@ func TestUpdateActivityStatusSetsDoneDate(t *testing.T) {
 	if a, _ := st.GetActivity(ctx, 2); a.Status != domain.StatusDone || a.DoneOn != date(t, testToday) {
 		t.Errorf("done: %+v", a)
 	}
-	// a done activity with open subtasks shows its subtask ratio
-	wantBody(t, get(h, "/?sel=2"), "33%", "2 of 6 subtasks done")
+	// a done activity with open tasks shows its task ratio
+	wantBody(t, get(h, "/?sel=2"), "33%", "2 of 6 tasks done")
 	wantStatus(t, post(h, "/activities/2", url.Values{"status": {"active"}}), http.StatusSeeOther)
 	if a, _ := st.GetActivity(ctx, 2); !a.DoneOn.IsZero() {
 		t.Errorf("reopened: %+v", a)
@@ -167,8 +167,8 @@ func TestDeleteActivity(t *testing.T) {
 	if _, err := st.GetActivity(ctx, 2); err == nil {
 		t.Error("still there")
 	}
-	if subs, _ := st.ListSubtasks(ctx, 2); len(subs) != 0 {
-		t.Error("subtasks survived")
+	if subs, _ := st.ListTasks(ctx, 2); len(subs) != 0 {
+		t.Error("tasks survived")
 	}
 	wantStatus(t, post(h, "/activities/2/delete", nil), http.StatusNotFound)
 }
