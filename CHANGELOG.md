@@ -13,6 +13,10 @@ each release is tagged `vX.Y.Z` in git.
   focuses the journal bar. `/` searches the entries on the page, and `n`/`N`
   jump between matches. `[`/`]` page the weeks, `gj`/`gt`/`gp` go to Journal,
   Timeline or Projects, and `?` lists every key.
+- A Neovim-style statusline at the bottom shows the mode (NORMAL, INSERT,
+  COMMAND), the search as you type it after `/`, the match count (`[2/5]`),
+  wrap and not-found messages, pending keys like `g`, and where the cursor is
+  (e.g. `Journal 3/30`).
 - On the timeline, New activity is now `O` and the project filter `f`. The old
   `t d u b m` and `j` keys are gone; in the bar, `/t`, `/d`… still choose the kind.
 
