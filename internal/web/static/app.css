@@ -257,5 +257,5 @@ dialog#keys { border: 1px solid var(--border); border-radius: 12px; background: 
 .search-form input[type="search"] { width: min(420px, 60vw); }
 .status-msg .wild { padding: 0 4px; }
 .status-msg .wild.current { background: var(--active-bg); color: var(--active-fg); font-weight: 700; }
-.feed .sub-toggle { flex: 0 1 auto; }
-.feed .check { min-height: 0; }
+.feed-toggle { flex: 0 0 auto; min-width: 20px; align-self: flex-start; margin-top: 2px; }
+.feed-toggle input[type="checkbox"] { width: 20px; height: 20px; min-height: 0; margin: 0; accent-color: #2F5BEA; }

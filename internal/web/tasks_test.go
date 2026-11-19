@@ -41,7 +41,7 @@ func TestTaskFlows(t *testing.T) {
 	if got, _ := st.ListTasks(ctx, 2); got[6].ClosedOn != date(t, testToday) {
 		t.Errorf("close: %+v", got[6])
 	}
-	wantBody(t, get(h, "/timeline?sel=2"), "closed "+testToday, `<span class="feed-text done-text">Write runbook</span>`)
+	wantBody(t, get(h, "/timeline?sel=2"), "closed "+testToday, `class="feed-text done-text">Write runbook</span>`)
 	wantStatus(t, post(h, target, next), http.StatusSeeOther)
 	if got, _ := st.ListTasks(ctx, 2); !got[6].ClosedOn.IsZero() {
 		t.Errorf("reopen: %+v", got[6])

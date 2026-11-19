@@ -126,7 +126,7 @@ func TestJournalTextIsMultiline(t *testing.T) {
 		t.Fatalf("stored %q", list[0].Text)
 	}
 	id := strconv.FormatInt(list[0].ID, 10)
-	wantBody(t, get(h, "/timeline?sel=2"), "<span class=\"feed-text\">First line\n\n- detail</span>",
+	wantBody(t, get(h, "/timeline?sel=2"), "class=\"feed-text\">First line\n\n- detail</span>",
 		"<textarea class=\"editor-text\" id=\"text-feed-"+id+"\" name=\"text\" rows=\"3\" required>First line\n\n- detail</textarea>",
 		`form="del-feed-`+id+`">Confirm delete</button>`, `<form id="del-feed-`+id+`" method="post" action="/journal/`+id+`/delete">`)
 	wantStatus(t, post(h, "/journal/"+id, url.Values{"kind": {"update"}, "text": {"one\r\ntwo"}, "date": {"2026-11-18"}}), http.StatusSeeOther)

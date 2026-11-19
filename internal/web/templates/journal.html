@@ -4,13 +4,14 @@
 <ul class="rows feed" data-pane="Journal">
 {{range .Entries}}
 <li tabindex="-1" data-entry data-id="{{.ID}}">
+{{if .IsTask}}<form class="inline sub-toggle feed-toggle" method="post" action="/tasks/{{.ID}}/toggle" hx-trigger="change, submit">
+<input type="hidden" name="next" value="{{$.Next}}">
+<input type="checkbox" aria-labelledby="feed-text-{{.ID}}"{{if .Closed}} checked{{end}}>
+<button class="apply">{{if .Closed}}Reopen{{else}}Close{{end}}</button>
+</form>{{else}}<span class="feed-toggle" aria-hidden="true"></span>{{end}}
 <span class="muted mono">{{.Date}}{{if .Time}} {{.Time}}{{end}}</span> <span class="chip kind-{{.Kind}}">{{.KindLabel}}</span>{{if .Priority}} <span class="chip prio-{{.Priority}}">{{.PriorityLabel}}</span>{{end}}
 {{if .ActivityHref}}<a class="tag small" href="{{.ActivityHref}}"{{if $.FullLoadLinks}} hx-boost="false"{{end}}>{{.Project}} › {{.Activity}}</a>{{else if .Unassigned}}<span class="tag small unassigned">Unassigned</span>{{end}}
-{{if .IsTask}}<form class="inline sub-toggle" method="post" action="/tasks/{{.ID}}/toggle" hx-trigger="change, submit">
-<input type="hidden" name="next" value="{{$.Next}}">
-<label class="check"><input type="checkbox"{{if .Closed}} checked{{end}}><span class="feed-text{{if .Closed}} done-text{{end}}">{{.Text}}</span></label>
-<button class="apply">{{if .Closed}}Reopen{{else}}Close{{end}}</button>
-</form>{{else}}<span class="feed-text">{{.Text}}</span>{{end}}{{if .Closed}} <span class="muted mono small">closed {{.Closed}}</span>{{end}}
+<span id="feed-text-{{.ID}}" class="feed-text{{if .Closed}} done-text{{end}}">{{.Text}}</span>{{if .Closed}} <span class="muted mono small">closed {{.Closed}}</span>{{end}}
 {{if not .ReadOnly}}
 <details class="edit">
 <summary class="edit-toggle"><span aria-hidden="true">✎</span> Edit</summary>

@@ -35,11 +35,21 @@ func TestTasksAreCheckboxes(t *testing.T) {
 	if got := strings.Count(body, `<input type="checkbox"`); got != 12 {
 		t.Errorf("checkboxes = %d, want 12", got)
 	}
-	if got := strings.Count(body, `<input type="checkbox" checked>`); got != 4 {
-		t.Errorf("checked = %d, want 4", got)
+	if got := strings.Count(body, `<input type="checkbox" checked>`); got != 2 {
+		t.Errorf("checked in the panel = %d, want 2", got)
 	}
-	if !strings.Contains(body, `<label class="check"><input type="checkbox" checked><span class="feed-text done-text">Compatibility matrix</span></label>`) {
-		t.Error("a closed task in the feed must have its Reopen checkbox")
+	// In the feed the checkbox leads the row, so rows line up, and is named by the task's text.
+	if got := strings.Count(body, `" checked>`+"\n"+`<button class="apply">Reopen</button>`); got != 2 {
+		t.Errorf("Reopen forms in the feed = %d, want 2", got)
+	}
+	if got := strings.Count(body, `">`+"\n"+`<form class="inline sub-toggle feed-toggle" method="post" action="/tasks/`); got != 6 {
+		t.Errorf("feed rows led by their task's checkbox = %d, want 6", got)
+	}
+	if !strings.Contains(body, `class="feed-text done-text">Compatibility matrix</span>`) {
+		t.Error("the closed task's text stays in the feed")
+	}
+	if !strings.Contains(body, `<span class="feed-toggle" aria-hidden="true"></span>`) {
+		t.Error("rows without a task keep the checkbox's place")
 	}
 	for _, want := range []string{
 		`<form class="inline sub-toggle" method="post" action="/tasks/13/toggle" hx-trigger="change, submit">`,
