@@ -1,0 +1,24 @@
+{{template "head" .}}
+<div id="errors" aria-live="polite"></div>
+{{template "sdash" .}}
+{{template "quickadd" .}}
+{{template "keys"}}
+{{template "foot" .}}
+
+{{define "sdash-fragment"}}{{template "sdash" .}}{{template "bar-oob" .}}{{end}}
+
+{{define "sdash"}}
+<div id="dash" class="search-page" hx-boost="true" hx-target="#dash" hx-swap="outerHTML" data-search="{{.Query}}" data-count="{{.Count}}">
+<header class="dash">
+<div>
+<div class="eyebrow mono">Search</div>
+<form class="search-form" method="get" action="/search"><input type="hidden" name="from" value="{{.ClearHref}}"><label for="search-q" class="sr-only">Query</label><input id="search-q" class="mono" type="search" name="q" value="{{.Query}}" placeholder="p:1 proj:atlas !is:closed" autocomplete="off"> <button>Search</button></form>
+</div>
+<div class="actions"><a class="btn secondary clear-search" href="{{.ClearHref}}" hx-boost="false" aria-keyshortcuts="Escape">Clear search</a></div>
+</header>
+{{if .Error}}<p class="error-bar mono" role="alert">{{.Error}}</p>
+{{else}}<p class="muted">{{.CountLabel}}</p>
+{{template "journal" .Journal}}{{end}}
+</div>
+<script src="/static/app.js"></script>
+{{end}}

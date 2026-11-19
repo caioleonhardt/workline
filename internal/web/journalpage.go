@@ -174,7 +174,14 @@ func (s *Server) buildJournalPage(ctx context.Context, uri string) (journalPageV
 	// The feed: entries dated in the range, newest first.
 	entries = slices.DeleteFunc(entries, func(j domain.JournalEntry) bool { return !shown(j.ActivityID) })
 	slices.Reverse(entries)
-	v.Journal = journalView{Next: uri, Title: "Journal", FullLoadLinks: true}
+	v.Journal = journalView{Next: uri, Title: "Journal", FullLoadLinks: true, Entries: pageFeedRows(entries, projectName, actOf, filing)}
+	return v, nil
+}
+
+// pageFeedRows builds feed rows for a page other than the timeline: each
+// activity tag is a link to the timeline with it selected.
+func pageFeedRows(entries []domain.JournalEntry, projectName map[int64]string, actOf map[int64]domain.Activity, filing []domain.Group) []feedRow {
+	var out []feedRow
 	for i, row := range journalRows(entries) {
 		a := actOf[entries[i].ActivityID]
 		fr := feedRow{journalRow: row, Project: projectName[a.ProjectID], Activity: a.Name, Unassigned: entries[i].ActivityID == 0}
@@ -183,9 +190,9 @@ func (s *Server) buildJournalPage(ctx context.Context, uri string) (journalPageV
 		} else {
 			fr.ActivityHref = "/timeline?sel=" + strconv.FormatInt(a.ID, 10)
 		}
-		v.Journal.Entries = append(v.Journal.Entries, fr)
+		out = append(out, fr)
 	}
-	return v, nil
+	return out
 }
 
 // liveIndex indexes the activities of live projects (archived ones are hidden

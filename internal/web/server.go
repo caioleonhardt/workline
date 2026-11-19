@@ -47,6 +47,9 @@ func New(st *store.Store, clock domain.Clock) (http.Handler, error) {
 	mux.HandleFunc("POST /journal/{id}/delete", s.deleteJournal)
 	mux.HandleFunc("POST /activities/{id}/scope-ack", s.ackScope)
 	mux.HandleFunc("GET /export/journal.md", s.exportJournal)
+	mux.HandleFunc("GET /search", s.search)
+	mux.HandleFunc("GET /search/ids", s.searchIDs)
+	mux.HandleFunc("GET /search/words", s.searchWords)
 	mux.HandleFunc("GET /projects", s.projects)
 	mux.HandleFunc("POST /projects/{id}", s.updateProject)
 	mux.HandleFunc("POST /projects/{id}/delete", s.deleteProject)
@@ -134,14 +137,16 @@ func (s *Server) fail(w http.ResponseWriter, r *http.Request, err error) {
 
 // nextURL returns the form's `next` field if it is a same-site relative path,
 // else "/" (SPEC §10 item 29).
-func nextURL(r *http.Request) string {
-	next := r.PostFormValue("next")
-	u, err := url.Parse(next)
+func nextURL(r *http.Request) string { return localPath(r.PostFormValue("next")) }
+
+// localPath returns s when it is an address on this server, else "/".
+func localPath(s string) string {
+	u, err := url.Parse(s)
 	if err != nil || u.Scheme != "" || u.Host != "" ||
-		!strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || strings.Contains(next, `\`) {
+		!strings.HasPrefix(s, "/") || strings.HasPrefix(s, "//") || strings.Contains(s, `\`) {
 		return "/"
 	}
-	return next
+	return s
 }
 
 // fromQuickAdd reports whether htmx sent the request from the quick-add bar.
@@ -171,6 +176,10 @@ func (s *Server) done(w http.ResponseWriter, r *http.Request, to string, mods ..
 	w.Header().Set("HX-Push-Url", to)
 	if u, err := url.Parse(to); err == nil && isJournalPage(u) {
 		s.renderJournalPage(w, r, to, mods...)
+		return
+	}
+	if u, err := url.Parse(to); err == nil && u.Path == "/search" {
+		s.renderSearch(w, r, to, mods...)
 		return
 	}
 	s.renderDashboard(w, r, to, mods...)

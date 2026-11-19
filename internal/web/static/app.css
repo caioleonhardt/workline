@@ -253,3 +253,5 @@ html.js body:has(.quick) { padding-bottom: 120px; }
 .status-cmd, .status-pos { white-space: nowrap; color: var(--muted); }
 dialog#keys { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); max-width: 520px; }
 .keys th { text-align: left; padding: 2px 16px 2px 0; white-space: nowrap; font-weight: normal; }
+.search-form { display: flex; gap: 8px; margin-top: 4px; }
+.search-form input[type="search"] { width: min(420px, 60vw); }
