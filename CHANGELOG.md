@@ -5,6 +5,8 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-11-19
+
 ### Changed
 - Vim-style keys on the journal and timeline pages. `j`/`k` move between entries,
   `gg`/`G` jump to the first/last, `h`/`l` switch between lists (open tasks,
@@ -138,7 +140,8 @@ First release.
 - `serve` on 127.0.0.1:7357 and `seed` with the baseline data.
 - CI running gofmt, vet and tests.
 
-[Unreleased]: ../../compare/v0.8.0...HEAD
+[Unreleased]: ../../compare/v0.9.0...HEAD
+[0.9.0]: ../../compare/v0.8.0...v0.9.0
 [0.8.0]: ../../compare/v0.7.0...v0.8.0
 [0.7.0]: ../../compare/v0.6.0...v0.7.0
 [0.6.0]: ../../compare/v0.5.0...v0.6.0
