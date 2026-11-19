@@ -273,7 +273,7 @@ GET    /static/*                           embedded assets
 
 ## 8. Operations
 
-- Flags: `-addr` (default `127.0.0.1:8080`), `-port` (overrides the port in `-addr`, e.g. `-port 8081`), `-db` (default `$XDG_DATA_HOME/workline/workline.db`, falling back to `~/.local/share/workline/workline.db`).
+- Flags: `-addr` (default `127.0.0.1:7357`), `-port` (overrides the port in `-addr`, e.g. `-port 8081`), `-db` (default `$XDG_DATA_HOME/workline/workline.db`, falling back to `~/.local/share/workline/workline.db`).
 - SQLite pragmas: `foreign_keys=ON`, `journal_mode=WAL`, `busy_timeout=5000`.
 - Migrations: numbered `.sql` files embedded in the binary, tracked with `PRAGMA user_version`, applied at startup in a transaction.
 - `workline backup <path>` subcommand using `VACUUM INTO`.
@@ -392,3 +392,4 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 79. Quick-add errors show inside the bar; the draft text and kind survive swaps and selection changes (the label shows the current target). Bar visibility and the bottom padding use CSS `:has()`.
 80. **Whole-row selection**: clicking anywhere on an activity row (label or track) selects it. The activity name remains the one real link, stretched over the row with CSS; completion-dot buttons stay above it and keep their popups.
 81. The empty feed reads "No journal entries for these filters." The export keeps filtering by entry date (period/month range). The quick-add kind keeps the last choice after a successful add.
+82. **Zero-argument commands**: `workline serve` defaults to `127.0.0.1:7357` and the default database (`$XDG_DATA_HOME/workline/workline.db`, else `~/.local/share/workline/workline.db`). `workline backup` with no destination writes `<data dir>/backups/workline-YYYY-MM-DD-HHMM.db` (folder created, mode 0700) and prints the path. Flags only; no environment variables.
