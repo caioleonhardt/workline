@@ -45,7 +45,7 @@
 <h3>Tasks</h3>
 <ul class="rows" data-pane="Tasks">
 {{range .Tasks}}
-<li class="sub" tabindex="-1" data-entry>
+<li class="sub" tabindex="-1" data-entry data-id="{{.ID}}">
 <form class="inline sub-toggle" method="post" action="/tasks/{{.ID}}/toggle" hx-trigger="change, submit">
 <input type="hidden" name="next" value="{{$.Next}}">
 <label class="check"><input type="checkbox"{{if .Closed}} checked{{end}}><span{{if .Closed}} class="done-text"{{end}}>{{.Text}}</span></label>{{if .Priority}} <span class="chip prio-{{.Priority}}">{{.PriorityLabel}}</span>{{end}}

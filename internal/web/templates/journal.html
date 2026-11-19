@@ -3,7 +3,7 @@
 <h2 id="journal-title">Journal{{if .Narrowed}} · {{.Title}} <a class="small" href="{{.ShowAllHref}}">Show all</a>{{end}}</h2>
 <ul class="rows feed" data-pane="Journal">
 {{range .Entries}}
-<li tabindex="-1" data-entry>
+<li tabindex="-1" data-entry data-id="{{.ID}}">
 <span class="muted mono">{{.Date}}{{if .Time}} {{.Time}}{{end}}</span> <span class="chip kind-{{.Kind}}">{{.KindLabel}}</span>{{if .Priority}} <span class="chip prio-{{.Priority}}">{{.PriorityLabel}}</span>{{end}}
 {{if .ActivityHref}}<a class="tag small" href="{{.ActivityHref}}"{{if $.FullLoadLinks}} hx-boost="false"{{end}}>{{.Project}} › {{.Activity}}</a>{{else if .Unassigned}}<span class="tag small unassigned">Unassigned</span>{{end}}
 <span class="feed-text{{if .Closed}} done-text{{end}}">{{.Text}}</span>{{if .Closed}} <span class="muted mono small">closed {{.Closed}}</span>{{end}}

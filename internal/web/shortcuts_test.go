@@ -21,8 +21,9 @@ func TestShortcutTargetsAndHints(t *testing.T) {
 		`<form class="vsearch" role="search" hidden>`,
 		`<ul class="rows feed" data-pane="Journal">`,
 		`<ul class="rows" data-pane="Tasks">`,
-		`<li class="sub" tabindex="-1" data-entry>`,
-		`<li tabindex="-1" data-entry>`,
+		`<li class="sub" tabindex="-1" data-entry data-id="`,
+		`<li tabindex="-1" data-entry data-id="`,
+		`<kbd>Ctrl</kbd>+<kbd>Enter</kbd></th><td>in the search line: show only the matches`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
