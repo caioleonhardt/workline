@@ -23,6 +23,24 @@ func priorityRank(p Priority) int {
 	return 3
 }
 
+// SortTasks orders tasks for a priority list: open first, then priority
+// (high to none), then the oldest opened, then id.
+func SortTasks(ts []Task) {
+	sort.SliceStable(ts, func(i, j int) bool {
+		a, b := ts[i], ts[j]
+		if ao, bo := a.ClosedOn.IsZero(), b.ClosedOn.IsZero(); ao != bo {
+			return ao
+		}
+		if ra, rb := priorityRank(a.Priority), priorityRank(b.Priority); ra != rb {
+			return ra < rb
+		}
+		if a.CreatedOn != b.CreatedOn {
+			return a.CreatedOn.Before(b.CreatedOn)
+		}
+		return a.ID < b.ID
+	})
+}
+
 // SortActivities orders activities within a project (SPEC §5.1): not-done
 // first, then priority, then due date, then id.
 func SortActivities(as []Activity) {

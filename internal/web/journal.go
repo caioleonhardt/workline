@@ -12,9 +12,11 @@ type journalRow struct {
 	ID                                int64
 	Date, Time, Kind, KindLabel, Text string // Time is empty for entries without a logged time
 	Closed                            string // a closed task's close date
+	Priority, PriorityLabel           string // a task's priority; empty for none
 	IsTask                            bool   // a task keeps its kind, so its Edit form has no kind select
 	ReadOnly                          bool   // scope_ack entries cannot be edited
 	Kinds                             []option
+	Priorities                        []option // a task's Edit form choices
 }
 
 // noteKinds are the kinds an entry other than a task can be edited to; the
@@ -39,16 +41,59 @@ func kindLabel(k domain.Kind) string {
 	return strings.ToUpper(string(k)[:1]) + string(k)[1:]
 }
 
+func priorityLabel(p domain.Priority) string {
+	if p == domain.PriorityNone {
+		return ""
+	}
+	return capitalize(string(p))
+}
+
 func journalRows(entries []domain.JournalEntry) []journalRow {
 	var rows []journalRow
 	for _, j := range entries {
-		rows = append(rows, journalRow{
+		row := journalRow{
 			ID: j.ID, Date: j.Date.String(), Time: j.Time(), Kind: string(j.Kind), KindLabel: kindLabel(j.Kind), Text: j.Text,
-			Closed: j.ClosedOn.String(), IsTask: j.Kind == domain.KindTask,
-			ReadOnly: j.Kind == domain.KindScopeAck, Kinds: kindOptions(noteKinds, j.Kind),
-		})
+			Closed: j.ClosedOn.String(), Priority: string(j.Priority), PriorityLabel: priorityLabel(j.Priority),
+			IsTask: j.Kind == domain.KindTask, ReadOnly: j.Kind == domain.KindScopeAck, Kinds: kindOptions(noteKinds, j.Kind),
+		}
+		if row.IsTask {
+			row.Priorities = priorityOptions(j.Priority)
+		}
+		rows = append(rows, row)
 	}
 	return rows
+}
+
+// prefixKinds are the bar's prefixes: "/t text" logs a task, and so on
+// (SPEC §10 item 93).
+var prefixKinds = map[byte]domain.Kind{
+	't': domain.KindTask, 'd': domain.KindDecision, 'u': domain.KindUpdate, 'b': domain.KindBlocker, 'm': domain.KindMeeting,
+}
+
+// prefixPriorities follow /t: "/t1 text" is a high-priority task.
+var prefixPriorities = map[byte]domain.Priority{'1': domain.PriorityHigh, '2': domain.PriorityMedium, '3': domain.PriorityLow}
+
+// parsePrefix reads a leading "/t", "/t1".."/t3", "/d", "/u", "/b" or "/m"
+// followed by a space or line break and some text. ok is false, and the text
+// is to be logged as typed, for anything else.
+func parsePrefix(text string) (kind domain.Kind, p domain.Priority, rest string, ok bool) {
+	if len(text) < 3 || text[0] != '/' {
+		return "", "", text, false
+	}
+	kind, ok = prefixKinds[text[1]]
+	if !ok {
+		return "", "", text, false
+	}
+	n := 2
+	if kind == domain.KindTask {
+		if pr, has := prefixPriorities[text[2]]; has {
+			p, n = pr, 3
+		}
+	}
+	if n >= len(text) || (text[n] != ' ' && text[n] != '\n') || strings.TrimSpace(text[n:]) == "" {
+		return "", "", text, false
+	}
+	return kind, p, strings.TrimSpace(text[n:]), true
 }
 
 // formActivity reads the form's `activity` field: an activity id, or empty
@@ -74,10 +119,15 @@ func (s *Server) addJournal(w http.ResponseWriter, r *http.Request) {
 		day, err = formDate(r, "date")
 	}
 	if err == nil {
-		_, err = s.store.AddJournal(r.Context(), domain.JournalEntry{
-			ActivityID: id, Date: day, Kind: domain.Kind(r.PostFormValue("kind")), Text: formText(r),
-			LoggedAt: domain.Stamp(s.clock.Now()),
-		})
+		j := domain.JournalEntry{ActivityID: id, Date: day, Text: formText(r), LoggedAt: domain.Stamp(s.clock.Now())}
+		j.Kind, j.Priority = domain.Kind(r.PostFormValue("kind")), formPriority(r)
+		if kind, p, rest, ok := parsePrefix(j.Text); ok {
+			j.Kind, j.Priority, j.Text = kind, p, rest
+		}
+		if j.Kind != domain.KindTask {
+			j.Priority = domain.PriorityNone // the bar's priority applies to tasks only
+		}
+		_, err = s.store.AddJournal(r.Context(), j)
 	}
 	if err != nil {
 		s.fail(w, r, err)
@@ -101,7 +151,9 @@ func (s *Server) editJournal(w http.ResponseWriter, r *http.Request) {
 		activity = &a
 	}
 	if err == nil {
-		err = s.store.EditJournal(r.Context(), id, activity, day, domain.Kind(r.PostFormValue("kind")), formText(r))
+		err = s.store.EditJournal(r.Context(), id, activity, domain.JournalEntry{
+			Date: day, Kind: domain.Kind(r.PostFormValue("kind")), Text: formText(r), Priority: formPriority(r),
+		})
 	}
 	if err != nil {
 		s.fail(w, r, err)
@@ -120,6 +172,10 @@ func (s *Server) deleteJournal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.done(w, r, nextURL(r))
+}
+
+func formPriority(r *http.Request) domain.Priority {
+	return domain.Priority(r.PostFormValue("priority"))
 }
 
 // formText returns the posted multiline text with browser line endings

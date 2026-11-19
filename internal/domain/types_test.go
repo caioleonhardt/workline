@@ -78,6 +78,9 @@ func TestValidate(t *testing.T) {
 		{"closed task", func(j *JournalEntry) { j.Kind, j.ClosedOn, j.ClosedAt = KindTask, j.Date, "2026-01-02 10:00" }, false},
 		{"task closed before opened", func(j *JournalEntry) { j.Kind, j.ClosedOn = KindTask, d(t, "2026-01-01") }, true},
 		{"closed update", func(j *JournalEntry) { j.ClosedOn = j.Date }, true},
+		{"task priority", func(j *JournalEntry) { j.Kind, j.Priority = KindTask, PriorityHigh }, false},
+		{"update priority", func(j *JournalEntry) { j.Priority = PriorityLow }, true},
+		{"bad priority", func(j *JournalEntry) { j.Kind, j.Priority = KindTask, "urgent" }, true},
 		{"closed time on update", func(j *JournalEntry) { j.ClosedAt = "2026-01-02 10:00" }, true},
 		{"logged at impossible", func(j *JournalEntry) { j.LoggedAt = "2026-11-18 25:00" }, true},
 	}

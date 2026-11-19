@@ -189,3 +189,84 @@ func TestUnassignedEntries(t *testing.T) {
 	}
 	wantBody(t, get(h, "/export/journal.md"), "## Unassigned\n\n- "+testToday+" 14:05 **Task** — Filed task (closed "+testToday+")")
 }
+
+func TestParsePrefix(t *testing.T) {
+	for _, c := range []struct {
+		in       string
+		kind     domain.Kind
+		priority domain.Priority
+		rest     string
+		ok       bool
+	}{
+		{"/t Write runbook", domain.KindTask, "", "Write runbook", true},
+		{"/t1 Fix prod", domain.KindTask, domain.PriorityHigh, "Fix prod", true},
+		{"/t2 Plan", domain.KindTask, domain.PriorityMedium, "Plan", true},
+		{"/t3 Tidy", domain.KindTask, domain.PriorityLow, "Tidy", true},
+		{"/d Use Kafka 4", domain.KindDecision, "", "Use Kafka 4", true},
+		{"/u Called them", domain.KindUpdate, "", "Called them", true},
+		{"/b Waiting on infra", domain.KindBlocker, "", "Waiting on infra", true},
+		{"/m 1:1\nnotes", domain.KindMeeting, "", "1:1\nnotes", true},
+		{"/t\nmultiline task", domain.KindTask, "", "multiline task", true},
+		{"/d1 no priority for decisions", "", "", "/d1 no priority for decisions", false},
+		{"/t4 not a priority", "", "", "/t4 not a priority", false},
+		{"/x foo", "", "", "/x foo", false},
+		{"/tea time", "", "", "/tea time", false},
+		{"/t ", "", "", "/t ", false},
+		{"/t", "", "", "/t", false},
+		{"plain text", "", "", "plain text", false},
+		{"a /t in the middle", "", "", "a /t in the middle", false},
+	} {
+		kind, p, rest, ok := parsePrefix(c.in)
+		if kind != c.kind || p != c.priority || rest != c.rest || ok != c.ok {
+			t.Errorf("parsePrefix(%q) = %q %q %q %v", c.in, kind, p, rest, ok)
+		}
+	}
+}
+
+// The bar's prefixes override its kind and priority selects; the priority
+// select applies to tasks only (SPEC §10 items 92 and 93).
+func TestPrefixesAndTaskPriority(t *testing.T) {
+	h, st := newApp(t)
+	log := func(kind, priority, text string) {
+		t.Helper()
+		f := url.Values{"activity": {"2"}, "kind": {kind}, "priority": {priority}, "text": {text}, "next": {"/?sel=2"}}
+		wantStatus(t, post(h, "/journal", f), http.StatusSeeOther)
+	}
+	log("update", "", "/t1 Write runbook")
+	log("task", "medium", "/d Use Kafka 4")
+	log("update", "low", "/x stays an update")
+	log("task", "low", "Plain low task")
+	es, _ := st.ListJournal(ctx, 2)
+	got := map[string]domain.JournalEntry{}
+	for _, e := range es {
+		got[e.Text] = e
+	}
+	for text, want := range map[string]struct {
+		kind domain.Kind
+		p    domain.Priority
+	}{
+		"Write runbook": {domain.KindTask, domain.PriorityHigh}, "Use Kafka 4": {domain.KindDecision, ""},
+		"/x stays an update": {domain.KindUpdate, ""}, "Plain low task": {domain.KindTask, domain.PriorityLow},
+	} {
+		if e, ok := got[text]; !ok || e.Kind != want.kind || e.Priority != want.p {
+			t.Errorf("%q: %+v", text, e)
+		}
+	}
+
+	// the panel lists open tasks by priority, with chips, and edits the priority
+	body := get(h, "/?sel=2").Body.String()
+	hi, lo := strings.Index(body, `<span>Write runbook</span>`), strings.Index(body, `<span>Plain low task</span>`)
+	if hi < 0 || lo < 0 || hi > lo {
+		t.Errorf("panel order: high at %d, low at %d", hi, lo)
+	}
+	wantBody(t, get(h, "/?sel=2"), `<span class="chip prio-high">High</span>`, `<span class="chip prio-low">Low</span>`,
+		`<select id="quickadd-priority" name="priority" title="Task priority"><option value="" selected>No priority</option>`)
+	id := strconv.FormatInt(got["Write runbook"].ID, 10)
+	wantStatus(t, post(h, "/journal/"+id, url.Values{"kind": {"task"}, "priority": {"medium"}, "text": {"Write runbook"}, "date": {testToday}, "next": {"/"}}), http.StatusSeeOther)
+	if ts, _ := st.ListTasks(ctx, 2); ts[len(ts)-2].Priority != domain.PriorityMedium {
+		t.Errorf("edit priority: %+v", ts[len(ts)-2])
+	}
+	if rec := post(h, "/journal/"+id, url.Values{"kind": {"task"}, "priority": {"urgent"}, "text": {"x"}, "date": {testToday}}); rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("bad priority: %d", rec.Code)
+	}
+}

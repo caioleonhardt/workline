@@ -42,6 +42,7 @@ type dashboardView struct {
 	Controls    controlsView
 	QuickAdd    quickAddView // the quick-add bar's target
 	QuickKinds  []option
+	QuickPrios  []option // the bar's task priority
 	Journal     journalView
 	ClearQuick  bool // a successful quick add also replaces the text field with an empty one
 	Tiles       []tileView
@@ -172,7 +173,7 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 		CancelHref: withParam(uri, "new", ""),
 		ShowForm:   f.New,
 		Today:      today.String(), AllProjects: projects, Panel: panel,
-		Controls: buildControls(f, projects, counts, creepCount), QuickKinds: kindOptions(quickKinds, domain.KindUpdate), Journal: journal,
+		Controls: buildControls(f, projects, counts, creepCount), QuickKinds: kindOptions(quickKinds, domain.KindUpdate), QuickPrios: priorityOptions(domain.PriorityNone), Journal: journal,
 		Timeline: buildTimeline(f, today, timelineData{Groups: groups, ItemOf: itemOf, Creeps: creeps}),
 		QuickAdd: quickAddView{Name: "Unassigned", Next: uri},
 	}

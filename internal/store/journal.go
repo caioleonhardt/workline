@@ -10,15 +10,15 @@ import (
 	"workline/internal/domain"
 )
 
-const journalColumns = `id, coalesce(activity_id, 0), date, kind, text, logged_at, closed_on, closed_at`
+const journalColumns = `id, coalesce(activity_id, 0), date, kind, text, logged_at, closed_on, closed_at, priority`
 
 func insertJournal(ctx context.Context, q queryer, j domain.JournalEntry) (int64, error) {
 	if err := j.Validate(); err != nil {
 		return 0, err
 	}
 	res, err := q.ExecContext(ctx,
-		`INSERT INTO journal_entries (activity_id, date, kind, text, logged_at) VALUES (?, ?, ?, ?, ?)`,
-		activityRef(j.ActivityID), j.Date.String(), string(j.Kind), j.Text, sql.NullString{String: j.LoggedAt, Valid: j.LoggedAt != ""})
+		`INSERT INTO journal_entries (activity_id, date, kind, text, logged_at, priority) VALUES (?, ?, ?, ?, ?, ?)`,
+		activityRef(j.ActivityID), j.Date.String(), string(j.Kind), j.Text, sql.NullString{String: j.LoggedAt, Valid: j.LoggedAt != ""}, string(j.Priority))
 	if err != nil {
 		return 0, mapErr(err)
 	}
@@ -58,12 +58,12 @@ func (s *Store) queryJournal(ctx context.Context, query string, args ...any) ([]
 	var out []domain.JournalEntry
 	for rows.Next() {
 		var j domain.JournalEntry
-		var date, kind string
+		var date, kind, priority string
 		var loggedAt, closedOn, closedAt sql.NullString
-		if err := rows.Scan(&j.ID, &j.ActivityID, &date, &kind, &j.Text, &loggedAt, &closedOn, &closedAt); err != nil {
+		if err := rows.Scan(&j.ID, &j.ActivityID, &date, &kind, &j.Text, &loggedAt, &closedOn, &closedAt, &priority); err != nil {
 			return nil, fmt.Errorf("scan journal: %w", err)
 		}
-		j.Kind, j.LoggedAt, j.ClosedAt = domain.Kind(kind), loggedAt.String, closedAt.String
+		j.Kind, j.LoggedAt, j.ClosedAt, j.Priority = domain.Kind(kind), loggedAt.String, closedAt.String, domain.Priority(priority)
 		if j.Date, err = parseDate(date); err != nil {
 			return nil, err
 		}
@@ -120,22 +120,23 @@ func (s *Store) ListJournalBetween(ctx context.Context, from, to domain.Date) ([
 		 ORDER BY date, logged_at IS NOT NULL, logged_at, id`, from.String(), to.String())
 }
 
-// EditJournal rewrites date, kind and text, and files the entry under
-// *activity (0 for Unassigned) unless activity is nil. scope_ack entries are
-// read-only, and an entry cannot become a task or stop being one. A task's date
-// (the day it was opened) cannot move after the day it was closed.
-func (s *Store) EditJournal(ctx context.Context, id int64, activity *int64, date domain.Date, kind domain.Kind, text string) error {
-	j := domain.JournalEntry{Date: date, Kind: kind, Text: text}
-	if err := userKind(kind); err != nil {
+// EditJournal rewrites the date, kind, text and priority of entry id from j,
+// and files it under *activity (0 for Unassigned) unless activity is nil.
+// scope_ack entries are read-only, and an entry cannot become a task or stop
+// being one. A task's date (the day it was opened) cannot move after the day
+// it was closed.
+func (s *Store) EditJournal(ctx context.Context, id int64, activity *int64, j domain.JournalEntry) error {
+	if err := userKind(j.Kind); err != nil {
 		return err
 	}
 	if err := j.Validate(); err != nil {
 		return err
 	}
 	res, err := s.db.ExecContext(ctx,
-		`UPDATE journal_entries SET date = ?1, kind = ?2, text = ?3, activity_id = CASE WHEN ?5 THEN ?6 ELSE activity_id END
+		`UPDATE journal_entries SET date = ?1, kind = ?2, text = ?3, priority = ?7,
+		   activity_id = CASE WHEN ?5 THEN ?6 ELSE activity_id END
 		 WHERE id = ?4 AND kind <> 'scope_ack' AND (kind = 'task') = (?2 = 'task')`,
-		date.String(), string(kind), text, id, activity != nil, activityRef(deref(activity)))
+		j.Date.String(), string(j.Kind), j.Text, id, activity != nil, activityRef(deref(activity)), string(j.Priority))
 	if err != nil {
 		return fmt.Errorf("edit journal %d: %w", id, mapErr(err))
 	}

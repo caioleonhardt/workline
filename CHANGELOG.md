@@ -5,6 +5,17 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
+Upgrading from 0.4.0: run `workline migrate` once before `serve`.
+
+### Added
+- Tasks have a priority (high, medium, low or none). The journal bar has a
+  priority select for tasks, and task Edit forms can change it.
+- Prefixes in the journal bar: `/t` task, `/t1`–`/t3` task with high, medium
+  or low priority, `/d` decision, `/u` update, `/b` blocker, `/m` meeting.
+
+### Changed
+- The panel lists open tasks first, by priority, with a priority chip.
+
 ## [0.4.0] — 2026-11-19
 
 Upgrading from 0.3.0: run `workline migrate` once before `serve`.

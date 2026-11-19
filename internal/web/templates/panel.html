@@ -48,7 +48,7 @@
 <li class="sub">
 <form class="inline sub-toggle" method="post" action="/tasks/{{.ID}}/toggle" hx-trigger="change, submit">
 <input type="hidden" name="next" value="{{$.Next}}">
-<label class="check"><input type="checkbox"{{if .Closed}} checked{{end}}><span{{if .Closed}} class="done-text"{{end}}>{{.Text}}</span></label>
+<label class="check"><input type="checkbox"{{if .Closed}} checked{{end}}><span{{if .Closed}} class="done-text"{{end}}>{{.Text}}</span></label>{{if .Priority}} <span class="chip prio-{{.Priority}}">{{.PriorityLabel}}</span>{{end}}
 <button class="apply">{{if .Closed}}Reopen{{else}}Close{{end}}</button>
 </form>
 <span class="muted mono small" title="opened {{.Created}}{{if .Closed}} · closed {{.Closed}}{{end}}">{{if .Closed}}closed {{.Closed}}{{else}}opened {{.Created}}{{end}}</span>
@@ -58,6 +58,7 @@
 <input type="hidden" name="next" value="{{$.Next}}">
 <input type="hidden" name="kind" value="task">
 <label>Text<textarea name="text" rows="2" required>{{.Text}}</textarea></label>
+<label>Priority<select name="priority">{{range .Priorities}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
 <label>Opened<input type="date" name="date" value="{{.Created}}" required></label>
 <button>Save</button>
 </form>

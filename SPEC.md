@@ -71,6 +71,7 @@ On creation, status defaults to `planned` if `start_date > today`, else `active`
 | logged_at | datetime, nullable | local time it was logged (§10 item 49) |
 | closed_on | date, nullable | tasks only. null = open. Closing sets today; reopening sets null |
 | closed_at | datetime, nullable | tasks only; local time it was closed (§10 item 53) |
+| priority | enum | tasks only: `high`, `medium`, `low`, or empty for none (§10 item 92) |
 
 `scope_ack` entries are created only by the Acknowledge action (§5.4), never from the journal form.
 
@@ -288,6 +289,7 @@ GET    /static/*                           embedded assets
 7. **Tasks in the journal.** `workline migrate`; tasks become journal entries of kind `task`; multiline entries (§10 items 83–89).
 8. **Version.** `workline version` (§10 item 90).
 9. **Unassigned entries.** Log without choosing an activity; file entries later (§10 item 91).
+10. **Task priority and bar prefixes.** Tasks get a priority; `/t`, `/d`, `/u`… set the kind from the bar (§10 items 92–93).
 
 Each milestone ends with `go vet ./...` and `go test ./...` green.
 
@@ -403,3 +405,5 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 89. **Multiline entries.** Journal text (tasks too) is a `<textarea>` in the quick-add bar and in both Edit forms. The bar's field starts one line high and grows with its content (CSS `field-sizing`, capped at 10 lines). The server turns CRLF into LF and trims trailing blank space; lists show line breaks (`white-space: pre-wrap`), and the export indents continuation lines under their bullet.
 90. **Version.** `workline version` (also `-version`) prints `workline vX.Y.Z (schema N)`, plus ` revision abc1234[, modified]` when the binary carries a VCS stamp. `X.Y.Z` is a constant in `cmd/workline/main.go` that each release bumps together with `CHANGELOG.md`; a test keeps them equal.
 91. **Unassigned entries.** A journal entry (task too) may have no activity (migration 0006 makes `activity_id` nullable and keeps the id counter, so ids are still never reused). The quick-add bar is always shown: it logs to the selected activity, else to **Unassigned**; a × beside a selected target drops the selection. In the feed, Unassigned entries carry an "Unassigned" tag and appear only when neither a project filter nor a selection narrows the feed. Only an Unassigned entry's Edit form has an Activity select (Unassigned, then live activities grouped by project); filing is one-way from the feed, so filed entries do not repeat the activity list in every row. An Edit post without an `activity` field keeps the entry's activity. Unassigned open tasks count in "Open tasks now" when no project filter is set, never on the timeline. The export lists them last under "## Unassigned" when it covers all projects. Moving a task changes its activity's scope figures; an acknowledgement's `last_task_id` compares ids, so a task filed after an ack counts as added only if its id is newer.
+92. **Task priority.** A task has a priority like an activity (high, medium, low, or none; migration 0007, other kinds never have one). The bar has a priority select next to the kind, used only when logging a task; task Edit forms (panel and feed) have one too. Tasks show a priority chip in the panel and the feed. The panel lists open tasks first, then by priority, then oldest opened, then id (`domain.SortTasks`); closed tasks follow in the same order.
+93. **Bar prefixes.** Text starting with `/t`, `/d`, `/u`, `/b` or `/m`, then a space or line break and some text, logs a task, decision, update, blocker or meeting; `/t1`, `/t2`, `/t3` log a high, medium or low priority task. The prefix overrides the bar's kind and priority selects and is removed from the text. Anything else (`/x foo`, `/tea`, `/d1 …`, a lone `/t`) is logged as typed. Parsed by the server, so it works without JS.

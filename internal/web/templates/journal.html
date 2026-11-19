@@ -4,7 +4,7 @@
 <ul class="rows feed">
 {{range .Entries}}
 <li>
-<span class="muted mono">{{.Date}}{{if .Time}} {{.Time}}{{end}}</span> <span class="chip kind-{{.Kind}}">{{.KindLabel}}</span>
+<span class="muted mono">{{.Date}}{{if .Time}} {{.Time}}{{end}}</span> <span class="chip kind-{{.Kind}}">{{.KindLabel}}</span>{{if .Priority}} <span class="chip prio-{{.Priority}}">{{.PriorityLabel}}</span>{{end}}
 {{if .ActivityHref}}<a class="tag small" href="{{.ActivityHref}}">{{.Project}} › {{.Activity}}</a>{{else if .Unassigned}}<span class="tag small unassigned">Unassigned</span>{{end}}
 <span class="feed-text{{if .Closed}} done-text{{end}}">{{.Text}}</span>{{if .Closed}} <span class="muted mono small">closed {{.Closed}}</span>{{end}}
 {{if not .ReadOnly}}
@@ -15,6 +15,7 @@
 {{if .IsTask}}<input type="hidden" name="kind" value="task">{{else}}<label>Kind<select name="kind">{{range .Kinds}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>{{end}}
 {{with .FileTo}}<label>Activity<select name="activity">{{range .}}{{if .Label}}<optgroup label="{{.Label}}">{{end}}{{range .Options}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}{{if .Label}}</optgroup>{{end}}{{end}}</select></label>{{end}}
 <label>Entry<textarea name="text" rows="3" required>{{.Text}}</textarea></label>
+{{with .Priorities}}<label>Priority<select name="priority">{{range .}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>{{end}}
 <label>{{if .IsTask}}Opened{{else}}Date{{end}}<input type="date" name="date" value="{{.Date}}" required></label>
 <button>Save</button>
 </form>

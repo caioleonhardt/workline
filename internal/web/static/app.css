@@ -37,6 +37,7 @@ textarea { border: 1px solid var(--border); border-radius: 8px; padding: 8px; fo
 .chip.kind-update { background: #EEF0F3; color: #454C5A; } .chip.kind-decision { background: #EFE8FF; color: #5B3AB8; }
 .chip.kind-blocker { background: #FFEFDD; color: #8F4500; } .chip.kind-meeting { background: #E1F1F3; color: #155E68; }
 .chip.kind-scope_ack { background: var(--creep-bg); color: #7A1749; } .chip.kind-task { background: #E4F2E6; color: #2D6A3E; }
+.chip.prio-high { background: var(--blocked-bg); color: var(--blocked-fg); } .chip.prio-medium { background: var(--active-bg); color: var(--active-fg); } .chip.prio-low { background: var(--planned-bg); color: var(--planned-fg); }
 .warn { background: var(--creep-bg); color: var(--creep-fg); border-radius: 8px; padding: 12px; margin: 0 0 8px; }
 .dash { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin: 0 0 16px; }
 .eyebrow { font-size: 12px; letter-spacing: 0.08em; color: var(--muted); }

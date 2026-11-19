@@ -34,6 +34,34 @@ func TestSortActivities(t *testing.T) {
 	}
 }
 
+func TestSortTasks(t *testing.T) {
+	mk := func(id int64, p Priority, created, closed string) Task {
+		ts := Task{ID: id, Priority: p, CreatedOn: d(t, created)}
+		if closed != "" {
+			ts.ClosedOn = d(t, closed)
+		}
+		return ts
+	}
+	ts := []Task{
+		mk(1, PriorityHigh, "2026-01-01", "2026-02-01"), // closed: after all open
+		mk(2, PriorityNone, "2026-01-01", ""),
+		mk(3, PriorityLow, "2026-03-01", ""),
+		mk(4, PriorityHigh, "2026-05-01", ""),
+		mk(5, PriorityHigh, "2026-02-01", ""), // same priority: older first
+		mk(6, PriorityMedium, "2026-02-01", ""),
+		mk(7, PriorityMedium, "2026-02-01", ""), // same day: lower id first
+		mk(8, PriorityNone, "2026-01-01", "2026-01-02"),
+	}
+	SortTasks(ts)
+	var got []int64
+	for _, x := range ts {
+		got = append(got, x.ID)
+	}
+	if want := []int64{5, 4, 6, 7, 3, 2, 1, 8}; !reflect.DeepEqual(got, want) {
+		t.Errorf("order %v, want %v", got, want)
+	}
+}
+
 func TestSortGroups(t *testing.T) {
 	g := func(id int64, name string, acts ...Activity) Group {
 		return Group{Project: Project{ID: id, Name: name}, Activities: acts}

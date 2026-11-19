@@ -116,6 +116,7 @@ type Task struct {
 	CreatedOn  Date
 	ClosedOn   Date
 	ClosedAt   string // "YYYY-MM-DD HH:MM" local time it was closed; empty if open or unknown
+	Priority   Priority
 }
 
 // JournalEntry is a dated note on an activity, or Unassigned when ActivityID
@@ -130,11 +131,12 @@ type JournalEntry struct {
 	LoggedAt   string // "YYYY-MM-DD HH:MM" local time it was logged; empty for older entries
 	ClosedOn   Date
 	ClosedAt   string
+	Priority   Priority // tasks only
 }
 
 // Task returns the entry as a task.
 func (j JournalEntry) Task() Task {
-	return Task{ID: j.ID, ActivityID: j.ActivityID, Text: j.Text, CreatedOn: j.Date, ClosedOn: j.ClosedOn, ClosedAt: j.ClosedAt}
+	return Task{ID: j.ID, ActivityID: j.ActivityID, Text: j.Text, CreatedOn: j.Date, ClosedOn: j.ClosedOn, ClosedAt: j.ClosedAt, Priority: j.Priority}
 }
 
 // stampLayout is the format of JournalEntry.LoggedAt.
@@ -241,10 +243,14 @@ func (j JournalEntry) Validate() error {
 		return Invalid("an acknowledgement belongs to an activity")
 	case j.LoggedAt != "" && !validStamp(j.LoggedAt):
 		return Invalid("logged time %q is not YYYY-MM-DD HH:MM", j.LoggedAt)
+	case !j.Priority.Valid():
+		return Invalid("unknown priority %q", j.Priority)
 	case j.Kind == KindTask:
 		return j.Task().Validate()
 	case !j.ClosedOn.IsZero() || j.ClosedAt != "":
 		return Invalid("only a task can be closed")
+	case j.Priority != PriorityNone:
+		return Invalid("only a task has a priority")
 	}
 	return nil
 }
