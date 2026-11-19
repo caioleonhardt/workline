@@ -33,13 +33,23 @@ func Burndown(a Activity, subs []Task, step int, today Date) []Bin {
 	if !a.DoneOn.IsZero() && a.DoneOn.Before(end) {
 		end = a.DoneOn
 	}
+	return BurndownRange(subs, a.Start, end, step)
+}
+
+// BurndownRange returns bins of step days from `from` to `to` inclusive (the
+// last one clipped to `to`), each measured at its last day. It is empty when
+// from is after to.
+func BurndownRange(tasks []Task, from, to Date, step int) []Bin {
+	assert(step > 0, "step must be positive")
+	assert(from.IsZero() == to.IsZero(), "range needs both ends")
+	assert(to.Sub(from) <= maxSpanDays, "range too long")
 	var bins []Bin
-	for start := a.Start; !start.After(end); start = start.AddDays(step) {
+	for start := from; !start.After(to); start = start.AddDays(step) {
 		last := start.AddDays(step - 1)
-		if last.After(end) {
-			last = end
+		if last.After(to) {
+			last = to
 		}
-		bins = append(bins, Bin{Start: start, End: last, Open: OpenAt(subs, last), Scope: ScopeAt(subs, last)})
+		bins = append(bins, Bin{Start: start, End: last, Open: OpenAt(tasks, last), Scope: ScopeAt(tasks, last)})
 	}
 	return bins
 }

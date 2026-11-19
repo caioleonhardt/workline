@@ -148,32 +148,31 @@ func nextURL(r *http.Request) string {
 func fromQuickAdd(r *http.Request) bool { return r.Header.Get("HX-Trigger") == "quickadd" }
 
 // timelineAddress maps an address on / that carries timeline state (any query
-// key) to the same state on /timeline, so links and `next` fields from before
-// the timeline moved keep working (SPEC §10 item 94).
+// key but the journal page's `week`) to the same state on /timeline, so links
+// and `next` fields from before the timeline moved keep working (SPEC §10 item 94).
 func timelineAddress(to string) string {
 	u, err := url.Parse(to)
-	if err != nil || u.Path != "/" {
+	if err != nil || u.Path != "/" || isJournalPage(u) {
 		return to
 	}
 	u.Path = "/timeline"
 	return u.String()
 }
 
-// home serves /.
-func (s *Server) home(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, timelineAddress(r.URL.RequestURI()), http.StatusFound)
-}
-
 // done answers a successful mutation. An htmx request gets the fragment of the
 // page at `to` and the address to show in the URL bar; any other request is
 // redirected there with 303 See Other.
-func (s *Server) done(w http.ResponseWriter, r *http.Request, to string, mods ...func(*dashboardView)) {
+func (s *Server) done(w http.ResponseWriter, r *http.Request, to string, mods ...func(*quickBar)) {
 	to = timelineAddress(to)
 	if !isHX(r) {
 		redirect(w, r, to)
 		return
 	}
 	w.Header().Set("HX-Push-Url", to)
+	if u, err := url.Parse(to); err == nil && isJournalPage(u) {
+		s.renderJournalPage(w, r, to, mods...)
+		return
+	}
 	s.renderDashboard(w, r, to, mods...)
 }
 

@@ -90,6 +90,9 @@ func Columns(year int, p Period, s Scale) []Column {
 	return cols
 }
 
+// WeekStart returns the Monday of d's week (weeks start on Monday, SPEC §10 item 9).
+func WeekStart(d Date) Date { return d.AddDays(-((int(d.Weekday()) + 6) % 7)) }
+
 // Gridlines returns the Mondays inside a quarter (§4.5). The Year period has none.
 func Gridlines(year int, p Period) []Date {
 	if p == PeriodYear {

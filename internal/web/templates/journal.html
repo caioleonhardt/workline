@@ -5,7 +5,7 @@
 {{range .Entries}}
 <li>
 <span class="muted mono">{{.Date}}{{if .Time}} {{.Time}}{{end}}</span> <span class="chip kind-{{.Kind}}">{{.KindLabel}}</span>{{if .Priority}} <span class="chip prio-{{.Priority}}">{{.PriorityLabel}}</span>{{end}}
-{{if .ActivityHref}}<a class="tag small" href="{{.ActivityHref}}">{{.Project}} › {{.Activity}}</a>{{else if .Unassigned}}<span class="tag small unassigned">Unassigned</span>{{end}}
+{{if .ActivityHref}}<a class="tag small" href="{{.ActivityHref}}"{{if $.FullLoadLinks}} hx-boost="false"{{end}}>{{.Project}} › {{.Activity}}</a>{{else if .Unassigned}}<span class="tag small unassigned">Unassigned</span>{{end}}
 <span class="feed-text{{if .Closed}} done-text{{end}}">{{.Text}}</span>{{if .Closed}} <span class="muted mono small">closed {{.Closed}}</span>{{end}}
 {{if not .ReadOnly}}
 <details>

@@ -8,11 +8,13 @@ It is a single Go binary with an embedded SQLite database. It works offline, lis
 
 ## Features
 
+- **Journal page** (the home page) for the last two weeks: one burndown of all tasks with completion dots, open tasks by priority, and the entries of those weeks. Built for weekly 1:1s.
+- **Fast journaling** from a bar at the bottom of every page: no activity needed (entries stay Unassigned until filed), and prefixes like `/t1 Fix the deploy` (high-priority task), `/d` decision and `/u` update.
 - **Timeline dashboard** by year or quarter, grouped by project, with filters for project, month, status and scope creep. Every view is a bookmarkable URL.
 - **Burndowns** computed from task open/close dates, never entered by hand.
 - **Scope-creep signal** when an activity grows 75% past its baseline, or when work arrives faster than it closes over the last 30 days. Acknowledging it resets the baseline and logs the change to the journal.
 - **Journal** per activity, exportable as Markdown for 1:1 preparation.
-- **Keyboard shortcuts**: `n` new activity, `/` focus filter, `Esc` close panel.
+- **Keyboard shortcuts**: `j` journal bar, `n` new activity, `/` focus filter, `Esc` close panel.
 
 ## Install
 

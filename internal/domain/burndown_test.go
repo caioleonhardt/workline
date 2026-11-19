@@ -159,3 +159,23 @@ func TestGlobalMax(t *testing.T) {
 		t.Errorf("GlobalMax = %d, want 5 (ahead bins ignored)", got)
 	}
 }
+
+func TestBurndownRange(t *testing.T) {
+	tasks := []Task{
+		{ID: 1, CreatedOn: d(t, "2026-11-01")},
+		{ID: 2, CreatedOn: d(t, "2026-11-10"), ClosedOn: d(t, "2026-11-11")},
+		{ID: 3, CreatedOn: d(t, "2026-11-12")},
+	}
+	bins := BurndownRange(tasks, d(t, "2026-11-10"), d(t, "2026-11-12"), 1)
+	want := []Bin{
+		{Start: d(t, "2026-11-10"), End: d(t, "2026-11-10"), Open: 2, Scope: 2},
+		{Start: d(t, "2026-11-11"), End: d(t, "2026-11-11"), Open: 1, Scope: 2},
+		{Start: d(t, "2026-11-12"), End: d(t, "2026-11-12"), Open: 2, Scope: 3},
+	}
+	if !reflect.DeepEqual(bins, want) {
+		t.Errorf("bins = %+v", bins)
+	}
+	if got := BurndownRange(tasks, d(t, "2026-11-13"), d(t, "2026-11-12"), 1); len(got) != 0 {
+		t.Errorf("empty range: %+v", got)
+	}
+}

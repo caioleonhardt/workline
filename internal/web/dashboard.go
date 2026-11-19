@@ -9,12 +9,27 @@ import (
 )
 
 // quickAddView is where the quick-add bar's next entry goes: the selected
-// activity, or Unassigned (ID 0).
+// activity, or Unassigned (ID 0). On the journal page the bar has an
+// Activity select instead (Pick).
 type quickAddView struct {
 	ID            int64
 	Name, Project string
 	Next          string
 	ClearHref     string // the same page without the selection; empty for Unassigned
+	Pick          bool
+}
+
+// quickBar is the journal bar's state, shared by the pages that show it.
+type quickBar struct {
+	QuickAdd   quickAddView // the bar's target
+	QuickKinds []option
+	QuickPrios []option   // the bar's task priority
+	QuickFile  []optGroup // the journal page's Activity select; nil on the timeline
+	ClearQuick bool       // a successful quick add also replaces the text field with an empty one
+}
+
+func newQuickBar(target quickAddView) quickBar {
+	return quickBar{QuickAdd: target, QuickKinds: kindOptions(quickKinds, domain.KindUpdate), QuickPrios: priorityOptions(domain.PriorityNone)}
 }
 
 type tileView struct {
@@ -40,13 +55,10 @@ type dashboardView struct {
 	AllProjects []domain.Project // choices in the form
 	Panel       *panelView       // nil unless sel names an existing activity
 	Controls    controlsView
-	QuickAdd    quickAddView // the quick-add bar's target
-	QuickKinds  []option
-	QuickPrios  []option // the bar's task priority
-	Journal     journalView
-	ClearQuick  bool // a successful quick add also replaces the text field with an empty one
-	Tiles       []tileView
-	Timeline    timelineView
+	quickBar
+	Journal  journalView
+	Tiles    []tileView
+	Timeline timelineView
 }
 
 func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
@@ -54,14 +66,14 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 // renderDashboard renders the dashboard for the given path and query.
-func (s *Server) renderDashboard(w http.ResponseWriter, r *http.Request, uri string, mods ...func(*dashboardView)) {
+func (s *Server) renderDashboard(w http.ResponseWriter, r *http.Request, uri string, mods ...func(*quickBar)) {
 	v, err := s.buildDashboard(r.Context(), uri)
 	if err != nil {
 		s.fail(w, r, err)
 		return
 	}
 	for _, mod := range mods {
-		mod(&v)
+		mod(&v.quickBar)
 	}
 	w.Header().Set("Vary", "HX-Request")
 	name := "dashboard.html"
@@ -173,9 +185,9 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 		CancelHref: withParam(uri, "new", ""),
 		ShowForm:   f.New,
 		Today:      today.String(), AllProjects: projects, Panel: panel,
-		Controls: buildControls(f, projects, counts, creepCount), QuickKinds: kindOptions(quickKinds, domain.KindUpdate), QuickPrios: priorityOptions(domain.PriorityNone), Journal: journal,
+		Controls: buildControls(f, projects, counts, creepCount), Journal: journal,
 		Timeline: buildTimeline(f, today, timelineData{Groups: groups, ItemOf: itemOf, Creeps: creeps}),
-		QuickAdd: quickAddView{Name: "Unassigned", Next: uri},
+		quickBar: newQuickBar(quickAddView{Name: "Unassigned", Next: uri}),
 	}
 	tiles := domain.ComputeTiles(tileItems, f.Year, today)
 	if f.Project == 0 {

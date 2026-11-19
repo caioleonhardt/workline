@@ -166,3 +166,17 @@ func TestMonthRangeAndOverlaps(t *testing.T) {
 		}
 	}
 }
+
+func TestWeekStart(t *testing.T) {
+	for in, want := range map[string]string{
+		"2026-11-16": "2026-11-16", // Monday
+		"2026-11-18": "2026-11-16",
+		"2026-11-22": "2026-11-16", // Sunday
+		"2026-11-23": "2026-11-23",
+		"2027-01-01": "2026-12-28",
+	} {
+		if got := WeekStart(d(t, in)); got != d(t, want) {
+			t.Errorf("WeekStart(%s) = %s, want %s", in, got, want)
+		}
+	}
+}

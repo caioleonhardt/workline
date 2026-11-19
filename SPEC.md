@@ -152,6 +152,9 @@ Reason texts (shown in the detail panel):
 
 ## 5. Features
 
+### 5.0 Journal page (`GET /`)
+The home page, for the present rather than the year (§10 item 95): the last two weeks (Monday to Sunday), ‹ › to move a week, tiles, one burndown row for all tasks with completion dots, open tasks by priority, and the journal entries dated in those weeks. No detail panel.
+
 ### 5.1 Dashboard (`GET /timeline`)
 Header with the app name and period eyebrow (e.g. `2026 · ACTIVITY TIMELINE` or `Q4 2026 · OCT–DEC`) and a **New activity** button.
 
@@ -291,6 +294,7 @@ GET    /static/*                           embedded assets
 8. **Version.** `workline version` (§10 item 90).
 9. **Unassigned entries.** Log without choosing an activity; file entries later (§10 item 91).
 10. **Task priority and bar prefixes.** Tasks get a priority; `/t`, `/d`, `/u`… set the kind from the bar (§10 items 92–93).
+11. **Journal page.** `/` shows the last two weeks for 1:1s; the timeline moves to `/timeline` (§10 items 94–95).
 
 Each milestone ends with `go vet ./...` and `go test ./...` green.
 
@@ -409,3 +413,11 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 92. **Task priority.** A task has a priority like an activity (high, medium, low, or none; migration 0007, other kinds never have one). The bar has a priority select next to the kind, used only when logging a task; task Edit forms (panel and feed) have one too. Tasks show a priority chip in the panel and the feed. The panel lists open tasks first, then by priority, then oldest opened, then id (`domain.SortTasks`); closed tasks follow in the same order.
 93. **Bar prefixes.** Text starting with `/t`, `/d`, `/u`, `/b` or `/m`, then a space or line break and some text, logs a task, decision, update, blocker or meeting; `/t1`, `/t2`, `/t3` log a high, medium or low priority task. The prefix overrides the bar's kind and priority selects and is removed from the text. Anything else (`/x foo`, `/tea`, `/d1 …`, a lone `/t`) is logged as typed. Parsed by the server, so it works without JS.
 94. **Timeline at `/timeline`.** The dashboard moved from `/` to `/timeline`; its links and forms use the new path. `GET /` with a query redirects (302, not a cacheable 308) to `/timeline` with the same query, and a mutation whose `next` is `/?…` answers with `/timeline?…`, so bookmarks and pages loaded before the move keep working. The top navigation reads Journal · Timeline · Projects; these links load whole pages.
+95. **Journal page** (`GET /`, `?week=` any day of the latest week shown; default this week; any other key on `/` redirects to `/timeline`, item 94). It shows two weeks, Monday to Sunday: the named week and the one before; ‹ › move by a week and "This week" returns. Contents:
+    - **Tiles**: tasks opened in the range, tasks closed in the range, open tasks now, high-priority open tasks.
+    - **Strip**: one timeline row for all tasks (Unassigned included), one column per day, daily bins of open tasks up to today scaled to the range's peak, a completion dot centred in each day with closes (the timeline's popups), today's line.
+    - **Open tasks by priority** (`domain.SortTasks`), each with a toggle, its priority chip and its activity (a full-page link to `/timeline?sel=ID`) or "Unassigned".
+    - **Feed**: the entries dated in the range, newest first, with the feed's Edit forms (Unassigned entries can be filed). A task opened earlier and closed in the range shows as a completion dot and in the "closed" tile, not in the feed.
+    - Activities of archived projects are left out of all of it (item 33).
+    - **Bar**: on this page the bar has an Activity select (Unassigned first) instead of a fixed target; it sits outside the swapped region, so the choice survives swaps.
+    The page's root is `#dash` like the timeline's, so the bar, htmx fragments, errors and `done()` work the same; a mutation whose `next` is the journal page answers with its fragment. Links between the two pages load whole pages.

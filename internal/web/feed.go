@@ -37,13 +37,14 @@ func fileChoices(groups []domain.Group, cur int64) []optGroup {
 }
 
 type journalView struct {
-	Next        string
-	Narrowed    bool // only the selected activity's entries
-	Title       string
-	ShowAllHref string
-	Entries     []feedRow
-	MoreHref    string
-	MoreCount   int
+	Next          string
+	FullLoadLinks bool // activity links lead to another page, so htmx must not boost them
+	Narrowed      bool // only the selected activity's entries
+	Title         string
+	ShowAllHref   string
+	Entries       []feedRow
+	MoreHref      string
+	MoreCount     int
 }
 
 // buildJournal loads the feed for the given activities, plus the Unassigned

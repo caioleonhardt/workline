@@ -133,7 +133,7 @@ func (s *Server) addJournal(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	s.done(w, r, nextURL(r), func(v *dashboardView) { v.ClearQuick = fromQuickAdd(r) })
+	s.done(w, r, nextURL(r), func(b *quickBar) { b.ClearQuick = fromQuickAdd(r) })
 }
 
 // editJournal rewrites an entry, and files it when the form has an

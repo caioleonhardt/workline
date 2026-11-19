@@ -5,6 +5,18 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
+### Added
+- A journal page at `/`, for weekly 1:1s. It shows two weeks (‹ › to move):
+  - tiles for tasks opened, tasks closed, tasks open now and high-priority tasks open;
+  - one burndown of all tasks, with dots for completed tasks;
+  - open tasks by priority, with a checkbox to close each;
+  - the journal entries of those weeks.
+- On the journal page, the bar has an Activity select (Unassigned by default).
+- Journal · Timeline · Projects links in the top bar.
+
+### Changed
+- The timeline moved to `/timeline`. Old `/?…` links redirect there.
+
 ## [0.5.0] — 2026-11-19
 
 Upgrading from 0.4.0: run `workline migrate` once before `serve`.

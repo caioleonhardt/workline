@@ -241,7 +241,7 @@ func buildRow(f Filter, l layout, it domain.ActivityWithTasks, c domain.Creep, p
 		}
 		r.Bins = append(r.Bins, bv)
 	}
-	r.Done = completionDots(l, it, popupsDown)
+	r.Done = completionDots(l.ax, l.from, l.to, strconv.FormatInt(it.ID, 10), it.Tasks, popupsDown)
 	if c.Flagged {
 		r.ScopeChip = "Scope"
 		if c.Added > 0 {
@@ -251,14 +251,14 @@ func buildRow(f Filter, l layout, it domain.ActivityWithTasks, c domain.Creep, p
 	return r
 }
 
-// completionDots returns one dot per day in the period on which a task of
-// the activity was closed. Within a day, tasks without a close time come
-// first, then by time, then by id.
-func completionDots(l layout, it domain.ActivityWithTasks, down bool) []doneDot {
+// completionDots returns one dot per day in from..to on which one of the
+// tasks was closed. Within a day, tasks without a close time come first, then
+// by time, then by id. key makes the popups' ids unique on the page.
+func completionDots(ax axis, from, to domain.Date, key string, tasks []domain.Task, down bool) []doneDot {
 	byDay := map[domain.Date][]domain.Task{}
 	var days []domain.Date
-	for _, st := range it.Tasks {
-		if st.ClosedOn.IsZero() || st.ClosedOn.Before(l.from) || st.ClosedOn.After(l.to) {
+	for _, st := range tasks {
+		if st.ClosedOn.IsZero() || st.ClosedOn.Before(from) || st.ClosedOn.After(to) {
 			continue
 		}
 		if byDay[st.ClosedOn] == nil {
@@ -274,7 +274,7 @@ func completionDots(l layout, it domain.ActivityWithTasks, down bool) []doneDot 
 			return cmp.Or(strings.Compare(a.ClosedAt, b.ClosedAt), cmp.Compare(a.ID, b.ID))
 		})
 		d := doneDot{
-			Left: l.ax.pos(day), ID: fmt.Sprintf("done-%d-%s", it.ID, day), Day: day.String(), Align: "center",
+			Left: ax.pos(day), ID: fmt.Sprintf("done-%s-%s", key, day), Day: day.String(), Align: "center",
 			Label: plural(len(subs), "task", "tasks") + " completed on " + day.String(), Down: down,
 		}
 		if d.Left < 15 {
