@@ -105,7 +105,15 @@ func runSeed(args []string) error {
 	return nil
 }
 
-func runBackup(args []string) error {
+func runBackup(args []string) error { return runBackupAt(args, domain.SystemClock{}) }
+
+// backupDest is the default backup file: <db directory>/backups/workline-YYYY-MM-DD-HHMM.db
+// in local time. One backup per minute: a second one in the same minute is refused.
+func backupDest(dbPath string, now time.Time) string {
+	return filepath.Join(filepath.Dir(dbPath), "backups", "workline-"+now.Format("2006-01-02-1504")+".db")
+}
+
+func runBackupAt(args []string, clock domain.Clock) error {
 	def, err := defaultDB()
 	if err != nil {
 		return err
@@ -115,13 +123,26 @@ func runBackup(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if fs.NArg() != 1 {
-		return errors.New("usage: workline backup [-db <path>] <dest>")
+	if fs.NArg() > 1 {
+		return errors.New("usage: workline backup [-db <path>] [dest]")
 	}
-	if err := store.Backup(context.Background(), *dbPath, fs.Arg(0)); err != nil {
+	dest := fs.Arg(0)
+	if dest == "" {
+		if _, err := os.Stat(*dbPath); err != nil { // no stray folder for a wrong -db
+			return fmt.Errorf("backup source: %w", err)
+		}
+		dest = backupDest(*dbPath, clock.Now())
+		if err := os.MkdirAll(filepath.Dir(dest), 0o700); err != nil {
+			return fmt.Errorf("create backup directory: %w", err)
+		}
+		if _, err := os.Stat(dest); err == nil {
+			return fmt.Errorf("%s already exists: only one backup per minute; try again in a minute or name a destination", dest)
+		}
+	}
+	if err := store.Backup(context.Background(), *dbPath, dest); err != nil {
 		return err
 	}
-	fmt.Printf("backed up %s to %s\n", *dbPath, fs.Arg(0))
+	fmt.Printf("backed up %s to %s\n", *dbPath, dest)
 	return nil
 }
 
