@@ -68,7 +68,7 @@ func TestControlToggleStates(t *testing.T) {
 	if got := strings.Join(months, ","); got != "Whole Q4,Oct 2026,Nov 2026,Dec 2026" {
 		t.Errorf("months: %s", got)
 	}
-	if v.ClearHref != "/?period=q4&sel=2" {
+	if v.ClearHref != "/timeline?period=q4&sel=2" {
 		t.Errorf("clear: %q", v.ClearHref)
 	}
 	if v.Eyebrow != "Q4 2026 · OCT–DEC" {
@@ -81,20 +81,20 @@ func TestControlsYearView(t *testing.T) {
 	if v.Eyebrow != "2026 · ACTIVITY TIMELINE" || v.ClearHref != "" || len(v.Scales) != 2 || len(v.Months) != 13 {
 		t.Errorf("year view: %+v", v)
 	}
-	if v.PrevYear != "/?year=2025" || v.NextYear != "/?year=2027" {
+	if v.PrevYear != "/timeline?year=2025" || v.NextYear != "/timeline?year=2027" {
 		t.Errorf("year links: %q %q", v.PrevYear, v.NextYear)
 	}
 	if months := findToggle(t, v.Scales, "Months"); months.Pressed || !hasPair(months.Pairs, "scale", "month") {
 		t.Errorf("Months: %+v", months)
 	}
-	if v := buildControls(filterFor(t, "year=2025&month=3&sel=4"), nil, nil, 0); v.PrevYear != "/?month=3&sel=4&year=2024" {
+	if v := buildControls(filterFor(t, "year=2025&month=3&sel=4"), nil, nil, 0); v.PrevYear != "/timeline?month=3&sel=4&year=2024" {
 		t.Errorf("year nav keeps filters and selection: %q", v.PrevYear)
 	}
 }
 
 func TestDashboardControlsMarkup(t *testing.T) {
 	h, _ := newApp(t)
-	body := get(h, "/").Body.String()
+	body := get(h, "/timeline").Body.String()
 	for _, want := range []string{
 		`aria-label="Period"`, `aria-label="Filter by status"`,
 		`Planned <span class="mono">1</span>`, `Active <span class="mono">4</span>`,
@@ -108,17 +108,17 @@ func TestDashboardControlsMarkup(t *testing.T) {
 	if strings.Contains(body, "Clear filters") {
 		t.Error("Clear filters shown with default filters")
 	}
-	if !strings.Contains(get(h, "/?creep=1").Body.String(), "Clear filters") {
+	if !strings.Contains(get(h, "/timeline?creep=1").Body.String(), "Clear filters") {
 		t.Error("Clear filters missing when filtered")
 	}
 	// counts ignore the status filter but follow the period and project filters
-	body = get(h, "/?period=q1&status=done").Body.String()
+	body = get(h, "/timeline?period=q1&status=done").Body.String()
 	for _, want := range []string{`Active <span class="mono">1</span>`, `Done <span class="mono">2</span>`, `Planned <span class="mono">0</span>`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("q1: missing %q", want)
 		}
 	}
-	if !strings.Contains(get(h, "/?project=3").Body.String(), `Active <span class="mono">3</span>`) {
+	if !strings.Contains(get(h, "/timeline?project=3").Body.String(), `Active <span class="mono">3</span>`) {
 		t.Error("project filter ignored by pill counts")
 	}
 }

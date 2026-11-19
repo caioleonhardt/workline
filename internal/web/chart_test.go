@@ -57,7 +57,7 @@ func TestBuildChart(t *testing.T) {
 
 func TestPanelShowsBurndown(t *testing.T) {
 	h, _ := newApp(t)
-	body := get(h, "/?sel=2").Body.String() // Kafka: 12 weeks, the last one ahead; 6 tasks
+	body := get(h, "/timeline?sel=2").Body.String() // Kafka: 12 weeks, the last one ahead; 6 tasks
 	for _, want := range []string{
 		`peak 4 open · weekly`,
 		`<div class="chart" role="img" aria-label="Burndown by week: peak 4 open of 6 tasks">`,

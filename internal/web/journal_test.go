@@ -13,7 +13,7 @@ import (
 
 func TestJournalFlows(t *testing.T) {
 	h, st := newApp(t)
-	next := "/?sel=2&creep=1"
+	next := "/timeline?sel=2&creep=1"
 	form := func(kv ...string) url.Values {
 		f := url.Values{"next": {next}}
 		for i := 0; i < len(kv); i += 2 {
@@ -32,7 +32,7 @@ func TestJournalFlows(t *testing.T) {
 	if list[0].Text != "Ship it" || list[0].Date != date(t, testToday) || list[0].Kind != domain.KindDecision {
 		t.Errorf("newest first, default date today: %+v", list[0])
 	}
-	wantBody(t, get(h, "/?sel=2"), "Ship it", "Sync", `<span class="chip kind-decision">Decision</span>`, `<span class="chip kind-meeting">Meeting</span>`)
+	wantBody(t, get(h, "/timeline?sel=2"), "Ship it", "Sync", `<span class="chip kind-decision">Decision</span>`, `<span class="chip kind-meeting">Meeting</span>`)
 	if list[0].LoggedAt != "2026-11-18 14:05" {
 		t.Errorf("entry stamped %q, want the clock's time", list[0].LoggedAt)
 	}
@@ -96,7 +96,7 @@ func TestScopeAckEntriesAreReadOnly(t *testing.T) {
 	f := url.Values{"kind": {"update"}, "text": {"x"}, "date": {"2026-11-18"}}
 	wantStatus(t, post(h, "/journal/"+id, f), http.StatusUnprocessableEntity)
 	wantStatus(t, post(h, "/journal/"+id+"/delete", nil), http.StatusUnprocessableEntity)
-	body := get(h, "/?sel=1").Body.String()
+	body := get(h, "/timeline?sel=1").Body.String()
 	if !strings.Contains(body, "Scope change acknowledged") || strings.Contains(body, `action="/journal/`+id+`"`) {
 		t.Error("scope_ack entry should be listed without edit controls")
 	}
@@ -106,7 +106,7 @@ func TestPanelJournalShowsLoggedTime(t *testing.T) {
 	h, _ := newApp(t)
 	wantStatus(t, post(h, "/journal", url.Values{"activity": {"2"}, "kind": {"update"}, "text": {"Fresh note"}}), http.StatusSeeOther)
 	wantStatus(t, post(h, "/journal", url.Values{"activity": {"2"}, "kind": {"update"}, "text": {"Backfilled"}, "date": {"2026-11-12"}}), http.StatusSeeOther)
-	rec := get(h, "/?sel=2")
+	rec := get(h, "/timeline?sel=2")
 	body := rec.Body.String()
 	// new entries show the date and the time they were logged, even when backfilled
 	wantBody(t, rec, `2026-11-18 14:05</span>`, `2026-11-12 14:05</span>`)
@@ -126,7 +126,7 @@ func TestJournalTextIsMultiline(t *testing.T) {
 		t.Fatalf("stored %q", list[0].Text)
 	}
 	id := strconv.FormatInt(list[0].ID, 10)
-	wantBody(t, get(h, "/?sel=2"), "<span class=\"feed-text\">First line\n\n- detail</span>",
+	wantBody(t, get(h, "/timeline?sel=2"), "<span class=\"feed-text\">First line\n\n- detail</span>",
 		"<textarea name=\"text\" rows=\"3\" required>First line\n\n- detail</textarea>")
 	wantStatus(t, post(h, "/journal/"+id, url.Values{"kind": {"update"}, "text": {"one\r\ntwo"}, "date": {"2026-11-18"}}), http.StatusSeeOther)
 	if list, _ := st.ListJournal(ctx, 2); list[0].Text != "one\ntwo" {
@@ -139,7 +139,7 @@ func TestJournalTextIsMultiline(t *testing.T) {
 func TestUnassignedEntries(t *testing.T) {
 	h, st := newApp(t)
 	wantStatus(t, post(h, "/journal", url.Values{"kind": {"task"}, "text": {"Loose task"}, "next": {"/"}}), http.StatusSeeOther)
-	before := tileValue(t, get(h, "/").Body.String(), "Open tasks now")
+	before := tileValue(t, get(h, "/timeline").Body.String(), "Open tasks now")
 	feed, _, _ := st.ListJournalFeed(ctx, nil, true, 10)
 	if len(feed) != 1 || feed[0].ActivityID != 0 {
 		t.Fatalf("unassigned: %+v", feed)
@@ -147,20 +147,20 @@ func TestUnassignedEntries(t *testing.T) {
 	id := strconv.FormatInt(feed[0].ID, 10)
 
 	// the feed shows it, with a filing select, unless a project or selection narrows it
-	body := get(h, "/").Body.String()
+	body := get(h, "/timeline").Body.String()
 	for _, want := range []string{`<span class="tag small unassigned">Unassigned</span>`, `<select name="activity"><option value="" selected>Unassigned</option><optgroup label=`, `<option value="2">Kafka upgrade readiness</option>`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("feed lacks %q", want)
 		}
 	}
-	for _, target := range []string{"/?project=1", "/?sel=2"} {
+	for _, target := range []string{"/timeline?project=1", "/timeline?sel=2"} {
 		if strings.Contains(get(h, target).Body.String(), "Loose task") {
 			t.Errorf("%s shows the unassigned entry", target)
 		}
 	}
 	// its open task counts in the tile until it is closed
 	wantStatus(t, post(h, "/tasks/"+id+"/toggle", url.Values{"next": {"/"}}), http.StatusSeeOther)
-	if after := tileValue(t, get(h, "/").Body.String(), "Open tasks now"); after != before-1 {
+	if after := tileValue(t, get(h, "/timeline").Body.String(), "Open tasks now"); after != before-1 {
 		t.Errorf("tile %d → %d", before, after)
 	}
 
@@ -177,7 +177,7 @@ func TestUnassignedEntries(t *testing.T) {
 	if ts, _ := st.ListTasks(ctx, 2); ts[len(ts)-1].Text != "Filed task" {
 		t.Errorf("not filed: %+v", ts[len(ts)-1])
 	}
-	if strings.Contains(get(h, "/?sel=2").Body.String(), `<select name="activity">`) {
+	if strings.Contains(get(h, "/timeline?sel=2").Body.String(), `<select name="activity">`) {
 		t.Error("filed entries offer no filing select")
 	}
 	wantStatus(t, edit(""), http.StatusSeeOther)
@@ -229,7 +229,7 @@ func TestPrefixesAndTaskPriority(t *testing.T) {
 	h, st := newApp(t)
 	log := func(kind, priority, text string) {
 		t.Helper()
-		f := url.Values{"activity": {"2"}, "kind": {kind}, "priority": {priority}, "text": {text}, "next": {"/?sel=2"}}
+		f := url.Values{"activity": {"2"}, "kind": {kind}, "priority": {priority}, "text": {text}, "next": {"/timeline?sel=2"}}
 		wantStatus(t, post(h, "/journal", f), http.StatusSeeOther)
 	}
 	log("update", "", "/t1 Write runbook")
@@ -254,12 +254,12 @@ func TestPrefixesAndTaskPriority(t *testing.T) {
 	}
 
 	// the panel lists open tasks by priority, with chips, and edits the priority
-	body := get(h, "/?sel=2").Body.String()
+	body := get(h, "/timeline?sel=2").Body.String()
 	hi, lo := strings.Index(body, `<span>Write runbook</span>`), strings.Index(body, `<span>Plain low task</span>`)
 	if hi < 0 || lo < 0 || hi > lo {
 		t.Errorf("panel order: high at %d, low at %d", hi, lo)
 	}
-	wantBody(t, get(h, "/?sel=2"), `<span class="chip prio-high">High</span>`, `<span class="chip prio-low">Low</span>`,
+	wantBody(t, get(h, "/timeline?sel=2"), `<span class="chip prio-high">High</span>`, `<span class="chip prio-low">Low</span>`,
 		`<select id="quickadd-priority" name="priority" title="Task priority"><option value="" selected>No priority</option>`)
 	id := strconv.FormatInt(got["Write runbook"].ID, 10)
 	wantStatus(t, post(h, "/journal/"+id, url.Values{"kind": {"task"}, "priority": {"medium"}, "text": {"Write runbook"}, "date": {testToday}, "next": {"/"}}), http.StatusSeeOther)

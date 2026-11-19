@@ -36,7 +36,8 @@ func New(st *store.Store, clock domain.Clock) (http.Handler, error) {
 	}
 	s := &Server{store: st, clock: clock, tmpl: tmpl}
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /{$}", s.dashboard)
+	mux.HandleFunc("GET /{$}", s.home)
+	mux.HandleFunc("GET /timeline", s.dashboard)
 	mux.HandleFunc("POST /activities", s.createActivity)
 	mux.HandleFunc("POST /activities/{id}", s.updateActivity)
 	mux.HandleFunc("POST /activities/{id}/delete", s.deleteActivity)
@@ -146,10 +147,28 @@ func nextURL(r *http.Request) string {
 // fromQuickAdd reports whether htmx sent the request from the quick-add bar.
 func fromQuickAdd(r *http.Request) bool { return r.Header.Get("HX-Trigger") == "quickadd" }
 
-// done answers a successful dashboard mutation. An htmx request gets the
-// dashboard fragment for `to` and the address to show in the URL bar; any other
-// request is redirected there with 303 See Other.
+// timelineAddress maps an address on / that carries timeline state (any query
+// key) to the same state on /timeline, so links and `next` fields from before
+// the timeline moved keep working (SPEC §10 item 94).
+func timelineAddress(to string) string {
+	u, err := url.Parse(to)
+	if err != nil || u.Path != "/" {
+		return to
+	}
+	u.Path = "/timeline"
+	return u.String()
+}
+
+// home serves /.
+func (s *Server) home(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, timelineAddress(r.URL.RequestURI()), http.StatusFound)
+}
+
+// done answers a successful mutation. An htmx request gets the fragment of the
+// page at `to` and the address to show in the URL bar; any other request is
+// redirected there with 303 See Other.
 func (s *Server) done(w http.ResponseWriter, r *http.Request, to string, mods ...func(*dashboardView)) {
+	to = timelineAddress(to)
 	if !isHX(r) {
 		redirect(w, r, to)
 		return

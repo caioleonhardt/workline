@@ -37,7 +37,7 @@ func TestTilesMatchBaselineGolden(t *testing.T) {
 		t.Fatal(err)
 	}
 	h, _ := newApp(t)
-	body := get(h, "/").Body.String()
+	body := get(h, "/timeline").Body.String()
 	for label, key := range map[string]string{
 		"Active": "active", "Blocked": "blocked", "Planned": "planned", "Done this year": "done",
 		"Open tasks now": "open_tasks", "Scope creep flags": "scope_flags",
@@ -51,7 +51,7 @@ func TestTilesMatchBaselineGolden(t *testing.T) {
 func TestTilesFollowProjectFilterOnly(t *testing.T) {
 	h, st := newApp(t)
 	// project 3 alone: three active activities, none flagged; period and status filters do not matter
-	body := get(h, "/?project=3&period=q1&status=").Body.String()
+	body := get(h, "/timeline?project=3&period=q1&status=").Body.String()
 	if tileValue(t, body, "Active") != 3 || tileValue(t, body, "Scope creep flags") != 0 || tileValue(t, body, "Done this year") != 0 {
 		t.Errorf("project 3 tiles wrong")
 	}
@@ -59,19 +59,19 @@ func TestTilesFollowProjectFilterOnly(t *testing.T) {
 	if err := st.SetActivityStatus(ctx, 2, domain.StatusDone, date(t, testToday)); err != nil {
 		t.Fatal(err)
 	}
-	body = get(h, "/").Body.String()
+	body = get(h, "/timeline").Body.String()
 	if got := tileValue(t, body, "Open tasks now"); got != 13 { // 17 minus Kafka's 4
 		t.Errorf("open tasks = %d", got)
 	}
-	if tileValue(t, body, "Done this year") != 4 || tileValue(t, get(h, "/?year=2025").Body.String(), "Done this year") != 0 {
+	if tileValue(t, body, "Done this year") != 4 || tileValue(t, get(h, "/timeline?year=2025").Body.String(), "Done this year") != 0 {
 		t.Error("done this year follows the selected year")
 	}
 	// archived projects are not counted
 	if err := st.SetProjectArchived(ctx, 1, true); err != nil {
 		t.Fatal(err)
 	}
-	if got := tileValue(t, get(h, "/").Body.String(), "Active"); got != 3 {
+	if got := tileValue(t, get(h, "/timeline").Body.String(), "Active"); got != 3 {
 		t.Errorf("active with project 1 archived = %d", got)
 	}
-	wantStatus(t, get(h, "/"), http.StatusOK)
+	wantStatus(t, get(h, "/timeline"), http.StatusOK)
 }

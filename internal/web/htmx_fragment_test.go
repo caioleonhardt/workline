@@ -21,7 +21,7 @@ func hxGet(h http.Handler, target string, headers ...string) *httptest.ResponseR
 
 func TestDashboardFragmentForHX(t *testing.T) {
 	h, _ := newApp(t)
-	rec := hxGet(h, "/?period=q4&sel=2", "HX-Boosted", "true")
+	rec := hxGet(h, "/timeline?period=q4&sel=2", "HX-Boosted", "true")
 	wantStatus(t, rec, http.StatusOK)
 	body := rec.Body.String()
 	for _, bad := range []string{"<html", "<head>", "<title", `class="top"`} {
@@ -42,8 +42,8 @@ func TestDashboardFragmentForHX(t *testing.T) {
 func TestDashboardFullPageWithoutHXAndOnHistoryRestore(t *testing.T) {
 	h, _ := newApp(t)
 	for name, rec := range map[string]*httptest.ResponseRecorder{
-		"plain GET":       get(h, "/?sel=2"),
-		"history restore": hxGet(h, "/?sel=2", "HX-History-Restore-Request", "true"),
+		"plain GET":       get(h, "/timeline?sel=2"),
+		"history restore": hxGet(h, "/timeline?sel=2", "HX-History-Restore-Request", "true"),
 	} {
 		wantStatus(t, rec, http.StatusOK)
 		if !strings.Contains(rec.Body.String(), "<!doctype html>") || !strings.Contains(rec.Body.String(), `id="dash"`) {
@@ -59,8 +59,8 @@ func TestDashboardFullPageWithoutHXAndOnHistoryRestore(t *testing.T) {
 // that hx-boost upgrades, so it still works without JS.
 func TestDashboardControlsStayPlainLinksAndForms(t *testing.T) {
 	h, _ := newApp(t)
-	body := get(h, "/?sel=2").Body.String()
-	for _, want := range []string{`<form method="get" action="/" class="toggle">`, `<a class="btn new-activity" href="/?new=1&amp;sel=2"`, `<a class="act-name" href="`, `<form method="post" action="/activities/2"`} {
+	body := get(h, "/timeline?sel=2").Body.String()
+	for _, want := range []string{`<form method="get" action="/timeline" class="toggle">`, `<a class="btn new-activity" href="/timeline?new=1&amp;sel=2"`, `<a class="act-name" href="`, `<form method="post" action="/activities/2"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
@@ -83,7 +83,7 @@ func hxPost(h http.Handler, target string, form url.Values) *httptest.ResponseRe
 // Every dashboard mutation redirects without JS and answers htmx with the
 // fragment for the same address (SPEC §10 item 59).
 func TestMutationsAnswerHXWithTheFragment(t *testing.T) {
-	next := "/?sel=2&status=active&status=blocked"
+	next := "/timeline?sel=2&status=active&status=blocked"
 	for _, c := range []struct {
 		name, target string
 		form         url.Values
@@ -98,7 +98,7 @@ func TestMutationsAnswerHXWithTheFragment(t *testing.T) {
 		{"status", "/activities/2", url.Values{"status": {"active"}}, next},
 		{"edit activity", "/activities/2", url.Values{"project": {"1"}, "name": {"n"}, "start": {"2026-09-01"}, "due": {"2026-12-01"}}, next},
 		{"acknowledge", "/activities/1/scope-ack", nil, next},
-		{"delete activity", "/activities/2/delete", nil, "/?status=active&status=blocked"},
+		{"delete activity", "/activities/2/delete", nil, "/timeline?status=active&status=blocked"},
 	} {
 		form := url.Values{"next": {next}}
 		for k, v := range c.form {
@@ -134,9 +134,9 @@ func TestCreateActivityAnswersHXWithTheNewSelection(t *testing.T) {
 
 func TestHXToggleUpdatesPanelTimelineAndTiles(t *testing.T) {
 	h, _ := newApp(t)
-	before := get(h, "/?sel=1").Body.String()
-	wantStatus(t, hxPost(h, "/tasks/1/toggle", url.Values{"next": {"/?sel=1"}}), http.StatusOK)
-	rec := hxGet(h, "/?sel=1")
+	before := get(h, "/timeline?sel=1").Body.String()
+	wantStatus(t, hxPost(h, "/tasks/1/toggle", url.Values{"next": {"/timeline?sel=1"}}), http.StatusOK)
+	rec := hxGet(h, "/timeline?sel=1")
 	body := rec.Body.String()
 	if !strings.Contains(before, "5 of 8 tasks done") || !strings.Contains(body, "4 of 8 tasks done") ||
 		!strings.Contains(body, "4 open / 8") || tileValue(t, body, "Open tasks now") != 18 {
@@ -156,7 +156,7 @@ func TestHXErrorsGoToTheErrorBar(t *testing.T) {
 		"not found":  {"/tasks/999/toggle", nil, http.StatusNotFound, "Not found."},
 		"This activity is not flagged for scope creep.": {"/activities/3/scope-ack", nil, http.StatusUnprocessableEntity, "This activity is not flagged for scope creep."},
 	} {
-		form := url.Values{"next": {"/?sel=2"}}
+		form := url.Values{"next": {"/timeline?sel=2"}}
 		for k, v := range c.form {
 			form[k] = v
 		}
@@ -171,13 +171,13 @@ func TestHXErrorsGoToTheErrorBar(t *testing.T) {
 		// without JS the same request still gets the plain error page with a Back link
 		plain := post(h, c.target, form)
 		if plain.Code != c.status || !strings.Contains(plain.Body.String(), "<!doctype html>") ||
-			!strings.Contains(plain.Body.String(), `<a href="/?sel=2">Back</a>`) || !strings.Contains(plain.Body.String(), c.msg) || leaksInternals(plain.Body.String()) || plain.Header().Get("HX-Retarget") != "" || plain.Header().Get("HX-Push-Url") != "" {
+			!strings.Contains(plain.Body.String(), `<a href="/timeline?sel=2">Back</a>`) || !strings.Contains(plain.Body.String(), c.msg) || leaksInternals(plain.Body.String()) || plain.Header().Get("HX-Retarget") != "" || plain.Header().Get("HX-Push-Url") != "" {
 			t.Errorf("%s without JS: status %d", name, plain.Code)
 		}
 	}
 	// dismissing is done by app.js; the page has a place for the bar and no clear route
 	wantStatus(t, get(h, "/errors/clear"), http.StatusNotFound)
-	wantBody(t, get(h, "/"), `<div id="errors" aria-live="polite"></div>`, `"responseHandling"`)
+	wantBody(t, get(h, "/timeline"), `<div id="errors" aria-live="polite"></div>`, `"responseHandling"`)
 	js := get(h, "/static/app.js").Body.String()
 	if !strings.Contains(js, "'.error-bar .dismiss'") || !strings.Contains(js, ".remove()") {
 		t.Error("app.js must remove the error bar on Dismiss")

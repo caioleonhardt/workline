@@ -13,7 +13,7 @@ import (
 // and deleted like any entry, and toggled from the panel.
 func TestTaskFlows(t *testing.T) {
 	h, st := newApp(t)
-	next := url.Values{"next": {"/?sel=2&status=done"}}
+	next := url.Values{"next": {"/timeline?sel=2&status=done"}}
 	form := func(kv ...string) url.Values {
 		f := url.Values{"next": next["next"]}
 		for i := 0; i < len(kv); i += 2 {
@@ -25,14 +25,14 @@ func TestTaskFlows(t *testing.T) {
 	// add: dated today, stamped like any entry
 	rec := post(h, "/journal", form("activity", "2", "kind", "task", "text", "Write runbook"))
 	wantStatus(t, rec, http.StatusSeeOther)
-	if loc := rec.Header().Get("Location"); loc != "/?sel=2&status=done" {
+	if loc := rec.Header().Get("Location"); loc != "/timeline?sel=2&status=done" {
 		t.Errorf("Location = %q", loc)
 	}
 	subs, _ := st.ListTasks(ctx, 2)
 	if len(subs) != 7 || subs[6].Text != "Write runbook" || subs[6].CreatedOn != date(t, testToday) {
 		t.Fatalf("tasks: %+v", subs[6:])
 	}
-	wantBody(t, get(h, "/?sel=2"), `<span class="chip kind-task">Task</span>`)
+	wantBody(t, get(h, "/timeline?sel=2"), `<span class="chip kind-task">Task</span>`)
 
 	// toggle closes today, then reopens; only tasks toggle
 	id := strconv.FormatInt(subs[6].ID, 10)
@@ -41,7 +41,7 @@ func TestTaskFlows(t *testing.T) {
 	if got, _ := st.ListTasks(ctx, 2); got[6].ClosedOn != date(t, testToday) {
 		t.Errorf("close: %+v", got[6])
 	}
-	wantBody(t, get(h, "/?sel=2"), "closed "+testToday, `<span class="feed-text done-text">Write runbook</span>`)
+	wantBody(t, get(h, "/timeline?sel=2"), "closed "+testToday, `<span class="feed-text done-text">Write runbook</span>`)
 	wantStatus(t, post(h, target, next), http.StatusSeeOther)
 	if got, _ := st.ListTasks(ctx, 2); !got[6].ClosedOn.IsZero() {
 		t.Errorf("reopen: %+v", got[6])

@@ -152,7 +152,7 @@ Reason texts (shown in the detail panel):
 
 ## 5. Features
 
-### 5.1 Dashboard (`GET /`)
+### 5.1 Dashboard (`GET /timeline`)
 Header with the app name and period eyebrow (e.g. `2026 · ACTIVITY TIMELINE` or `Q4 2026 · OCT–DEC`) and a **New activity** button.
 
 Controls, all reflected in the **URL query string** so any view is bookmarkable:
@@ -247,7 +247,8 @@ Accessibility: real `<button>`, `<a>`, `<label>`+`<input>`; touch targets ≥ 44
 Pages return full HTML. When `HX-Request` is set, return the fragment being swapped (timeline, panel, or both via `hx-swap-oob`). Every mutation also works without JS (POST then redirect back to the referring dashboard URL).
 
 ```
-GET    /                                   dashboard
+GET    /                                   journal page (§10 item 95); any query redirects to /timeline
+GET    /timeline                           dashboard (timeline)
 GET    /projects                           projects page
 POST   /projects                           create
 POST   /projects/{id}                      update (rename/archive)
@@ -407,3 +408,4 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 91. **Unassigned entries.** A journal entry (task too) may have no activity (migration 0006 makes `activity_id` nullable and keeps the id counter, so ids are still never reused). The quick-add bar is always shown: it logs to the selected activity, else to **Unassigned**; a × beside a selected target drops the selection. In the feed, Unassigned entries carry an "Unassigned" tag and appear only when neither a project filter nor a selection narrows the feed. Only an Unassigned entry's Edit form has an Activity select (Unassigned, then live activities grouped by project); filing is one-way from the feed, so filed entries do not repeat the activity list in every row. An Edit post without an `activity` field keeps the entry's activity. Unassigned open tasks count in "Open tasks now" when no project filter is set, never on the timeline. The export lists them last under "## Unassigned" when it covers all projects. Moving a task changes its activity's scope figures; an acknowledgement's `last_task_id` compares ids, so a task filed after an ack counts as added only if its id is newer.
 92. **Task priority.** A task has a priority like an activity (high, medium, low, or none; migration 0007, other kinds never have one). The bar has a priority select next to the kind, used only when logging a task; task Edit forms (panel and feed) have one too. Tasks show a priority chip in the panel and the feed. The panel lists open tasks first, then by priority, then oldest opened, then id (`domain.SortTasks`); closed tasks follow in the same order.
 93. **Bar prefixes.** Text starting with `/t`, `/d`, `/u`, `/b` or `/m`, then a space or line break and some text, logs a task, decision, update, blocker or meeting; `/t1`, `/t2`, `/t3` log a high, medium or low priority task. The prefix overrides the bar's kind and priority selects and is removed from the text. Anything else (`/x foo`, `/tea`, `/d1 …`, a lone `/t`) is logged as typed. Parsed by the server, so it works without JS.
+94. **Timeline at `/timeline`.** The dashboard moved from `/` to `/timeline`; its links and forms use the new path. `GET /` with a query redirects (302, not a cacheable 308) to `/timeline` with the same query, and a mutation whose `next` is `/?…` answers with `/timeline?…`, so bookmarks and pages loaded before the move keep working. The top navigation reads Journal · Timeline · Projects; these links load whole pages.

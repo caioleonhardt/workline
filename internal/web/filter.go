@@ -124,12 +124,12 @@ func (f Filter) Values() url.Values {
 	return q
 }
 
-// URL returns the dashboard path with the canonical query.
+// URL returns the timeline path with the canonical query.
 func (f Filter) URL() string {
 	if enc := f.Values().Encode(); enc != "" {
-		return "/?" + enc
+		return "/timeline?" + enc
 	}
-	return "/"
+	return "/timeline"
 }
 
 // WithSel returns f with the selected activity set (0 clears it).
