@@ -5,6 +5,8 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-11-19
+
 ### Added
 - `workline version` prints the release, the database schema it needs and,
   for a build from a git checkout, the revision.
@@ -58,6 +60,7 @@ First release.
 - `serve` on 127.0.0.1:7357 and `seed` with the baseline data.
 - CI running gofmt, vet and tests.
 
-[Unreleased]: ../../compare/v0.2.0...HEAD
+[Unreleased]: ../../compare/v0.3.0...HEAD
+[0.3.0]: ../../compare/v0.2.0...v0.3.0
 [0.2.0]: ../../compare/v0.1.0...v0.2.0
 [0.1.0]: ../../releases/tag/v0.1.0
