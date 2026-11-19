@@ -261,9 +261,9 @@
         if (e.key === 'Escape') {
           e.preventDefault();
           closeEditor(editor);
-          return;
         }
       }
+      if (editor) return; // the editor is Insert mode, its buttons included
       if (e.ctrlKey || e.altKey || e.metaKey || e.defaultPrevented) return;
       if (e.key === 'Escape' && t && t.id === 'quickadd-text') {
         e.preventDefault();
