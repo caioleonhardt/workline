@@ -24,6 +24,7 @@ func buildTiles(t domain.Tiles) []tileView {
 type dashboardView struct {
 	Title, Next string
 	NewHref     string // header link that opens the inline form
+	ExportHref  string
 	CancelHref  string // same page without the form
 	ShowForm    bool
 	Today       string
@@ -134,6 +135,7 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 	v := dashboardView{
 		Title: "Workline", Next: uri,
 		NewHref:    withParam(uri, "new", "1"),
+		ExportHref: f.ExportURL(),
 		CancelHref: withParam(uri, "new", ""),
 		ShowForm:   f.New,
 		Today:      today.String(), AllProjects: projects, Panel: panel,

@@ -94,3 +94,15 @@ func TestExportJournalEndpoint(t *testing.T) {
 	// nothing in range
 	wantBody(t, get(h, "/export/journal.md?from=2030-01-01"), "No journal entries in this range.")
 }
+
+func TestExportLinkFollowsTheDashboard(t *testing.T) {
+	h, _ := newApp(t)
+	for target, want := range map[string]string{
+		"/":                               `href="/export/journal.md?from=2026-01-01&amp;to=2026-12-31" hx-boost="false"`,
+		"/?period=q4":                     `href="/export/journal.md?from=2026-10-01&amp;to=2026-12-31" hx-boost="false"`,
+		"/?period=q4&month=11&project=3":  `href="/export/journal.md?from=2026-11-01&amp;project=3&amp;to=2026-11-30" hx-boost="false"`,
+		"/?status=done&creep=1&year=2025": `href="/export/journal.md?from=2025-01-01&amp;to=2025-12-31" hx-boost="false"`,
+	} {
+		wantBody(t, get(h, target), want, ">Export journal</a>")
+	}
+}

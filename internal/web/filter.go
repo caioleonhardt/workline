@@ -193,3 +193,17 @@ func (f Filter) Cleared() Filter {
 	f.Project, f.Month, f.Creep, f.Statuses = 0, 0, false, defaultStatuses()
 	return f
 }
+
+// ExportURL is the journal export for the dashboard's project and the selected
+// month, or else the period (SPEC §10 item 66).
+func (f Filter) ExportURL() string {
+	from, to := domain.PeriodRange(f.Year, f.Period)
+	if f.Month != 0 {
+		from, to = domain.MonthRange(f.Year, f.Month)
+	}
+	q := url.Values{"from": {from.String()}, "to": {to.String()}}
+	if f.Project != 0 {
+		q.Set("project", strconv.FormatInt(f.Project, 10))
+	}
+	return "/export/journal.md?" + q.Encode()
+}

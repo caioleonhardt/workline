@@ -12,7 +12,7 @@
 <div class="eyebrow mono">{{.Controls.Eyebrow}}</div>
 <div class="year"><a href="{{.Controls.PrevYear}}" aria-label="Previous year">‹</a> <strong class="mono">{{.Controls.Year}}</strong> <a href="{{.Controls.NextYear}}" aria-label="Next year">›</a></div>
 </div>
-<a class="btn" href="{{.NewHref}}">New activity</a>
+<div class="actions"><a class="btn secondary" href="{{.ExportHref}}" hx-boost="false">Export journal</a> <a class="btn" href="{{.NewHref}}">New activity</a></div>
 </header>
 {{if .ShowForm}}
 <section class="card">
