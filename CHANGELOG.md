@@ -5,6 +5,11 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
+### Changed
+- Editing a journal entry or task opens a cleaner inline editor: a full-width
+  text box that grows as you type, the fields below it, and Delete…, Cancel and
+  Save at the bottom. Ctrl/Cmd+Enter saves; Esc cancels.
+
 ## [0.7.0] — 2026-11-19
 
 ### Added

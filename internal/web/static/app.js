@@ -1,5 +1,5 @@
 // Marks the page as scripted (hiding buttons that htmx replaces), floats the completion popups, handles the
-// keyboard shortcuts (including Enter to log from the journal bar) and the error bar's Dismiss, and collapses project groups on the timeline; the state lives in the browser's local storage.
+// keyboard shortcuts (including Enter to log from the journal bar), the entry editors' keys and the error bar's Dismiss, and collapses project groups on the timeline; the state lives in the browser's local storage.
 // Without this script every group stays expanded and every button shows.
 (function () {
   document.documentElement.classList.add('js');
@@ -34,7 +34,25 @@
     document.addEventListener('click', function (e) {
       var button = e.target.closest && e.target.closest('.error-bar .dismiss');
       if (button) button.closest('.error-bar').remove();
+      var cancel = e.target.closest && e.target.closest('.editor .cancel');
+      if (cancel) closeEditor(cancel.closest('.editor'));
     });
+    // Entry editors: opening one focuses its text at the end; Cancel or Esc
+    // discards the changes and closes it; Ctrl/Cmd+Enter saves.
+    function closeEditor(editor) {
+      var details = editor.closest('details.edit');
+      editor.querySelector('.editor-form').reset();
+      editor.querySelectorAll('details.confirm').forEach(function (d) { d.open = false; });
+      details.open = false;
+      details.querySelector('summary').focus();
+    }
+    document.addEventListener('toggle', function (e) {
+      var d = e.target;
+      if (!d.matches || !d.matches('details.edit') || !d.open) return;
+      var text = d.querySelector('.editor-text');
+      text.focus();
+      text.setSelectionRange(text.value.length, text.value.length);
+    }, true);
     // Completion popups float (position: fixed) beside their dot, above it when
     // there is room, else below, and inside the window horizontally.
     function placePopup(dotWrap) {
@@ -90,6 +108,19 @@
     }
     document.addEventListener('keydown', function (e) {
       var t = e.target;
+      var editor = t && t.closest && t.closest('.editor');
+      if (editor && !e.defaultPrevented && !e.isComposing) {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          editor.querySelector('.editor-form').requestSubmit();
+          return;
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeEditor(editor);
+          return;
+        }
+      }
       if (e.ctrlKey || e.altKey || e.metaKey || e.defaultPrevented) return;
       if (e.key === 'Escape' && t && t.id === 'quickadd-text') {
         e.preventDefault();
