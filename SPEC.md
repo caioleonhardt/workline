@@ -379,3 +379,4 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 69. The error bar's Dismiss is handled in `app.js`; the `/errors/clear` route is removed. 422s are not logged.
 70. **Narrow screens**: the label column is sticky; it is ~160px wide on phones. Panel stat boxes wrap; all controls ≥ 44px.
 71. Timeline header grows to 88px so the Today chip has its own strip; subtask rows are one line (one date: closed, else opened; both in the tooltip and in Edit).
+72. **Target screen is a laptop.** Narrow-screen support (item 70) is best-effort; phone-specific polish is out of scope. Export filenames use today's date; a backup keeps its source's schema version.
