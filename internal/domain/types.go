@@ -107,21 +107,22 @@ type Activity struct {
 }
 
 // Task is one checkable item of an activity: the view of a journal entry of
-// kind task that the burndown, progress and scope rules work on. ClosedOn is
-// zero while open.
+// kind task that the burndown, progress and scope rules work on.
 type Task struct {
 	ID         int64
 	ActivityID int64 // 0: Unassigned
 	Text       string
 	CreatedOn  Date
-	ClosedOn   Date
-	ClosedAt   string // "YYYY-MM-DD HH:MM" local time it was closed; empty if open or unknown
+	ClosedAt   string // "YYYY-MM-DD HH:MM" local time it was closed; empty while open
 	Priority   Priority
 }
 
+// ClosedOn is the day the task was closed, zero while open.
+func (s Task) ClosedOn() Date { return stampDate(s.ClosedAt) }
+
 // JournalEntry is a dated note on an activity, or Unassigned when ActivityID
 // is 0. An entry of kind task is a task opened on Date; only tasks have
-// ClosedOn and ClosedAt.
+// ClosedAt.
 type JournalEntry struct {
 	ID         int64
 	ActivityID int64 // 0: Unassigned
@@ -129,14 +130,16 @@ type JournalEntry struct {
 	Kind       Kind
 	Text       string
 	LoggedAt   string // "YYYY-MM-DD HH:MM" local time it was logged; empty for older entries
-	ClosedOn   Date
 	ClosedAt   string
 	Priority   Priority // tasks only
 }
 
+// ClosedOn is the day a task entry was closed, zero while open or for other kinds.
+func (j JournalEntry) ClosedOn() Date { return stampDate(j.ClosedAt) }
+
 // Task returns the entry as a task.
 func (j JournalEntry) Task() Task {
-	return Task{ID: j.ID, ActivityID: j.ActivityID, Text: j.Text, CreatedOn: j.Date, ClosedOn: j.ClosedOn, ClosedAt: j.ClosedAt, Priority: j.Priority}
+	return Task{ID: j.ID, ActivityID: j.ActivityID, Text: j.Text, CreatedOn: j.Date, ClosedAt: j.ClosedAt, Priority: j.Priority}
 }
 
 // stampLayout is the format of JournalEntry.LoggedAt.
@@ -144,6 +147,18 @@ const stampLayout = "2006-01-02 15:04"
 
 // Stamp formats the wall-clock fields of t as a LoggedAt value.
 func Stamp(t time.Time) string { return t.Format(stampLayout) }
+
+// stampDate returns the day of a stamp, or the zero Date for none or a bad one.
+func stampDate(stamp string) Date {
+	if len(stamp) < 10 {
+		return 0
+	}
+	d, err := ParseDate(stamp[:10])
+	if err != nil {
+		return 0
+	}
+	return d
+}
 
 // StampTime returns the "HH:MM" part of a LoggedAt value, or "" for none.
 func StampTime(stamp string) string {
@@ -209,12 +224,10 @@ func (s Task) Validate() error {
 		return Invalid("task text is required")
 	case s.CreatedOn.IsZero():
 		return Invalid("task created date is required")
-	case !s.ClosedOn.IsZero() && s.ClosedOn.Before(s.CreatedOn):
-		return Invalid("closed date %s is before created date %s", s.ClosedOn, s.CreatedOn)
 	case s.ClosedAt != "" && !validStamp(s.ClosedAt):
 		return Invalid("closed time %q is not YYYY-MM-DD HH:MM", s.ClosedAt)
-	case s.ClosedAt != "" && (s.ClosedOn.IsZero() || s.ClosedAt[:10] != s.ClosedOn.String()):
-		return Invalid("closed time %q does not match closed date %q", s.ClosedAt, s.ClosedOn)
+	case s.ClosedAt != "" && s.ClosedOn().Before(s.CreatedOn):
+		return Invalid("closed date %s is before created date %s", s.ClosedOn(), s.CreatedOn)
 	}
 	return nil
 }
@@ -224,8 +237,8 @@ func (s Task) ValidateAt(today Date) error {
 	if err := s.Validate(); err != nil {
 		return err
 	}
-	if s.ClosedOn.After(today) {
-		return Invalid("closed date %s is after today (%s)", s.ClosedOn, today)
+	if s.ClosedOn().After(today) {
+		return Invalid("closed date %s is after today (%s)", s.ClosedOn(), today)
 	}
 	return nil
 }
@@ -247,7 +260,7 @@ func (j JournalEntry) Validate() error {
 		return Invalid("unknown priority %q", j.Priority)
 	case j.Kind == KindTask:
 		return j.Task().Validate()
-	case !j.ClosedOn.IsZero() || j.ClosedAt != "":
+	case j.ClosedAt != "":
 		return Invalid("only a task can be closed")
 	case j.Priority != PriorityNone:
 		return Invalid("only a task has a priority")

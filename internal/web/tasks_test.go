@@ -38,12 +38,12 @@ func TestTaskFlows(t *testing.T) {
 	id := strconv.FormatInt(subs[6].ID, 10)
 	target := "/tasks/" + id + "/toggle"
 	wantStatus(t, post(h, target, next), http.StatusSeeOther)
-	if got, _ := st.ListTasks(ctx, 2); got[6].ClosedOn != date(t, testToday) {
+	if got, _ := st.ListTasks(ctx, 2); got[6].ClosedOn() != date(t, testToday) {
 		t.Errorf("close: %+v", got[6])
 	}
 	wantBody(t, get(h, "/timeline?sel=2"), "closed "+testToday, `class="feed-text done-text">Write runbook</span>`)
 	wantStatus(t, post(h, target, next), http.StatusSeeOther)
-	if got, _ := st.ListTasks(ctx, 2); !got[6].ClosedOn.IsZero() {
+	if got, _ := st.ListTasks(ctx, 2); !got[6].ClosedOn().IsZero() {
 		t.Errorf("reopen: %+v", got[6])
 	}
 	wantStatus(t, post(h, "/tasks/999/toggle", next), http.StatusNotFound)
@@ -58,7 +58,7 @@ func TestTaskFlows(t *testing.T) {
 	// edit changes text and opened date; the kind stays task
 	wantStatus(t, post(h, "/journal/"+id, form("kind", "task", "text", "Runbook v2", "date", "2026-11-10")), http.StatusSeeOther)
 	got, _ := st.ListTasks(ctx, 2)
-	if got[6].Text != "Runbook v2" || got[6].CreatedOn != date(t, "2026-11-10") || !got[6].ClosedOn.IsZero() {
+	if got[6].Text != "Runbook v2" || got[6].CreatedOn != date(t, "2026-11-10") || !got[6].ClosedOn().IsZero() {
 		t.Errorf("edit: %+v", got[6])
 	}
 	if rec := post(h, "/journal/"+id, form("kind", "update", "text", "x", "date", "2026-11-10")); rec.Code != http.StatusUnprocessableEntity {

@@ -157,7 +157,7 @@ func (s *Server) buildJournalPage(ctx context.Context, uri string) (journalPageV
 		v.ThisWeekHref = "/"
 	}
 
-	open := slices.DeleteFunc(slices.Clone(tasks), func(t domain.Task) bool { return !t.ClosedOn.IsZero() })
+	open := slices.DeleteFunc(slices.Clone(tasks), func(t domain.Task) bool { return !t.ClosedOn().IsZero() })
 	domain.SortTasks(open)
 	for _, t := range open {
 		row := openTaskRow{
@@ -227,10 +227,10 @@ func journalTiles(tasks []domain.Task, from, to, today domain.Date) []tileView {
 		if in(t.CreatedOn) {
 			opened++
 		}
-		if in(t.ClosedOn) {
+		if in(t.ClosedOn()) {
 			closed++
 		}
-		if t.ClosedOn.IsZero() && t.Priority == domain.PriorityHigh {
+		if t.ClosedOn().IsZero() && t.Priority == domain.PriorityHigh {
 			high++
 		}
 	}

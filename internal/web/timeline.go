@@ -258,13 +258,13 @@ func completionDots(ax axis, from, to domain.Date, key string, tasks []domain.Ta
 	byDay := map[domain.Date][]domain.Task{}
 	var days []domain.Date
 	for _, st := range tasks {
-		if st.ClosedOn.IsZero() || st.ClosedOn.Before(from) || st.ClosedOn.After(to) {
+		if st.ClosedOn().IsZero() || st.ClosedOn().Before(from) || st.ClosedOn().After(to) {
 			continue
 		}
-		if byDay[st.ClosedOn] == nil {
-			days = append(days, st.ClosedOn)
+		if byDay[st.ClosedOn()] == nil {
+			days = append(days, st.ClosedOn())
 		}
-		byDay[st.ClosedOn] = append(byDay[st.ClosedOn], st)
+		byDay[st.ClosedOn()] = append(byDay[st.ClosedOn()], st)
 	}
 	slices.Sort(days)
 	var dots []doneDot

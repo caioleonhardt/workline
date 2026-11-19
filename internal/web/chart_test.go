@@ -12,7 +12,7 @@ func TestBuildChart(t *testing.T) {
 	sub := func(id int64, created, closed string) domain.Task {
 		s := domain.Task{ID: id, CreatedOn: date(t, created)}
 		if closed != "" {
-			s.ClosedOn = date(t, closed)
+			s.ClosedAt = closed + " 00:00"
 		}
 		return s
 	}

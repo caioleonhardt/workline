@@ -61,8 +61,8 @@ func writeEntries(b *strings.Builder, entries []domain.JournalEntry) {
 			when += " " + t
 		}
 		text := strings.ReplaceAll(strings.TrimRight(e.Text, "\n"), "\n", "\n  ")
-		if !e.ClosedOn.IsZero() {
-			text += " (closed " + e.ClosedOn.String() + ")"
+		if !e.ClosedOn().IsZero() {
+			text += " (closed " + e.ClosedOn().String() + ")"
 		}
 		fmt.Fprintf(b, "- %s **%s** — %s\n", when, kindLabel(e.Kind), text)
 	}

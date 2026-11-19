@@ -3,6 +3,7 @@ package store
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 
 	"workline/internal/domain"
@@ -140,7 +141,7 @@ func TestSeedMatchesGolden(t *testing.T) {
 		subs := subsOf[a.ID]
 		closed := 0
 		for _, st := range subs {
-			if !st.ClosedOn.IsZero() && !st.ClosedOn.After(asOf) {
+			if !st.ClosedOn().IsZero() && !st.ClosedOn().After(asOf) {
 				closed++
 			}
 		}
@@ -188,8 +189,8 @@ func TestSeedPreservesBaselineRows(t *testing.T) {
 	if j, _ := s.ListJournal(ctx, 1); len(j) == 0 || j[0].LoggedAt != "" {
 		t.Errorf("seeded entries must have no logged time: %+v", j)
 	}
-	if subs, _ := s.ListTasks(ctx, 3); len(subs) == 0 || subs[0].ClosedOn.IsZero() || subs[0].ClosedAt != "" {
-		t.Errorf("seeded closed tasks must have no close time: %+v", subs)
+	if subs, _ := s.ListTasks(ctx, 3); len(subs) == 0 || !strings.HasSuffix(subs[0].ClosedAt, " 00:00") {
+		t.Errorf("seeded closed tasks must close at 00:00: %+v", subs)
 	}
 	for _, id := range []int64{3, 4, 8} {
 		if a, _ := s.GetActivity(ctx, id); a.DoneOn.IsZero() || a.DoneOn.String() != a.Due.String() {

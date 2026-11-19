@@ -119,322 +119,322 @@
         "activity_id": 1,
         "text": "Map service boundaries",
         "created_on": "2026-03-02",
-        "closed_on": "2026-03-27"
+        "closed_at": "2026-03-27 00:00"
       },
       {
         "id": 2,
         "activity_id": 1,
         "text": "Strangler-fig routing layer",
         "created_on": "2026-03-02",
-        "closed_on": "2026-05-08"
+        "closed_at": "2026-05-08 00:00"
       },
       {
         "id": 3,
         "activity_id": 1,
         "text": "Migrate order intake",
         "created_on": "2026-03-02",
-        "closed_on": "2026-07-14"
+        "closed_at": "2026-07-14 00:00"
       },
       {
         "id": 4,
         "activity_id": 1,
         "text": "Decommission old services",
         "created_on": "2026-03-02",
-        "closed_on": null
+        "closed_at": ""
       },
       {
         "id": 5,
         "activity_id": 1,
         "text": "Migrate pricing",
         "created_on": "2026-04-20",
-        "closed_on": "2026-09-30"
+        "closed_at": "2026-09-30 00:00"
       },
       {
         "id": 6,
         "activity_id": 1,
         "text": "Remove Kafka topic dependencies",
         "created_on": "2026-04-20",
-        "closed_on": "2026-11-10"
+        "closed_at": "2026-11-10 00:00"
       },
       {
         "id": 7,
         "activity_id": 1,
         "text": "Migrate notifications",
         "created_on": "2026-07-14",
-        "closed_on": null
+        "closed_at": ""
       },
       {
         "id": 8,
         "activity_id": 1,
         "text": "Load test single service",
         "created_on": "2026-09-30",
-        "closed_on": null
+        "closed_at": ""
       },
       {
         "id": 9,
         "activity_id": 2,
         "text": "Compatibility matrix",
         "created_on": "2026-09-07",
-        "closed_on": "2026-10-05"
+        "closed_at": "2026-10-05 00:00"
       },
       {
         "id": 10,
         "activity_id": 2,
         "text": "Client library audit",
         "created_on": "2026-09-07",
-        "closed_on": "2026-10-19"
+        "closed_at": "2026-10-19 00:00"
       },
       {
         "id": 11,
         "activity_id": 2,
         "text": "Book maintenance window",
         "created_on": "2026-09-07",
-        "closed_on": null
+        "closed_at": ""
       },
       {
         "id": 12,
         "activity_id": 2,
         "text": "Staging upgrade",
         "created_on": "2026-10-05",
-        "closed_on": null
+        "closed_at": ""
       },
       {
         "id": 13,
         "activity_id": 2,
         "text": "Rollback plan",
         "created_on": "2026-10-05",
-        "closed_on": null
+        "closed_at": ""
       },
       {
         "id": 14,
         "activity_id": 2,
         "text": "Upgrade clients in four services",
         "created_on": "2026-11-12",
-        "closed_on": null
+        "closed_at": ""
       },
       {
         "id": 15,
         "activity_id": 3,
         "text": "Inventory Jenkins jobs",
         "created_on": "2026-01-12",
-        "closed_on": "2026-01-30"
+        "closed_at": "2026-01-30 00:00"
       },
       {
         "id": 16,
         "activity_id": 3,
         "text": "CLI skeleton",
         "created_on": "2026-01-12",
-        "closed_on": "2026-02-13"
+        "closed_at": "2026-02-13 00:00"
       },
       {
         "id": 17,
         "activity_id": 3,
         "text": "Go builds",
         "created_on": "2026-01-12",
-        "closed_on": "2026-03-06"
+        "closed_at": "2026-03-06 00:00"
       },
       {
         "id": 18,
         "activity_id": 3,
         "text": "Deploy step",
         "created_on": "2026-01-12",
-        "closed_on": "2026-04-17"
+        "closed_at": "2026-04-17 00:00"
       },
       {
         "id": 19,
         "activity_id": 3,
         "text": "Python builds",
         "created_on": "2026-02-13",
-        "closed_on": "2026-03-06"
+        "closed_at": "2026-03-06 00:00"
       },
       {
         "id": 20,
         "activity_id": 3,
         "text": "Migrate last pipelines",
         "created_on": "2026-03-06",
-        "closed_on": "2026-05-29"
+        "closed_at": "2026-05-29 00:00"
       },
       {
         "id": 21,
         "activity_id": 4,
         "text": "Requirements",
         "created_on": "2026-02-02",
-        "closed_on": "2026-02-20"
+        "closed_at": "2026-02-20 00:00"
       },
       {
         "id": 22,
         "activity_id": 4,
         "text": "Shortlist",
         "created_on": "2026-02-02",
-        "closed_on": "2026-03-02"
+        "closed_at": "2026-03-02 00:00"
       },
       {
         "id": 23,
         "activity_id": 4,
         "text": "Vendor demos",
         "created_on": "2026-02-20",
-        "closed_on": "2026-03-12"
+        "closed_at": "2026-03-12 00:00"
       },
       {
         "id": 24,
         "activity_id": 4,
         "text": "Recommendation",
         "created_on": "2026-03-02",
-        "closed_on": "2026-04-10"
+        "closed_at": "2026-04-10 00:00"
       },
       {
         "id": 25,
         "activity_id": 5,
         "text": "Write role profile",
         "created_on": "2026-08-17",
-        "closed_on": "2026-08-28"
+        "closed_at": "2026-08-28 00:00"
       },
       {
         "id": 26,
         "activity_id": 5,
         "text": "Screening rubric",
         "created_on": "2026-08-17",
-        "closed_on": "2026-09-08"
+        "closed_at": "2026-09-08 00:00"
       },
       {
         "id": 27,
         "activity_id": 5,
         "text": "Offer and close",
         "created_on": "2026-08-17",
-        "closed_on": null
+        "closed_at": ""
       },
       {
         "id": 28,
         "activity_id": 5,
         "text": "First-round interviews",
         "created_on": "2026-09-08",
-        "closed_on": "2026-10-23"
+        "closed_at": "2026-10-23 00:00"
       },
       {
         "id": 29,
         "activity_id": 5,
         "text": "Technical panel",
         "created_on": "2026-09-08",
-        "closed_on": null
+        "closed_at": ""
       },
       {
         "id": 30,
         "activity_id": 6,
         "text": "Goals per person",
         "created_on": "2026-04-06",
-        "closed_on": "2026-04-24"
+        "closed_at": "2026-04-24 00:00"
       },
       {
         "id": 31,
         "activity_id": 6,
         "text": "Pairing schedule",
         "created_on": "2026-04-06",
-        "closed_on": "2026-05-15"
+        "closed_at": "2026-05-15 00:00"
       },
       {
         "id": 32,
         "activity_id": 6,
         "text": "Mid-year check-in",
         "created_on": "2026-04-06",
-        "closed_on": "2026-06-30"
+        "closed_at": "2026-06-30 00:00"
       },
       {
         "id": 33,
         "activity_id": 6,
         "text": "Code review rotation",
         "created_on": "2026-04-06",
-        "closed_on": "2026-08-14"
+        "closed_at": "2026-08-14 00:00"
       },
       {
         "id": 34,
         "activity_id": 6,
         "text": "Year-end review",
         "created_on": "2026-04-06",
-        "closed_on": null
+        "closed_at": ""
       },
       {
         "id": 35,
         "activity_id": 6,
         "text": "One tech talk each",
         "created_on": "2026-06-30",
-        "closed_on": null
+        "closed_at": ""
       },
       {
         "id": 36,
         "activity_id": 7,
         "text": "Audit current guide",
         "created_on": "2026-10-05",
-        "closed_on": "2026-10-16"
+        "closed_at": "2026-10-16 00:00"
       },
       {
         "id": 37,
         "activity_id": 7,
         "text": "Local environment section",
         "created_on": "2026-10-05",
-        "closed_on": "2026-10-29"
+        "closed_at": "2026-10-29 00:00"
       },
       {
         "id": 38,
         "activity_id": 7,
         "text": "Access and permissions",
         "created_on": "2026-10-05",
-        "closed_on": null
+        "closed_at": ""
       },
       {
         "id": 39,
         "activity_id": 7,
         "text": "First-week checklist",
         "created_on": "2026-10-29",
-        "closed_on": null
+        "closed_at": ""
       },
       {
         "id": 40,
         "activity_id": 8,
         "text": "Incident timeline",
         "created_on": "2026-06-08",
-        "closed_on": "2026-06-12"
+        "closed_at": "2026-06-12 00:00"
       },
       {
         "id": 41,
         "activity_id": 8,
         "text": "Root cause analysis",
         "created_on": "2026-06-08",
-        "closed_on": "2026-06-15"
+        "closed_at": "2026-06-15 00:00"
       },
       {
         "id": 42,
         "activity_id": 8,
         "text": "Action items assigned",
         "created_on": "2026-06-15",
-        "closed_on": "2026-06-26"
+        "closed_at": "2026-06-26 00:00"
       },
       {
         "id": 43,
         "activity_id": 9,
         "text": "Collect team requests",
         "created_on": "2026-11-16",
-        "closed_on": null
+        "closed_at": ""
       },
       {
         "id": 44,
         "activity_id": 9,
         "text": "Cost model",
         "created_on": "2026-11-16",
-        "closed_on": null
+        "closed_at": ""
       },
       {
         "id": 45,
         "activity_id": 9,
         "text": "Draft plan",
         "created_on": "2026-11-16",
-        "closed_on": null
+        "closed_at": ""
       },
       {
         "id": 46,
         "activity_id": 9,
         "text": "Review with manager",
         "created_on": "2026-11-16",
-        "closed_on": null
+        "closed_at": ""
       }
     ],
     "journal_entries": [

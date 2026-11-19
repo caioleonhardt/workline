@@ -296,8 +296,8 @@ func TestMigration0005MovesTasksIntoTheJournal(t *testing.T) {
 	today := d("2026-11-18")
 	act := domain.Activity{ID: 1, ProjectID: 1, Name: "a", Status: domain.StatusActive, Start: d("2026-01-01"), Due: d("2026-12-31")}
 	before := domain.ScopeCreep(act, []domain.Task{
-		{ID: 1, CreatedOn: d("2026-01-01"), ClosedOn: d("2026-02-01")}, {ID: 2, CreatedOn: d("2026-01-01")},
-		{ID: 4, CreatedOn: d("2026-11-01"), ClosedOn: d("2026-11-05")}, {ID: 5, CreatedOn: d("2026-11-10")},
+		{ID: 1, CreatedOn: d("2026-01-01"), ClosedAt: "2026-02-01 10:15"}, {ID: 2, CreatedOn: d("2026-01-01")},
+		{ID: 4, CreatedOn: d("2026-11-01"), ClosedAt: "2026-11-05 00:00"}, {ID: 5, CreatedOn: d("2026-11-10")},
 	}, &domain.ScopeAck{Date: d("2026-06-01"), BaselineCount: 2, LastTaskID: 3}, today)
 
 	m, err := Migrate(ctx, path)
@@ -319,9 +319,9 @@ func TestMigration0005MovesTasksIntoTheJournal(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []domain.Task{
-		{ID: 3, ActivityID: 1, Text: "kickoff", CreatedOn: d("2026-01-01"), ClosedOn: d("2026-02-01"), ClosedAt: "2026-02-01 10:15"},
+		{ID: 3, ActivityID: 1, Text: "kickoff", CreatedOn: d("2026-01-01"), ClosedAt: "2026-02-01 10:15"},
 		{ID: 4, ActivityID: 1, Text: "kickoff 2", CreatedOn: d("2026-01-01")},
-		{ID: 5, ActivityID: 1, Text: "after ack", CreatedOn: d("2026-11-01"), ClosedOn: d("2026-11-05")},
+		{ID: 5, ActivityID: 1, Text: "after ack", CreatedOn: d("2026-11-01"), ClosedAt: "2026-11-05 00:00"}, // migrated without a time: 0008 gives it 00:00
 		{ID: 6, ActivityID: 1, Text: "after ack 2", CreatedOn: d("2026-11-10")},
 	}
 	if len(tasks) != len(want) {
@@ -415,5 +415,46 @@ func TestMigration0006AllowsUnassignedAndKeepsIDs(t *testing.T) {
 	j, err := s.AddJournal(ctx, domain.JournalEntry{Date: date(t, "2026-02-01"), Kind: domain.KindUpdate, Text: "unassigned"})
 	if err != nil || j.ID != 4 {
 		t.Errorf("new entry: %+v %v, want id 4", j, err)
+	}
+}
+
+func TestMigration0008KeepsOnlyClosedAt(t *testing.T) {
+	path, db := dbAt(t, 7)
+	for _, q := range []string{
+		`INSERT INTO projects (id, name) VALUES (1, 'P')`,
+		`INSERT INTO activities (id, project_id, name, status, start_date, due_date) VALUES (1, 1, 'a', 'active', '2026-01-01', '2026-12-31')`,
+		`INSERT INTO journal_entries (activity_id, date, kind, text, closed_on, closed_at, priority) VALUES
+		   (1, '2026-01-02', 'task', 'timed', '2026-01-03', '2026-01-03 10:00', 'high'),
+		   (1, '2026-01-02', 'task', 'untimed', '2026-01-04', NULL, ''),
+		   (1, '2026-01-02', 'task', 'open', NULL, NULL, ''),
+		   (1, '2026-01-05', 'task', 'deleted newest', NULL, NULL, '')`,
+		`DELETE FROM journal_entries WHERE id = 4`,
+	} {
+		if _, err := db.ExecContext(ctx, q); err != nil {
+			t.Fatal(err)
+		}
+	}
+	db.Close()
+
+	if m, err := Migrate(ctx, path); err != nil || m.From != 7 || m.After["journal_entries"] != 3 {
+		t.Fatalf("Migrate = %+v, %v", m, err)
+	}
+	s, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	ts, _ := s.ListTasks(ctx, 1)
+	want := []string{"2026-01-03 10:00", "2026-01-04 00:00", ""}
+	if len(ts) != 3 || ts[0].Priority != domain.PriorityHigh {
+		t.Fatalf("tasks: %+v", ts)
+	}
+	for i, w := range want {
+		if ts[i].ClosedAt != w {
+			t.Errorf("task %d closed at %q, want %q", ts[i].ID, ts[i].ClosedAt, w)
+		}
+	}
+	if next, err := s.AddTask(ctx, 1, "new", date(t, "2026-02-01")); err != nil || next.ID != 5 {
+		t.Errorf("next id = %d, %v", next.ID, err)
 	}
 }

@@ -26,7 +26,7 @@ func sub(t *testing.T, id int64, created, closed string) Task {
 	t.Helper()
 	s := Task{ID: id, CreatedOn: d(t, created)}
 	if closed != "" {
-		s.ClosedOn = d(t, closed)
+		s.ClosedAt = closed + " 00:00"
 	}
 	return s
 }

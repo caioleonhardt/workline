@@ -5,6 +5,10 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
+### Changed
+- A task's close is one date and time. Tasks closed before close times were
+  recorded show `00:00`. Existing databases need `workline migrate`.
+
 ## [0.10.0] — 2026-11-19
 
 ### Added

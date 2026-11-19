@@ -35,11 +35,11 @@ type baselineData struct {
 		DueDate     string `json:"due_date"`
 	} `json:"activities"`
 	Tasks []struct {
-		ID         int64   `json:"id"`
-		ActivityID int64   `json:"activity_id"`
-		Text       string  `json:"text"`
-		CreatedOn  string  `json:"created_on"`
-		ClosedOn   *string `json:"closed_on"`
+		ID         int64  `json:"id"`
+		ActivityID int64  `json:"activity_id"`
+		Text       string `json:"text"`
+		CreatedOn  string `json:"created_on"`
+		ClosedAt   string `json:"closed_at"`
 	} `json:"tasks"`
 	JournalEntries []struct {
 		ID         int64  `json:"id"`
@@ -128,18 +128,13 @@ func insertBaseline(ctx context.Context, tx *sql.Tx, d baselineData, asOf domain
 		if err != nil {
 			return err
 		}
-		sub := domain.Task{ID: st.ID, Text: st.Text, CreatedOn: created}
-		if st.ClosedOn != nil {
-			if sub.ClosedOn, err = domain.ParseDate(*st.ClosedOn); err != nil {
-				return err
-			}
-		}
+		sub := domain.Task{ID: st.ID, Text: st.Text, CreatedOn: created, ClosedAt: st.ClosedAt}
 		if err := sub.ValidateAt(asOf); err != nil {
 			return fmt.Errorf("task %d: %w", st.ID, err)
 		}
 		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO journal_entries (id, activity_id, date, kind, text, closed_on) VALUES (?, ?, ?, 'task', ?, ?)`,
-			st.ID, st.ActivityID, st.CreatedOn, st.Text, nullDate(sub.ClosedOn)); err != nil {
+			`INSERT INTO journal_entries (id, activity_id, date, kind, text, closed_at) VALUES (?, ?, ?, 'task', ?, ?)`,
+			st.ID, st.ActivityID, st.CreatedOn, st.Text, sql.NullString{String: st.ClosedAt, Valid: st.ClosedAt != ""}); err != nil {
 			return fmt.Errorf("task %d: %w", st.ID, mapErr(err))
 		}
 	}

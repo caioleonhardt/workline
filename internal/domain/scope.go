@@ -56,7 +56,7 @@ func ScopeCreep(a Activity, subs []Task, ack *ScopeAck, today Date) Creep {
 		}
 	}
 	for _, s := range subs {
-		if !s.ClosedOn.IsZero() && s.ClosedOn.After(windowStart) {
+		if !s.ClosedOn().IsZero() && s.ClosedOn().After(windowStart) {
 			c.Close30++
 		}
 	}

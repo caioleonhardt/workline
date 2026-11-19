@@ -301,11 +301,11 @@ func TestTasks(t *testing.T) {
 	}
 
 	closed, err := s.ToggleTask(ctx, st.ID, fixed(d2))
-	if err != nil || closed.ClosedOn != d2 || closed.Text != "one" || closed.ClosedAt != "2026-02-10 09:30" {
+	if err != nil || closed.ClosedOn() != d2 || closed.Text != "one" || closed.ClosedAt != "2026-02-10 09:30" {
 		t.Errorf("close: %+v %v", closed, err)
 	}
 	reopened, err := s.ToggleTask(ctx, st.ID, fixed(d2))
-	if err != nil || !reopened.ClosedOn.IsZero() || reopened.ClosedAt != "" {
+	if err != nil || !reopened.ClosedOn().IsZero() || reopened.ClosedAt != "" {
 		t.Errorf("reopen: %+v %v", reopened, err)
 	}
 	if _, err := s.ToggleTask(ctx, 999, fixed(d2)); !errors.Is(err, ErrNotFound) {
@@ -314,7 +314,7 @@ func TestTasks(t *testing.T) {
 	if _, err := s.ToggleTask(ctx, st.ID, fixed(0)); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("toggle zero today: %v", err)
 	}
-	// closing before creation violates closed_on >= created_on
+	// closing before creation violates closed_at >= date
 	if _, err := s.ToggleTask(ctx, st.ID, fixed(date(t, "2026-01-01"))); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("close before created: %v", err)
 	}
@@ -335,7 +335,7 @@ func TestTasks(t *testing.T) {
 		t.Errorf("edit missing: %v", err)
 	}
 	subs, err := s.ListTasks(ctx, a.ID)
-	if err != nil || len(subs) != 3 || subs[1].Text != "one!" || subs[1].ClosedOn != d2 || subs[1].CreatedOn != d1.AddDays(1) {
+	if err != nil || len(subs) != 3 || subs[1].Text != "one!" || subs[1].ClosedOn() != d2 || subs[1].CreatedOn != d1.AddDays(1) {
 		t.Errorf("list: %+v %v", subs, err)
 	}
 	if all, _ := s.ListAllTasks(ctx); len(all) != 3 {

@@ -10,7 +10,7 @@ func percent(n, d int) int {
 func OpenAt(subs []Task, t Date) int {
 	n := 0
 	for _, s := range subs {
-		if !s.CreatedOn.After(t) && (s.ClosedOn.IsZero() || s.ClosedOn.After(t)) {
+		if !s.CreatedOn.After(t) && (s.ClosedOn().IsZero() || s.ClosedOn().After(t)) {
 			n++
 		}
 	}
@@ -31,7 +31,7 @@ func ScopeAt(subs []Task, t Date) int {
 func countClosed(subs []Task) int {
 	n := 0
 	for _, s := range subs {
-		if !s.ClosedOn.IsZero() {
+		if !s.ClosedOn().IsZero() {
 			n++
 		}
 	}

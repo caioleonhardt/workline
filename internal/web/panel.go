@@ -52,7 +52,7 @@ func buildPanel(a domain.Activity, projects []domain.Project, subs []domain.Task
 		Statuses: statusOptions(a.Status), Priorities: priorityOptions(a.Priority),
 	}
 	for _, st := range subs {
-		if !st.ClosedOn.IsZero() {
+		if !st.ClosedOn().IsZero() {
 			p.Closed++
 		}
 	}

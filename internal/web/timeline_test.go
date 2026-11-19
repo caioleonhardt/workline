@@ -292,7 +292,7 @@ func TestCompletionDotsOnePerDay(t *testing.T) {
 	}
 	for _, want := range []string{
 		`class="done-dot center down" style="left:75.89%"><button type="button" class="dot" aria-label="1 task completed on 2026-10-05" aria-describedby="done-2-2026-10-05">`,
-		`<span class="popup" id="done-2-2026-10-05"><strong>2026-10-05</strong><ul><li>Compatibility matrix</li></ul>`,
+		`<span class="popup" id="done-2-2026-10-05"><strong>2026-10-05</strong><ul><li><span class="mono">00:00</span> Compatibility matrix</li></ul>`,
 		`style="left:79.73%"`,
 	} {
 		if !strings.Contains(row, want) {

@@ -38,7 +38,7 @@ func TestSortTasks(t *testing.T) {
 	mk := func(id int64, p Priority, created, closed string) Task {
 		ts := Task{ID: id, Priority: p, CreatedOn: d(t, created)}
 		if closed != "" {
-			ts.ClosedOn = d(t, closed)
+			ts.ClosedAt = closed + " 00:00"
 		}
 		return ts
 	}

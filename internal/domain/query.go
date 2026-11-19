@@ -142,7 +142,7 @@ func parseTerm(tok string) (term, bool, error) {
 			switch value {
 			case "open", "closed":
 				closed := value == "closed"
-				t.holds = func(e JournalEntry, _, _ string) bool { return e.Kind == KindTask && e.ClosedOn.IsZero() != closed }
+				t.holds = func(e JournalEntry, _, _ string) bool { return e.Kind == KindTask && e.ClosedOn().IsZero() != closed }
 			case "unassigned":
 				t.holds = func(e JournalEntry, _, _ string) bool { return e.ActivityID == 0 }
 			default:

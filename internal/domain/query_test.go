@@ -6,9 +6,8 @@ import (
 )
 
 func TestQueryMatch(t *testing.T) {
-	closed := d(t, "2026-11-10")
 	open := JournalEntry{ID: 1, ActivityID: 7, Kind: KindTask, Text: "Review the API deploy", Priority: PriorityHigh}
-	done := JournalEntry{ID: 2, ActivityID: 7, Kind: KindTask, Text: "Draft plan", Priority: PriorityLow, ClosedOn: closed}
+	done := JournalEntry{ID: 2, ActivityID: 7, Kind: KindTask, Text: "Draft plan", Priority: PriorityLow, ClosedAt: "2026-11-10 00:00"}
 	note := JournalEntry{ID: 3, ActivityID: 8, Kind: KindDecision, Text: "Go with code review on Fridays, see https://x.test/a"}
 	loose := JournalEntry{ID: 4, Kind: KindMeeting, Text: "1:1 notes"}
 	ack := JournalEntry{ID: 5, ActivityID: 8, Kind: KindScopeAck, Text: "Scope acknowledged"}

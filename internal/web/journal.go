@@ -54,7 +54,7 @@ func journalRows(entries []domain.JournalEntry) []journalRow {
 	for _, j := range entries {
 		row := journalRow{
 			ID: j.ID, Date: j.Date.String(), Time: j.Time(), Kind: string(j.Kind), KindLabel: kindLabel(j.Kind), Text: j.Text,
-			Closed: j.ClosedOn.String(), Priority: string(j.Priority), PriorityLabel: priorityLabel(j.Priority),
+			Closed: j.ClosedOn().String(), Priority: string(j.Priority), PriorityLabel: priorityLabel(j.Priority),
 			IsTask: j.Kind == domain.KindTask, ReadOnly: j.Kind == domain.KindScopeAck, Kinds: kindOptions(noteKinds, j.Kind),
 		}
 		if first, rest, more := strings.Cut(j.Text, "\n"); more && strings.TrimSpace(rest) != "" {

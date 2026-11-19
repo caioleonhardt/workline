@@ -10,7 +10,7 @@ import (
 	"workline/internal/domain"
 )
 
-const journalColumns = `id, coalesce(activity_id, 0), date, kind, text, logged_at, closed_on, closed_at, priority`
+const journalColumns = `id, coalesce(activity_id, 0), date, kind, text, logged_at, closed_at, priority`
 
 func insertJournal(ctx context.Context, q queryer, j domain.JournalEntry) (int64, error) {
 	if err := j.Validate(); err != nil {
@@ -59,15 +59,12 @@ func (s *Store) queryJournal(ctx context.Context, query string, args ...any) ([]
 	for rows.Next() {
 		var j domain.JournalEntry
 		var date, kind, priority string
-		var loggedAt, closedOn, closedAt sql.NullString
-		if err := rows.Scan(&j.ID, &j.ActivityID, &date, &kind, &j.Text, &loggedAt, &closedOn, &closedAt, &priority); err != nil {
+		var loggedAt, closedAt sql.NullString
+		if err := rows.Scan(&j.ID, &j.ActivityID, &date, &kind, &j.Text, &loggedAt, &closedAt, &priority); err != nil {
 			return nil, fmt.Errorf("scan journal: %w", err)
 		}
 		j.Kind, j.LoggedAt, j.ClosedAt, j.Priority = domain.Kind(kind), loggedAt.String, closedAt.String, domain.Priority(priority)
 		if j.Date, err = parseDate(date); err != nil {
-			return nil, err
-		}
-		if j.ClosedOn, err = parseOptDate(closedOn); err != nil {
 			return nil, err
 		}
 		out = append(out, j)

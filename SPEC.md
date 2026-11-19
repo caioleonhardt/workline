@@ -69,14 +69,13 @@ On creation, status defaults to `planned` if `start_date > today`, else `active`
 | kind | enum | `update`, `decision`, `blocker`, `meeting`, `task`, `scope_ack` |
 | text | text | required |
 | logged_at | datetime, nullable | local time it was logged (§10 item 49) |
-| closed_on | date, nullable | tasks only. null = open. Closing sets today; reopening sets null |
-| closed_at | datetime, nullable | tasks only; local time it was closed (§10 item 53) |
+| closed_at | datetime, nullable | tasks only. null = open. Closing sets the local time (§10 items 53, 108); reopening sets null |
 | priority | enum | tasks only: `high`, `medium`, `low`, or empty for none (§10 item 92) |
 
 `scope_ack` entries are created only by the Acknowledge action (§5.4), never from the journal form.
 
 ### Task
-A **task** is a journal entry of kind `task` (§10 item 84). In the rules below, a task's `created_on` is its entry's `date`.
+A **task** is a journal entry of kind `task` (§10 item 84). In the rules below, a task's `created_on` is its entry's `date` and its `closed_on` is the day of its `closed_at` (null while open).
 
 ### ScopeAck
 | field | type | notes |
@@ -365,7 +364,7 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 50. ~~Timeline journal dots stack per day.~~ Superseded by item 52.
 51. Filter controls keep `new=1`, so the create form stays open across filter changes.
 52. **Timeline dots mark task completions, not journal entries.** One dot per activity per day on which at least one task was closed. Hovering or keyboard-focusing the dot shows a small popup listing that day's closed tasks (text and close time when known). Journal entries no longer appear on the timeline; they stay in the panel. The legend says "Tasks completed".
-53. **Task close time**: tasks also record `closed_at` (local `YYYY-MM-DD HH:MM`), stamped from the clock when toggled closed and cleared on reopen; never editable. Older and seeded tasks have none. Journal `logged_at` (item 49) stays.
+53. **Task close time**: tasks also record `closed_at` (local `YYYY-MM-DD HH:MM`), stamped from the clock when toggled closed and cleared on reopen; never editable. Older and seeded tasks have none (until item 108). Journal `logged_at` (item 49) stays.
 54. All stored times are local wall-clock time; no UTC conversion.
 55. Completion-dot popups in the first timeline rows open downward so they are not clipped; others open upward and scroll past 150px.
 56. A task keeps only its latest close; reopening and closing again moves its dot (no history).
@@ -462,3 +461,6 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 105. **Search history.** In the search line, `Ctrl+P` or `Up` recalls the previous search and `Ctrl+N` or `Down` the next, back to what was being typed, as in Vim's cmdline (no prefix filtering). Searches run with `Enter` or `Ctrl+Enter` are kept in the browser's local storage, newest last, 50 at most, so the history survives the search page's load; without storage it lasts as long as the page. On the search page its query is the last pattern, so `/` then `Enter` marks it.
 106. **Click a journal row to edit.** With scripting on, a click on a feed row, outside its links, controls and editor and without selecting text, opens the entry's editor. The Edit summary is then hidden until it has keyboard focus (Tab still reaches it, `i` still opens it); without scripting it shows as before. The feed's task checkbox is 14px and sits on the row's text baseline.
 107. **One line per journal row.** A feed row shows the entry's first line, followed by ` …` when non-blank lines follow; a long line is cut with an ellipsis, so every row is one line high. The whole text is in the entry's editor (a click on the row, item 106). The export keeps the full text. This replaces item 89's line breaks in lists for the feed; the panel's and the journal page's task lists are unchanged. All task checkboxes are 14px.
+
+### Decisions (close time, 2026-11-19)
+108. **One close field.** `closed_on` and `closed_at` said the same thing, so migration 0008 drops `closed_on`; `closed_at` alone records a close, and `closed_on` in §4 is its day. Closes recorded without a time (older and seeded tasks) get `00:00`, which the completion popups show. The seed file gives closed tasks `closed_at` at `00:00`. The DB checks that only a task has a `closed_at` and that its day is not before the task's `date`.

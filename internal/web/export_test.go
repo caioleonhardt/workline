@@ -15,7 +15,7 @@ func TestExportMarkdownFormat(t *testing.T) {
 			{Date: date(t, "2026-03-02"), Kind: domain.KindMeeting, Text: "Kick-off"},
 			{Date: date(t, "2026-04-20"), Kind: domain.KindDecision, Text: "first line\nsecond line\n", LoggedAt: "2026-04-20 14:05"},
 			{Date: date(t, "2026-05-04"), Kind: domain.KindTask, Text: "Open task"},
-			{Date: date(t, "2026-05-05"), Kind: domain.KindTask, Text: "Done task", ClosedOn: date(t, "2026-06-01")},
+			{Date: date(t, "2026-05-05"), Kind: domain.KindTask, Text: "Done task", ClosedAt: "2026-06-01 00:00"},
 			{Date: date(t, "2026-11-18"), Kind: domain.KindScopeAck, Text: "Scope change acknowledged", LoggedAt: "2026-11-18 16:02"},
 		},
 	}

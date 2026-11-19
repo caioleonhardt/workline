@@ -10,21 +10,18 @@ import (
 )
 
 // taskColumns reads a journal entry of kind task as a domain.Task.
-const taskColumns = `id, coalesce(activity_id, 0), text, date, closed_on, closed_at, priority`
+const taskColumns = `id, coalesce(activity_id, 0), text, date, closed_at, priority`
 
 func scanTask(r scanner) (domain.Task, error) {
 	var s domain.Task
 	var created, priority string
-	var closed, closedAt sql.NullString
-	if err := r.Scan(&s.ID, &s.ActivityID, &s.Text, &created, &closed, &closedAt, &priority); err != nil {
+	var closedAt sql.NullString
+	if err := r.Scan(&s.ID, &s.ActivityID, &s.Text, &created, &closedAt, &priority); err != nil {
 		return s, err
 	}
 	s.ClosedAt, s.Priority = closedAt.String, domain.Priority(priority)
 	var err error
-	if s.CreatedOn, err = parseDate(created); err != nil {
-		return s, err
-	}
-	s.ClosedOn, err = parseOptDate(closed)
+	s.CreatedOn, err = parseDate(created)
 	return s, err
 }
 
@@ -63,17 +60,15 @@ func (s *Store) ListAllTasks(ctx context.Context) ([]domain.Task, error) {
 }
 
 // ToggleTask closes an open task, recording the clock's date and time,
-// or reopens a closed one, clearing both, and returns the result.
+// or reopens a closed one, clearing it, and returns the result.
 func (s *Store) ToggleTask(ctx context.Context, id int64, clock domain.Clock) (domain.Task, error) {
-	today := clock.Today()
-	if today.IsZero() {
+	if clock.Today().IsZero() {
 		return domain.Task{}, domain.Invalid("today is required")
 	}
 	st, err := scanTask(s.db.QueryRowContext(ctx,
 		`UPDATE journal_entries SET
-		   closed_on = CASE WHEN closed_on IS NULL THEN ?1 ELSE NULL END,
-		   closed_at = CASE WHEN closed_on IS NULL THEN ?2 ELSE NULL END
-		 WHERE id = ?3 AND kind = 'task' RETURNING `+taskColumns, today.String(), domain.Stamp(clock.Now()), id))
+		   closed_at = CASE WHEN closed_at IS NULL THEN ?1 ELSE NULL END
+		 WHERE id = ?2 AND kind = 'task' RETURNING `+taskColumns, domain.Stamp(clock.Now()), id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return st, fmt.Errorf("task %d: %w", id, ErrNotFound)
 	}

@@ -163,7 +163,7 @@ func TestGlobalMax(t *testing.T) {
 func TestBurndownRange(t *testing.T) {
 	tasks := []Task{
 		{ID: 1, CreatedOn: d(t, "2026-11-01")},
-		{ID: 2, CreatedOn: d(t, "2026-11-10"), ClosedOn: d(t, "2026-11-11")},
+		{ID: 2, CreatedOn: d(t, "2026-11-10"), ClosedAt: "2026-11-11 00:00"},
 		{ID: 3, CreatedOn: d(t, "2026-11-12")},
 	}
 	bins := BurndownRange(tasks, d(t, "2026-11-10"), d(t, "2026-11-12"), 1)

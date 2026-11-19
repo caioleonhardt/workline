@@ -20,7 +20,7 @@ func taskRows(subs []domain.Task) []taskRow {
 	domain.SortTasks(sorted)
 	var rows []taskRow
 	for _, st := range sorted {
-		rows = append(rows, taskRow{st.ID, st.Text, st.CreatedOn.String(), st.ClosedOn.String(),
+		rows = append(rows, taskRow{st.ID, st.Text, st.CreatedOn.String(), st.ClosedOn().String(),
 			string(st.Priority), priorityLabel(st.Priority), priorityOptions(st.Priority)})
 	}
 	return rows

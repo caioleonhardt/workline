@@ -28,7 +28,7 @@ func priorityRank(p Priority) int {
 func SortTasks(ts []Task) {
 	sort.SliceStable(ts, func(i, j int) bool {
 		a, b := ts[i], ts[j]
-		if ao, bo := a.ClosedOn.IsZero(), b.ClosedOn.IsZero(); ao != bo {
+		if ao, bo := a.ClosedOn().IsZero(), b.ClosedOn().IsZero(); ao != bo {
 			return ao
 		}
 		if ra, rb := priorityRank(a.Priority), priorityRank(b.Priority); ra != rb {
