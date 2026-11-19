@@ -295,6 +295,7 @@ GET    /static/*                           embedded assets
 9. **Unassigned entries.** Log without choosing an activity; file entries later (§10 item 91).
 10. **Task priority and bar prefixes.** Tasks get a priority; `/t`, `/d`, `/u`… set the kind from the bar (§10 items 92–93).
 11. **Journal page.** `/` shows the last two weeks for 1:1s; the timeline moves to `/timeline` (§10 items 94–95).
+12. **Vim keys.** Normal-mode keys move a cursor over entries, search the page and act on the focused entry (§10 items 99–100).
 
 Each milestone ends with `go vet ./...` and `go test ./...` green.
 
@@ -424,3 +425,14 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 96. **Floating completion popups.** With scripting on, a completion dot's popup is `position: fixed` and placed by `app.js` beside its dot: above it when there is room, else below, kept inside the window, and moved along on scroll. The timeline's scrolling box can no longer clip it. Without scripting the CSS-only popup of item 54 stays.
 97. **Journal keys.** Outside a text field, `t`, `d`, `u`, `b` and `m` focus the journal bar with kind task, decision, update, blocker or meeting chosen; `j` focuses it keeping the kind. Typing `/` outside a field would open the browser's quick find, so on pages without the timeline's filter (the journal page) `/` focuses the bar instead. The `/t`… prefixes of item 93 still work inside the bar.
 98. **Entry editor.** Edit (feed entries and panel tasks) opens an inline box: the text first, full width, growing with its content (CSS `field-sizing`); then kind, activity, priority and date as needed; then Delete… (with its confirm step) on the left and Cancel and Save on the right. Delete is a separate form, reached by the confirm button's `form` attribute. No editor library: entries stay plain text. With scripting on, opening the box focuses the text at its end, Ctrl/Cmd+Enter saves, and Esc or Cancel discards the changes and closes it; without it, the Edit summary closes the box and Cancel is hidden.
+
+### Decisions (Milestone 12, Vim keys, 2026-11-19)
+99. **Vim keys.** The page is Normal mode; the quick-add bar, the entry editor and other fields are Insert mode (keys there are left alone, as are keys with Ctrl/Alt/Meta). Entry lists are panes: on the journal page, open tasks and the feed; on the timeline, the panel's tasks and the feed. Each entry is focusable (`tabindex="-1"`) and the focused one is the cursor.
+    - `j`/`k` next/previous entry in the pane (from nothing: the first pane's first entry); `gg`/`G` first/last; `h`/`l` previous/next pane.
+    - `i` opens the focused entry's editor; Esc or Cancel returns the cursor to the entry. `x` closes or reopens a task that has a toggle. `dd` opens the editor at the Delete… confirm step with Confirm focused; nothing is deleted without it. `Enter` follows the entry's activity link.
+    - `o` focuses the bar keeping its kind (the `/t`… prefixes of item 93 choose another).
+    - `/` opens a search line; Enter moves to the first entry after the cursor whose text contains the query (case-insensitive) and marks all matches; `n`/`N` move to the next/previous match, wrapping, re-read from the page so they survive swaps. Esc in Normal mode clears the marks first.
+    - `[`/`]` previous/next week on the journal page; `gj`/`gt`/`gp` go to Journal, Timeline, Projects; on the timeline `O` opens New activity and `f` focuses the Project filter. `Esc` otherwise cancels the new-activity form, else closes the panel (item 68).
+    - `?` opens a dialog listing the keys; the pages' hint lines say "Press ? for keys".
+    This replaces the keys of items 68, 76 and 97 (`n`, `/` as filter or bar, `j`, `t d u b m`). Without scripting nothing changes. No counts, Visual mode, registers or `:` commands.
+100. **Server-side search** over the whole journal is left for later; `/` searches only the entries on the page.
