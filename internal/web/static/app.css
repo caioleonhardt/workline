@@ -130,8 +130,8 @@ textarea { border: 1px solid var(--border); border-radius: 8px; padding: 8px; fo
 .jwork { display: grid; gap: 20px; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); grid-template-areas: "tasks journal"; align-items: start; }
 .jwork > .open-tasks { grid-area: tasks; margin: 0; }
 .task-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.strip .act-row .tl-track { height: 120px; } /* room for a completion popup above or below the single row */
-.strip .tl { min-width: calc(var(--label-w) + 560px); }
+.strip .act-row .tl-track { height: 120px; } /* with the header, room for a completion popup above the single row */
+.strip .col { padding: 6px 4px; }
 @media (max-width: 1130px) { .work { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "timeline" "panel" "journal"; } .jwork { grid-template-columns: minmax(0, 1fr); grid-template-areas: "tasks" "journal"; } }
 .error-bar { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--creep-bg); color: var(--creep-fg); font-weight: 600; }
 .error-bar button { min-height: 36px; margin-left: auto; }

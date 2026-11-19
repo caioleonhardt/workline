@@ -25,7 +25,8 @@ func TestJournalPage(t *testing.T) {
 		`<a href="/?week=2026-11-23" aria-label="Next week">›</a>`, `href="/export/journal.md?from=2026-11-09&amp;to=2026-11-22" hx-boost="false"`,
 		`<div class="col now" style="left:64.29%;width:7.14%"><span class="col-title">Wed <span class="muted">18</span>`,
 		`<span class="today-flag" style="left:67.86%">Today</span>`,
-		`aria-describedby="done-all-2026-11-10"`, "Remove Kafka topic dependencies")
+		`<span class="done-dot left" style="left:10.71%"><button type="button" class="dot" aria-label="1 task completed on 2026-11-10" aria-describedby="done-all-2026-11-10">`,
+		"Remove Kafka topic dependencies")
 	if strings.Contains(body, "This week</a>") {
 		t.Error("this week offers a This week link")
 	}

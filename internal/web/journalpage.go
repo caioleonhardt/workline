@@ -261,7 +261,7 @@ func buildStrip(tasks []domain.Task, from, to, today domain.Date) stripView {
 			v.Bins = append(v.Bins, bv)
 		}
 	}
-	v.Done = completionDots(ax, from, to, "all", tasks, true)
+	v.Done = completionDots(ax, from, to, "all", tasks, false) // popups open upward: a single row has no room below
 	_, day := ax.span(from, from)
 	for i := range v.Done {
 		v.Done[i].Left += day / 2 // a day is a whole column here: centre the dot in it
