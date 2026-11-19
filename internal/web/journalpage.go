@@ -129,25 +129,7 @@ func (s *Server) buildJournalPage(ctx context.Context, uri string) (journalPageV
 		return journalPageView{}, err
 	}
 
-	// Archived projects are hidden everywhere (SPEC §10 item 33).
-	projectName := map[int64]string{}
-	for _, p := range projects {
-		projectName[p.ID] = p.Name
-	}
-	actOf := map[int64]domain.Activity{}
-	liveOf := map[int64][]domain.Activity{}
-	for _, a := range acts {
-		if _, live := projectName[a.ProjectID]; live {
-			actOf[a.ID] = a
-			liveOf[a.ProjectID] = append(liveOf[a.ProjectID], a)
-		}
-	}
-	var filing []domain.Group
-	for _, p := range projects {
-		if as := liveOf[p.ID]; len(as) > 0 {
-			filing = append(filing, domain.Group{Project: p, Activities: as})
-		}
-	}
+	projectName, actOf, filing := liveIndex(projects, acts)
 	shown := func(activityID int64) bool {
 		_, ok := actOf[activityID]
 		return activityID == 0 || ok
@@ -204,6 +186,31 @@ func (s *Server) buildJournalPage(ctx context.Context, uri string) (journalPageV
 		v.Journal.Entries = append(v.Journal.Entries, fr)
 	}
 	return v, nil
+}
+
+// liveIndex indexes the activities of live projects (archived ones are hidden
+// everywhere, SPEC §10 item 33): project names by id, activities by id, and the
+// groups an Unassigned entry can be filed under. projects must exclude archived ones.
+func liveIndex(projects []domain.Project, acts []domain.Activity) (map[int64]string, map[int64]domain.Activity, []domain.Group) {
+	projectName := map[int64]string{}
+	for _, p := range projects {
+		projectName[p.ID] = p.Name
+	}
+	actOf := map[int64]domain.Activity{}
+	liveOf := map[int64][]domain.Activity{}
+	for _, a := range acts {
+		if _, live := projectName[a.ProjectID]; live {
+			actOf[a.ID] = a
+			liveOf[a.ProjectID] = append(liveOf[a.ProjectID], a)
+		}
+	}
+	var filing []domain.Group
+	for _, p := range projects {
+		if as := liveOf[p.ID]; len(as) > 0 {
+			filing = append(filing, domain.Group{Project: p, Activities: as})
+		}
+	}
+	return projectName, actOf, filing
 }
 
 func journalTiles(tasks []domain.Task, from, to, today domain.Date) []tileView {
