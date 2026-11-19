@@ -296,6 +296,7 @@ GET    /static/*                           embedded assets
 10. **Task priority and bar prefixes.** Tasks get a priority; `/t`, `/d`, `/u`… set the kind from the bar (§10 items 92–93).
 11. **Journal page.** `/` shows the last two weeks for 1:1s; the timeline moves to `/timeline` (§10 items 94–95).
 12. **Vim keys.** Normal-mode keys move a cursor over entries, search the page and act on the focused entry (§10 items 99–100).
+13. **Search with filters.** A query syntax with terms, exclusions and qualifiers, run by the server over the whole journal (§10 items 102–103).
 
 Each milestone ends with `go vet ./...` and `go test ./...` green.
 
@@ -435,10 +436,25 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
     - `[`/`]` previous/next week on the journal page; `gj`/`gt`/`gp` go to Journal, Timeline, Projects; on the timeline `O` opens New activity and `f` focuses the Project filter. `Esc` otherwise cancels the new-activity form, else closes the panel (item 68).
     - `?` opens a dialog listing the keys; the pages' hint lines say "Press ? for keys".
     This replaces the keys of items 68, 76 and 97 (`n`, `/` as filter or bar, `j`, `t d u b m`). Without scripting nothing changes. No counts, Visual mode, registers or `:` commands.
-100. **Server-side search** over the whole journal is left for later; `/` searches only the entries on the page.
+100. **Server-side search** over the whole journal is left for later; `/` searches only the entries on the page. (Superseded by item 103.)
 101. **Statusline.** With scripting on, a one-line statusline sits at the bottom of the window, below the quick-add bar, as in Neovim with a lualine-style mode block:
     - **Mode** on the left: `NORMAL`; `INSERT` while a field (bar, editor, filter) has focus; `COMMAND` while typing a search.
     - **Command line**: `/` types the search in the statusline after a `/`. Afterwards it shows `/term [i/n]` for the match under the cursor, `search hit BOTTOM, continuing at TOP` (or `TOP … BOTTOM` for `N`) when a jump wraps, and `E486: Pattern not found: term` when nothing matches. Esc clearing the matches clears it.
     - **Pending keys** (`g`, `d`) show on the right while they wait, like `showcmd`.
     - **Position** on the far right: the cursor's list and place in it, e.g. `Journal 3/30`.
     Lists are named by their `data-pane` value (Open tasks, Tasks, Journal). Without scripting there is no statusline. It is not a live region, so mode changes are not announced.
+
+### Decisions (Milestone 13, search with filters, 2026-11-19)
+102. **Query syntax.** A query is tokens separated by spaces (outside double quotes), all of which must match (AND); there is no OR. Matching ignores case.
+    - `word` — the text contains it; `"two words"` — the text contains the phrase.
+    - `p:1`/`p:high`, `p:2`/`p:medium`, `p:3`/`p:low` — the priority (only tasks have one).
+    - `k:` — the kind: `t`/`task`, `d`/`decision`, `u`/`update`, `b`/`blocker`, `m`/`meeting`, `ack`/`scope_ack`.
+    - `proj:` / `act:` — the project / activity name starts with the value; the value may be quoted (`proj:"Big Thing"`).
+    - `is:open` / `is:closed` — an open / closed task; `is:unassigned` — an entry with no activity.
+    - `!` before any token negates it (`!draft`, `!k:meeting`).
+    A `key:` that is not one of these is plain text, so URLs still search. A bad value for a known key is refused with `E475: Invalid argument: p:9`, an unclosed quote with `E114: Missing quote: "two`, an empty query with `E35: No previous regular expression`. Parsing and matching live in `internal/domain` (`ParseQuery`, `Query.Match`).
+103. **Search routes and keys.** Entries of archived projects are left out (item 33); Unassigned entries are in.
+    - `GET /search?q=&from=` lists the matching entries newest first with the feed's rows and Edit forms, 30 at a time with "Show 30 more" (`feed`, as in item 77). Its root is `#dash`, with the bar and the statusline, so mutations whose `next` is the search page answer with its fragment. "Clear search" goes back to `from` (a local path, else `/`). A refused query shows its message instead of results. It works without scripting.
+    - `GET /search/ids?q=` answers `{"ids":[…]}` with every matching entry's id, or `{"error":"E…"}` with 400. `GET /search/words` answers `{"projects":[…],"activities":[…]}` (live names) for completion.
+    - In the search line, `Enter` marks the entries on the page whose id the server returned and jumps as before (`[i/n]`, wrap, `E486`); with a search active the marks are fetched again after each swap. `Ctrl+Enter` opens `/search` with the query and the current address as `from`; there the statusline reads `/query [filter] N results` and `Esc` in Normal mode, with no marks, follows "Clear search".
+    - `Tab` / `Shift+Tab` complete the last token: keys, the values of `p:`, `k:`, `is:`, and project or activity names (quoted when they contain a space), cycling through the candidates, which the statusline lists with the current one highlighted.
