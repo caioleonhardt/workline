@@ -5,6 +5,20 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
+### Added
+- Search with filters, over the whole journal. After `/`, combine words,
+  `"phrases"` and filters: `p:1`…`p:3` (priority), `k:d` or `k:decision`
+  (kind), `proj:name`, `act:name`, `is:open`, `is:closed`, `is:unassigned`.
+  Put `!` in front of any of them to exclude it. Example:
+  `/p:1 proj:atlas !is:closed`. Mistakes show Vim-style errors such as
+  `E475: Invalid argument: p:9`.
+- `Enter` marks the matching entries on the page (`n`/`N` jump between them).
+  `Ctrl+Enter` opens a search page that lists only the matches, with Edit, close
+  and "Show 30 more"; `Esc` or "Clear search" goes back. The page also works
+  without JavaScript at `/search?q=…`.
+- `Tab` / `Shift+Tab` in the search line complete filters, their values, and
+  project and activity names, with the choices listed in the statusline.
+
 ## [0.9.0] — 2026-11-19
 
 ### Changed
