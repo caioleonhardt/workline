@@ -6,16 +6,18 @@
 
 {{define "quickadd-target"}}{{with .}}<span class="target">Journal for <strong>{{.Name}}</strong> · {{.Project}}</span><input type="hidden" name="activity" value="{{.ID}}"><input type="hidden" name="next" value="{{.Next}}">{{end}}{{end}}
 
+{{define "quickadd-input"}}<input id="quickadd-text" name="text" aria-label="Journal entry" placeholder="Log to the journal…" autocomplete="off" required{{if .}} hx-swap-oob="true"{{end}}>{{end}}
+
 {{define "quickadd"}}<form id="quickadd" class="quick" method="post" action="/journal" hx-post="/journal" hx-target="#dash" hx-swap="outerHTML">
 <span id="quickadd-target">{{template "quickadd-target" .QuickAdd}}</span>
 <label class="sr-only" for="quickadd-kind">Kind</label>
 <select id="quickadd-kind" name="kind">{{range .QuickKinds}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select>
-<input id="quickadd-text" name="text" aria-label="Journal entry" placeholder="Log to the journal…" autocomplete="off" required>
+{{template "quickadd-input" false}}
 <button class="apply-nojs">Log</button>
 <div id="quickadd-error" aria-live="polite"></div>
 </form>{{end}}
 
-{{define "dash-fragment"}}{{template "dash" .}}<div id="errors" aria-live="polite" hx-swap-oob="true"></div><span id="quickadd-target" hx-swap-oob="innerHTML">{{template "quickadd-target" .QuickAdd}}</span>{{end}}
+{{define "dash-fragment"}}{{template "dash" .}}<div id="errors" aria-live="polite" hx-swap-oob="true"></div><span id="quickadd-target" hx-swap-oob="innerHTML">{{template "quickadd-target" .QuickAdd}}</span><div id="quickadd-error" aria-live="polite" hx-swap-oob="true"></div>{{if .ClearQuick}}{{template "quickadd-input" true}}{{end}}{{end}}
 
 {{define "dash"}}
 <div id="dash" hx-boost="true" hx-target="#dash" hx-swap="outerHTML">

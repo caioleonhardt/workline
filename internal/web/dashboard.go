@@ -40,6 +40,7 @@ type dashboardView struct {
 	Controls    controlsView
 	QuickAdd    *quickAddView // the quick-add bar's target; nil without a selection
 	QuickKinds  []option
+	ClearQuick  bool // a successful quick add also replaces the text field with an empty one
 	Tiles       []tileView
 	Timeline    timelineView
 }
@@ -49,11 +50,14 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 // renderDashboard renders the dashboard for the given path and query.
-func (s *Server) renderDashboard(w http.ResponseWriter, r *http.Request, uri string) {
+func (s *Server) renderDashboard(w http.ResponseWriter, r *http.Request, uri string, mods ...func(*dashboardView)) {
 	v, err := s.buildDashboard(r.Context(), uri)
 	if err != nil {
 		s.fail(w, r, err)
 		return
+	}
+	for _, mod := range mods {
+		mod(&v)
 	}
 	w.Header().Set("Vary", "HX-Request")
 	name := "dashboard.html"

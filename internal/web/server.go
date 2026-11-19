@@ -124,6 +124,9 @@ func (s *Server) fail(w http.ResponseWriter, r *http.Request, err error) {
 		// bar and the history as they are.
 		w.Header().Set("HX-Push-Url", "false")
 		w.Header().Set("HX-Retarget", "#errors")
+		if fromQuickAdd(r) {
+			w.Header().Set("HX-Retarget", "#quickadd-error")
+		}
 		w.Header().Set("HX-Reswap", "innerHTML")
 		s.render(w, status, "error-bar", msg)
 		return
@@ -143,16 +146,19 @@ func nextURL(r *http.Request) string {
 	return next
 }
 
+// fromQuickAdd reports whether htmx sent the request from the quick-add bar.
+func fromQuickAdd(r *http.Request) bool { return r.Header.Get("HX-Trigger") == "quickadd" }
+
 // done answers a successful dashboard mutation. An htmx request gets the
 // dashboard fragment for `to` and the address to show in the URL bar; any other
 // request is redirected there with 303 See Other.
-func (s *Server) done(w http.ResponseWriter, r *http.Request, to string) {
+func (s *Server) done(w http.ResponseWriter, r *http.Request, to string, mods ...func(*dashboardView)) {
 	if !isHX(r) {
 		redirect(w, r, to)
 		return
 	}
 	w.Header().Set("HX-Push-Url", to)
-	s.renderDashboard(w, r, to)
+	s.renderDashboard(w, r, to, mods...)
 }
 
 // redirect answers a successful mutation with 303 See Other.

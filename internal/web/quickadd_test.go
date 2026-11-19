@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
@@ -77,4 +78,67 @@ func TestQuickAddBarStyles(t *testing.T) {
 			t.Errorf("app.css lacks %q", want)
 		}
 	}
+}
+
+func hxPostFrom(h http.Handler, target string, form url.Values, trigger string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodPost, target, strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("HX-Request", "true")
+	req.Header.Set("HX-Trigger", trigger)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+const emptiedInput = `<input id="quickadd-text" name="text" aria-label="Journal entry" placeholder="Log to the journal…" autocomplete="off" required hx-swap-oob="true">`
+
+func TestQuickAddSuccessClearsTheField(t *testing.T) {
+	h, st := newApp(t)
+	form := url.Values{"activity": {"2"}, "kind": {"decision"}, "text": {"Going ahead"}, "next": {"/?sel=2"}}
+	rec := hxPostFrom(h, "/journal", form, "quickadd")
+	wantStatus(t, rec, http.StatusOK)
+	if rec.Header().Get("HX-Push-Url") != "/?sel=2" {
+		t.Errorf("HX-Push-Url = %q", rec.Header().Get("HX-Push-Url"))
+	}
+	wantBody(t, rec, `<div id="dash"`, emptiedInput, `<div id="quickadd-error" aria-live="polite" hx-swap-oob="true"></div>`)
+	if list, _ := st.ListJournal(ctx, 2); list[0].Text != "Going ahead" || list[0].Kind != domain.KindDecision {
+		t.Errorf("entry: %+v", list[0])
+	}
+	// the text field is replaced only by a successful quick add: not by other
+	// swaps (toggle, selection, filters) and not by the panel's own journal form
+	for name, rec := range map[string]*httptest.ResponseRecorder{
+		"toggle":    hxPostFrom(h, "/subtasks/1/toggle", url.Values{"next": {"/?sel=1"}}, "toggle-form"),
+		"select":    hxGet(h, "/?sel=1"),
+		"filter":    hxGet(h, "/?period=q4"),
+		"panel add": hxPostFrom(h, "/journal", url.Values{"activity": {"2"}, "kind": {"update"}, "text": {"x"}, "next": {"/?sel=2"}}, "panel-journal"),
+	} {
+		wantStatus(t, rec, http.StatusOK)
+		if strings.Contains(rec.Body.String(), `id="quickadd-text"`) {
+			t.Errorf("%s clears the quick-add field", name)
+		}
+	}
+}
+
+func TestQuickAddErrorsShowInTheBar(t *testing.T) {
+	h, st := newApp(t)
+	rec := hxPostFrom(h, "/journal", url.Values{"activity": {"2"}, "kind": {"update"}, "text": {"  "}, "next": {"/?sel=2"}}, "quickadd")
+	wantStatus(t, rec, http.StatusUnprocessableEntity)
+	body := rec.Body.String()
+	if rec.Header().Get("HX-Retarget") != "#quickadd-error" || rec.Header().Get("HX-Reswap") != "innerHTML" || rec.Header().Get("HX-Push-Url") != "false" {
+		t.Errorf("headers: %v", rec.Header())
+	}
+	if !strings.Contains(body, "Journal text is required.") || !strings.Contains(body, `class="error-bar"`) ||
+		strings.Contains(body, `id="dash"`) || strings.Contains(body, `id="quickadd-text"`) {
+		t.Errorf("body: %s", body)
+	}
+	if list, _ := st.ListJournal(ctx, 2); len(list) != 4 {
+		t.Errorf("a rejected entry was stored: %d entries", len(list))
+	}
+	// errors from anywhere else still use the page-top bar
+	other := hxPostFrom(h, "/subtasks/999/toggle", url.Values{"next": {"/?sel=2"}}, "toggle-form")
+	if other.Header().Get("HX-Retarget") != "#errors" {
+		t.Errorf("other error retarget = %q", other.Header().Get("HX-Retarget"))
+	}
+	// a later successful swap clears the bar's slot
+	wantBody(t, hxGet(h, "/?sel=2"), `<div id="quickadd-error" aria-live="polite" hx-swap-oob="true"></div>`)
 }
