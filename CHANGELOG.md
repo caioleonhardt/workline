@@ -18,6 +18,10 @@ each release is tagged `vX.Y.Z` in git.
   without JavaScript at `/search?q=…`.
 - `Tab` / `Shift+Tab` in the search line complete filters, their values, and
   project and activity names, with the choices listed in the statusline.
+- `Ctrl+P` / `Up` in the search line bring back earlier searches, and `Ctrl+N` / `Down`
+  go forward again. The history is kept across pages.
+- Tasks in the journal feed have a checkbox, so a closed task can be reopened
+  from the journal page and the search page, with the mouse or with `x`.
 
 ## [0.9.0] — 2026-11-19
 

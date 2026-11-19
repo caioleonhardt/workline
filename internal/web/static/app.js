@@ -217,6 +217,33 @@
     // entries on the page whose ids it returns and jumps between them, Ctrl+Enter
     // opens the search page. The marks are fetched again after every swap.
     var pattern = '', hits = null, total = 0, searchFrom = null;
+    // Search history, as in Vim's cmdline: Ctrl+P or Up recalls older searches,
+    // Ctrl+N or Down newer ones. It is kept in local storage (newest last, 50 at
+    // most) so it survives Ctrl+Enter's page load.
+    var HISTORY = 'workline.searches', histPos = 0, draft = '';
+    function history() {
+      try {
+        var list = JSON.parse(localStorage.getItem(HISTORY));
+        return Array.isArray(list) ? list : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    function remember(q) {
+      var list = history().filter(function (old) { return old !== q; });
+      list.push(q);
+      try {
+        localStorage.setItem(HISTORY, JSON.stringify(list.slice(-50)));
+      } catch (e) {
+        // Without storage the history lasts only as long as the page.
+      }
+    }
+    function recall(input, delta) {
+      var list = history();
+      if (histPos === list.length) draft = input.value;
+      histPos = Math.max(0, Math.min(list.length, histPos + delta));
+      input.value = histPos === list.length ? draft : list[histPos];
+    }
     function fetchHits(then) {
       fetch('/search/ids?' + new URLSearchParams({ q: pattern })).then(function (res) {
         return res.json().then(function (body) {
@@ -271,6 +298,7 @@
       if (!form) return;
       searchFrom = cursor();
       completion = null;
+      histPos = history().length;
       say('');
       form.hidden = false;
       form.querySelector('input').value = '';
@@ -286,6 +314,7 @@
       else input.blur();
       if (how === 'cancel') return say('');
       if (!typed && !pattern) return say('E35: No previous regular expression', true);
+      if (typed) remember(typed);
       if (how === 'filter') {
         var from = location.pathname + location.search;
         if (location.pathname === '/search') from = new URLSearchParams(location.search).get('from') || '/';
@@ -299,6 +328,7 @@
     function searchPageStatus() {
       var dash = document.querySelector('#dash[data-search]');
       if (!dash) return;
+      if (!pattern) pattern = dash.dataset.search;
       var refused = dash.querySelector('.error-bar[role="alert"]');
       if (refused) return say(refused.textContent, true);
       say('/' + dash.dataset.search + '  [filter] ' + dash.dataset.count + (dash.dataset.count === '1' ? ' result' : ' results'));
@@ -425,6 +455,11 @@
           return complete(t, e.shiftKey ? -1 : 1);
         }
         if (!/^(Shift|Control|Alt|Meta)$/.test(e.key)) completion = null;
+        var older = e.key === 'ArrowUp' || (e.ctrlKey && e.key === 'p');
+        if (older || e.key === 'ArrowDown' || (e.ctrlKey && e.key === 'n')) {
+          e.preventDefault();
+          return recall(t, older ? -1 : 1);
+        }
         if (e.key === 'Enter' || e.key === 'Escape') {
           e.preventDefault();
           closeSearch(e.key === 'Escape' ? 'cancel' : e.ctrlKey || e.metaKey ? 'filter' : 'mark');

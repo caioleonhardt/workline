@@ -218,8 +218,18 @@ func TestProjectRowIsAnExpandedToggle(t *testing.T) {
 	}
 	js := get(h, "/static/app.js")
 	wantStatus(t, js, http.StatusOK)
-	if got := strings.Count(js.Body.String(), "localStorage."); got != 2 {
-		t.Errorf("localStorage used %d times; each access must sit in a try block", got)
+	lines := strings.Split(js.Body.String(), "\n")
+	uses := 0
+	for i, line := range lines {
+		if strings.Contains(line, "localStorage.") {
+			uses++
+			if i == 0 || !strings.HasSuffix(strings.TrimSpace(lines[i-1]), "try {") {
+				t.Errorf("localStorage outside a try block: %s", strings.TrimSpace(line))
+			}
+		}
+	}
+	if uses == 0 {
+		t.Error("project collapse state is not stored")
 	}
 }
 
