@@ -21,21 +21,24 @@ type NewActivity struct {
 	Tasks          []string
 }
 
-const activityColumns = `id, project_id, name, requested_by, status, priority, start_date, due_date, done_on`
+const activityColumns = `id, project_id, name, requested_by, status, priority, start_date, due_date, done_on, created_on`
 
 type scanner interface{ Scan(dest ...any) error }
 
 func scanActivity(r scanner) (domain.Activity, error) {
 	var a domain.Activity
 	var status, start, due string
-	var priority, doneOn sql.NullString
-	if err := r.Scan(&a.ID, &a.ProjectID, &a.Name, &a.RequestedBy, &status, &priority, &start, &due, &doneOn); err != nil {
+	var priority, doneOn, createdOn sql.NullString
+	if err := r.Scan(&a.ID, &a.ProjectID, &a.Name, &a.RequestedBy, &status, &priority, &start, &due, &doneOn, &createdOn); err != nil {
 		return a, err
 	}
 	a.Status = domain.Status(status)
 	a.Priority = domain.Priority(priority.String)
 	var err error
 	if a.DoneOn, err = parseOptDate(doneOn); err != nil {
+		return a, err
+	}
+	if a.CreatedOn, err = parseOptDate(createdOn); err != nil {
 		return a, err
 	}
 	if a.Start, err = parseDate(start); err != nil {
@@ -65,7 +68,7 @@ func (s *Store) CreateActivity(ctx context.Context, in NewActivity, clock domain
 	}
 	a := domain.Activity{
 		ProjectID: in.ProjectID, Name: in.Name, RequestedBy: in.RequestedBy, Priority: in.Priority,
-		Status: domain.DefaultStatus(in.Start, today), Start: in.Start, Due: in.Due,
+		Status: domain.DefaultStatus(in.Start, today), Start: in.Start, Due: in.Due, CreatedOn: today,
 	}
 	if err := a.Validate(); err != nil {
 		return a, err
@@ -106,9 +109,9 @@ func (s *Store) CreateActivity(ctx context.Context, in NewActivity, clock domain
 
 func insertActivity(ctx context.Context, q queryer, a domain.Activity) (int64, error) {
 	res, err := q.ExecContext(ctx,
-		`INSERT INTO activities (project_id, name, requested_by, status, priority, start_date, due_date)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		a.ProjectID, a.Name, a.RequestedBy, string(a.Status), nullPriority(a.Priority), a.Start.String(), a.Due.String())
+		`INSERT INTO activities (project_id, name, requested_by, status, priority, start_date, due_date, created_on)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		a.ProjectID, a.Name, a.RequestedBy, string(a.Status), nullPriority(a.Priority), a.Start.String(), a.Due.String(), nullDate(a.CreatedOn))
 	if err != nil {
 		return 0, mapErr(err)
 	}

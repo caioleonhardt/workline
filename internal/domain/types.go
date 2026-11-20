@@ -104,6 +104,7 @@ type Activity struct {
 	Start       Date
 	Due         Date
 	DoneOn      Date // zero unless Status is done
+	CreatedOn   Date // the local day it was created
 }
 
 // Task is one checkable item of an activity: the view of a journal entry of

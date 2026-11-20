@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io/fs"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -457,5 +458,54 @@ func TestMigration0008KeepsOnlyClosedAt(t *testing.T) {
 	}
 	if next, err := s.AddTask(ctx, 1, "new", date(t, "2026-02-01")); err != nil || next.ID != 5 {
 		t.Errorf("next id = %d, %v", next.ID, err)
+	}
+}
+
+// Migration 0010 dates existing activities by their "Activity created" entry,
+// else by the day of created_at (SPEC §10 item 111).
+func TestMigration0010DatesActivityCreation(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "v9.db")
+	db, err := sql.Open("sqlite", "file:"+path+"?_pragma=foreign_keys(1)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	db.SetMaxOpenConns(1)
+	upTo9 := fstest.MapFS{}
+	names, _ := fs.Glob(migrations.FS, "*.sql")
+	for _, name := range names {
+		if name < "0010" {
+			body, _ := migrations.FS.ReadFile(name)
+			upTo9[name] = &fstest.MapFile{Data: body}
+		}
+	}
+	if err := migrate(ctx, db, upTo9); err != nil {
+		t.Fatal(err)
+	}
+	for _, q := range []string{
+		`INSERT INTO projects (id, name) VALUES (1, 'P')`,
+		`INSERT INTO activities (id, project_id, name, status, start_date, due_date, created_at) VALUES
+		   (1, 1, 'logged', 'active', '2026-01-01', '2026-12-31', '2026-03-04T23:30:00Z'),
+		   (2, 1, 'unlogged', 'active', '2026-01-01', '2026-12-31', '2026-05-06T08:00:00Z')`,
+		`INSERT INTO journal_entries (activity_id, date, kind, text) VALUES (1, '2026-03-05', 'update', 'Activity created')`,
+	} {
+		if _, err := db.ExecContext(ctx, q); err != nil {
+			t.Fatal(err)
+		}
+	}
+	db.Close()
+	if _, err := Migrate(ctx, path); err != nil {
+		t.Fatal(err)
+	}
+	s, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	acts, err := s.ListActivities(ctx)
+	if err != nil || len(acts) != 2 {
+		t.Fatalf("%v %v", acts, err)
+	}
+	if acts[0].CreatedOn != date(t, "2026-03-05") || acts[1].CreatedOn != date(t, "2026-05-06") {
+		t.Errorf("created on %s, %s", acts[0].CreatedOn, acts[1].CreatedOn)
 	}
 }

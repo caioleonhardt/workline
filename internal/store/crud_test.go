@@ -72,6 +72,9 @@ func TestCreateActivity(t *testing.T) {
 	if a.Status != domain.StatusPlanned || a.ID == 0 {
 		t.Errorf("future start should be planned: %+v", a)
 	}
+	if a.CreatedOn != today {
+		t.Errorf("created on %s, want today", a.CreatedOn)
+	}
 	got, err := s.GetActivity(ctx, a.ID)
 	if err != nil || got != a {
 		t.Errorf("round trip: %+v vs %+v (%v)", got, a, err)
