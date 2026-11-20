@@ -45,6 +45,7 @@ func TestBuildReport(t *testing.T) {
 	old := act(3, 2, "Old API", StatusDone, "2026-09-01", "2026-09-01", "2026-11-18")
 	gone := act(4, 2, "Long done", StatusDone, "2026-01-01", "2026-01-01", "2026-03-01")
 	later := act(5, 1, "Later", StatusActive, "2026-12-01", "2026-11-19", "")
+	twin := act(6, 2, "Twin", StatusActive, "2026-10-01", "2026-10-01", "") // starts with Migration, after it by id
 	task := func(id, activity int64, opened, closed string) Task {
 		s := sub(t, id, opened, closed)
 		s.ActivityID, s.Text = activity, "t"
@@ -57,6 +58,8 @@ func TestBuildReport(t *testing.T) {
 		task(13, 1, "2026-10-01", ""),
 		task(14, 2, "2026-11-15", "2026-11-17"), // opened and closed in range
 		task(15, 0, "2026-11-19", ""),           // Unassigned
+		task(16, 1, "2026-11-14", ""),           // opened earlier in range, listed first
+		task(17, 1, "2026-11-15", ""),           // same day as 12, after it by id
 	}
 	entry := func(id, activity int64, kind Kind, day string, starred bool) JournalEntry {
 		return JournalEntry{ID: id, ActivityID: activity, Kind: kind, Date: d(t, day), Text: "e", Starred: starred}
@@ -69,7 +72,7 @@ func TestBuildReport(t *testing.T) {
 	ack := entry(22, 1, KindScopeAck, "2026-11-16", false)
 	note := entry(23, 0, KindUpdate, "2026-11-19", true)
 	entries := []JournalEntry{dec, closedEntry(tasks[1]), blk, ack, closedEntry(tasks[4]), note}
-	in := ReportInput{From: from, To: to, Projects: projects, Activities: []Activity{audit, mig, old, gone, later}, Tasks: tasks, Entries: entries}
+	in := ReportInput{From: from, To: to, Projects: projects, Activities: []Activity{twin, audit, mig, old, gone, later}, Tasks: tasks, Entries: entries}
 
 	r := BuildReport(in)
 	names := func(as []ReportActivity) []string {
@@ -108,7 +111,7 @@ func TestBuildReport(t *testing.T) {
 	check("closed order", r.Closed[0].Activity, "Migration") // atlas before Zeta, ignoring case
 	check("finished", names(r.Finished), []string{"atlas/Old API"})
 	check("created", names(r.Created), []string{"Zeta/Audit", "Zeta/Later"})
-	check("opened", groups(r.Opened), map[string][]int64{"atlas/Migration": {12}, "Zeta/Audit": {14}, "/": {15}})
+	check("opened", groups(r.Opened), map[string][]int64{"atlas/Migration": {16, 12, 17}, "Zeta/Audit": {14}, "/": {15}})
 	check("opened: Unassigned last", r.Opened[len(r.Opened)-1].Activity, "")
 	check("acks", ids(r.Acks), []int64{22})
 	check("decisions", ids(r.Decisions), []int64{20})
@@ -120,13 +123,13 @@ func TestBuildReport(t *testing.T) {
 	for _, p := range r.Progress {
 		prog = append(prog, p.Activity.Name)
 	}
-	check("progress rows", prog, []string{"Old API", "Migration", "Audit"}) // atlas by start, then Zeta
-	// Migration: on 11-13, 1 of 3 closed (33); on 11-20, 2 of 4 (50); 2 open
-	check("migration", [3]int{r.Progress[1].Before, r.Progress[1].After, r.Progress[1].Open}, [3]int{33, 50, 2})
+	check("progress rows", prog, []string{"Old API", "Migration", "Twin", "Audit"}) // atlas by start then id, then Zeta
+	// Migration: on 11-13, 1 of 3 closed (33); on 11-20, 2 of 6 (33); 4 open
+	check("migration", [3]int{r.Progress[1].Before, r.Progress[1].After, r.Progress[1].Open}, [3]int{33, 33, 4})
 	// Old API has no tasks: done on 11-18 → 0 to 100
 	check("old api", [2]int{r.Progress[0].Before, r.Progress[0].After}, [2]int{0, 100})
 	// Audit started in range: 0 → 100
-	check("audit", [3]int{r.Progress[2].Before, r.Progress[2].After, r.Progress[2].Open}, [3]int{0, 100, 0})
+	check("audit", [3]int{r.Progress[3].Before, r.Progress[3].After, r.Progress[3].Open}, [3]int{0, 100, 0})
 
 	in.OnlyStarred = true
 	only := BuildReport(in)
