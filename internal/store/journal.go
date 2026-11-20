@@ -10,7 +10,7 @@ import (
 	"workline/internal/domain"
 )
 
-const journalColumns = `id, coalesce(activity_id, 0), date, kind, text, logged_at, closed_at, priority`
+const journalColumns = `id, coalesce(activity_id, 0), date, kind, text, logged_at, closed_at, priority, starred`
 
 // An entry sits in the journal at its log date and time: a closed task at its
 // close, anything else at its date and logged time (SPEC §10 item 109).
@@ -69,7 +69,7 @@ func (s *Store) queryJournal(ctx context.Context, query string, args ...any) ([]
 		var j domain.JournalEntry
 		var date, kind, priority string
 		var loggedAt, closedAt sql.NullString
-		if err := rows.Scan(&j.ID, &j.ActivityID, &date, &kind, &j.Text, &loggedAt, &closedAt, &priority); err != nil {
+		if err := rows.Scan(&j.ID, &j.ActivityID, &date, &kind, &j.Text, &loggedAt, &closedAt, &priority, &j.Starred); err != nil {
 			return nil, fmt.Errorf("scan journal: %w", err)
 		}
 		j.Kind, j.LoggedAt, j.ClosedAt, j.Priority = domain.Kind(kind), loggedAt.String, closedAt.String, domain.Priority(priority)
@@ -155,6 +155,18 @@ func (s *Store) EditJournal(ctx context.Context, id int64, activity *int64, j do
 		return fmt.Errorf("edit journal %d: %w", id, mapErr(err))
 	}
 	return s.readOnlyOrMissing(ctx, res, id)
+}
+
+// ToggleStar stars or unstars entry id, of any kind (SPEC §10 item 110).
+func (s *Store) ToggleStar(ctx context.Context, id int64) error {
+	res, err := s.db.ExecContext(ctx, `UPDATE journal_entries SET starred = 1 - starred WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("star journal %d: %w", id, err)
+	}
+	if n, err := res.RowsAffected(); err != nil || n > 0 {
+		return err
+	}
+	return fmt.Errorf("journal entry %d: %w", id, ErrNotFound)
 }
 
 func deref(p *int64) int64 {

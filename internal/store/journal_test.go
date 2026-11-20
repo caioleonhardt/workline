@@ -363,3 +363,42 @@ func TestListAllJournal(t *testing.T) {
 		t.Errorf("got %q", got)
 	}
 }
+
+func TestToggleStar(t *testing.T) {
+	s := newTestStore(t)
+	a := mustActivity(t, s, "P", "2026-01-01", "2026-12-31")
+	j, err := s.AddJournal(ctx, domain.JournalEntry{ActivityID: a.ID, Date: date(t, "2026-02-01"), Kind: domain.KindDecision, Text: "d"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	starred := func() bool {
+		t.Helper()
+		list, err := s.ListJournal(ctx, a.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, e := range list {
+			if e.ID == j.ID {
+				return e.Starred
+			}
+		}
+		t.Fatal("entry gone")
+		return false
+	}
+	if starred() {
+		t.Fatal("new entry starred")
+	}
+	if err := s.ToggleStar(ctx, j.ID); err != nil || !starred() {
+		t.Fatalf("star: %v", err)
+	}
+	// editing keeps the star
+	if err := s.EditJournal(ctx, j.ID, nil, domain.JournalEntry{Date: date(t, "2026-02-02"), Kind: domain.KindUpdate, Text: "e"}); err != nil || !starred() {
+		t.Fatalf("edit dropped the star: %v", err)
+	}
+	if err := s.ToggleStar(ctx, j.ID); err != nil || starred() {
+		t.Fatalf("unstar: %v", err)
+	}
+	if err := s.ToggleStar(ctx, 999); !errors.Is(err, ErrNotFound) {
+		t.Errorf("missing: %v", err)
+	}
+}
