@@ -34,6 +34,13 @@
     document.addEventListener('click', function (e) {
       var button = e.target.closest && e.target.closest('.error-bar .dismiss');
       if (button) button.closest('.error-bar').remove();
+      // Copy Markdown on the report page puts the report's Markdown on the clipboard.
+      var copy = e.target.closest && e.target.closest('button.copy-md');
+      if (copy && navigator.clipboard) {
+        navigator.clipboard.writeText(document.getElementById(copy.dataset.copy).value).then(function () {
+          say('Report copied as Markdown');
+        }, function () { say('Copy failed', true); });
+      }
       var cancel = e.target.closest && e.target.closest('.editor .cancel');
       if (cancel) closeEditor(cancel.closest('.editor'));
       // A click on a journal row, outside its links, controls and editor, opens
@@ -425,6 +432,7 @@
       ']': function () { clickFirst('a[aria-label="Next week"]'); },
       gj: function () { clickFirst('nav a[href="/"]'); },
       gt: function () { clickFirst('nav a[href="/timeline"]'); },
+      gr: function () { clickFirst('nav a[href="/report"]'); },
       gp: function () { clickFirst('nav a[href="/projects"]'); },
       O: function () { if (!document.querySelector('a.cancel-new')) clickFirst('a.new-activity'); },
       f: function () {
@@ -500,7 +508,7 @@
         }
         return;
       }
-      // g and d wait up to a second for the second key of gg, gj, gt, gp and dd.
+      // g and d wait up to a second for the second key of gg, gj, gt, gr, gp and dd.
       var key = (Date.now() - pendingAt < 1000 ? pending : '') + e.key;
       pending = '';
       if (key === 'g' || key === 'd') {

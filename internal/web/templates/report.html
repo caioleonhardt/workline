@@ -1,0 +1,39 @@
+{{template "head" .}}
+<div id="errors" aria-live="polite"></div>
+{{template "rdash" .}}
+{{template "quickadd" .}}
+{{template "keys"}}
+{{template "foot" .}}
+
+{{define "rdash-fragment"}}{{template "rdash" .}}{{template "bar-oob" .}}{{end}}
+
+{{define "rdash"}}
+<div id="dash" class="report-page" hx-boost="true" hx-target="#dash" hx-swap="outerHTML">
+<header class="dash">
+<div>
+<div class="eyebrow mono">1:1 report</div>
+<form class="report-form" method="get" action="/report">
+<label>From<input type="date" name="from" value="{{.From}}" required></label>
+<label>To<input type="date" name="to" value="{{.To}}" required></label>
+<label>Project<select name="project">{{range .Projects}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+<label class="check"><input type="checkbox" name="only" value="starred"{{if .OnlyStarred}} checked{{end}}> Highlights only</label>
+<button>Show</button>
+</form>
+</div>
+<div class="actions"><button type="button" class="secondary copy-md js-only" data-copy="report-md">Copy Markdown</button> <a class="btn secondary" href="{{.MdHref}}" hx-boost="false">Download .md</a></div>
+</header>
+<article class="card report">
+<h1>{{.Heading}}</h1>
+{{range .Sections}}<section>
+<h2>{{.Title}}</h2>
+<ul>
+{{range .Lines}}<li>{{if .StarID}}<form class="inline star-form" method="post" action="/journal/{{.StarID}}/star"><input type="hidden" name="next" value="{{$.Next}}"><button class="star" aria-pressed="true" aria-label="Unstar" title="Unstar">★</button></form> {{end}}<span class="report-text">{{.Text}}</span>
+{{with .Sub}}<ul>{{range .}}<li>{{.}}</li>{{end}}</ul>{{end}}</li>
+{{end}}</ul>
+</section>
+{{else}}<p class="muted">Nothing to report in this range.</p>{{end}}
+</article>
+<textarea id="report-md" class="sr-only" readonly tabindex="-1" aria-hidden="true">{{.Markdown}}</textarea>
+</div>
+<script src="/static/app.js"></script>
+{{end}}

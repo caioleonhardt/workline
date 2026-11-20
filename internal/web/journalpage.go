@@ -41,7 +41,7 @@ type journalPageView struct {
 	Title, Next                      string
 	RangeLabel                       string
 	PrevHref, NextHref, ThisWeekHref string // ThisWeekHref is empty when this week is shown
-	ExportHref                       string
+	ExportHref, ReportHref           string
 	Tiles                            []tileView
 	Strip                            stripView
 	Tasks                            []openTaskRow
@@ -148,6 +148,7 @@ func (s *Server) buildJournalPage(ctx context.Context, uri string) (journalPageV
 		PrevHref:   journalPageURL(week.AddDays(-7), today),
 		NextHref:   journalPageURL(week.AddDays(7), today),
 		ExportHref: "/export/journal.md?" + url.Values{"from": {from.String()}, "to": {to.String()}}.Encode(),
+		ReportHref: "/report?" + url.Values{"from": {from.String()}, "to": {to.String()}}.Encode(),
 		Tiles:      journalTiles(tasks, from, to, today),
 		Strip:      buildStrip(tasks, from, to, today),
 		quickBar:   newQuickBar(quickAddView{Pick: true, Next: uri}),

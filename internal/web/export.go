@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
-	"strconv"
 	"strings"
 
 	"workline/internal/domain"
@@ -105,12 +104,12 @@ func (s *Server) exportJournal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	scope, allProjects := "all projects", true
-	if v := r.URL.Query().Get("project"); v != "" {
-		id, perr := strconv.ParseInt(v, 10, 64)
-		if perr != nil {
-			s.fail(w, r, domain.Invalid("project must be a project id, not %q", v))
-			return
-		}
+	id, err := queryProjectID(r.URL.Query())
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	if id != 0 {
 		i := slices.IndexFunc(projects, func(p domain.Project) bool { return p.ID == id })
 		if i < 0 {
 			s.fail(w, r, fmt.Errorf("project %d: %w", id, store.ErrNotFound))
