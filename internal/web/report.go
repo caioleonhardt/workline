@@ -93,6 +93,19 @@ type reportData struct {
 	Filing      []domain.Group // the quick-add bar's choices
 }
 
+// query is the report's resolved parameters, so a download matches the page
+// even after "today" moves on.
+func (d reportData) query() url.Values {
+	q := url.Values{"from": {d.From.String()}, "to": {d.To.String()}}
+	if d.Project != 0 {
+		q.Set("project", strconv.FormatInt(d.Project, 10))
+	}
+	if d.OnlyStarred {
+		q.Set("only", "starred")
+	}
+	return q
+}
+
 // loadReport builds the report for the query: live projects only (item 33),
 // one of them when `project` is set, and Unassigned work only for all projects.
 func (s *Server) loadReport(ctx context.Context, q url.Values) (reportData, error) {
@@ -324,7 +337,7 @@ func (s *Server) renderReport(w http.ResponseWriter, r *http.Request, uri string
 		Projects: []option{{"", "All projects", d.Project == 0}},
 		Heading:  d.Heading,
 		Sections: reportSections(d.Report),
-		MdHref:   "/report.md?" + u.RawQuery,
+		MdHref:   "/report.md?" + d.query().Encode(),
 		quickBar: newQuickBar(quickAddView{Pick: true, Next: uri}),
 	}
 	for _, p := range d.Projects {

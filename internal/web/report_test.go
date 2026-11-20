@@ -54,7 +54,7 @@ func TestReportPage(t *testing.T) {
 	wantBody(t, rec, `<div id="dash" class="report-page"`, `value="2026-11-12"`, `value="2026-11-18"`,
 		"<h1>1:1 update · 2026-11-12 to 2026-11-18</h1>", "<h2>Highlights</h2>", "<h2>New</h2>", "<h2>Decisions</h2>", "<h2>Progress</h2>",
 		"Cut over on Dec 2", "Write runbook", `action="/journal/`+strconv.FormatInt(dec.ID, 10)+`/star"`,
-		`href="/report.md?"`, `id="report-md"`)
+		`href="/report.md?from=2026-11-12&amp;to=2026-11-18"`, `id="report-md"`)
 	if rec.Header().Get("Vary") != "HX-Request" {
 		t.Error("no Vary")
 	}
@@ -98,5 +98,5 @@ func TestReportPage(t *testing.T) {
 			t.Errorf("%s: %d, want %d", target, rec.Code, status)
 		}
 	}
-	wantBody(t, get(h, "/"), `href="/report?from=2026-11-09&amp;to=2026-11-22"`)
+	wantBody(t, get(h, "/"), `href="/report?from=2026-11-09&amp;to=2026-11-18"`)
 }
