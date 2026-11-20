@@ -17,6 +17,7 @@ type journalRow struct {
 	Priority, PriorityLabel     string // a task's priority; empty for none
 	IsTask                      bool   // a task keeps its kind, so its Edit form has no kind select
 	ReadOnly                    bool   // scope_ack entries cannot be edited
+	Starred                     bool   // a highlight of the 1:1 report
 	Kinds                       []option
 	Priorities                  []option // a task's Edit form choices
 }
@@ -56,7 +57,7 @@ func journalRows(entries []domain.JournalEntry) []journalRow {
 		row := journalRow{
 			ID: j.ID, Date: j.Date.String(), Logged: strings.TrimSpace(j.LogDate().String() + " " + j.LogTime()), Kind: string(j.Kind), KindLabel: kindLabel(j.Kind), Text: j.Text,
 			Closed: j.ClosedOn().String(), Priority: string(j.Priority), PriorityLabel: priorityLabel(j.Priority),
-			IsTask: j.Kind == domain.KindTask, ReadOnly: j.Kind == domain.KindScopeAck, Kinds: kindOptions(noteKinds, j.Kind),
+			IsTask: j.Kind == domain.KindTask, ReadOnly: j.Kind == domain.KindScopeAck, Starred: j.Starred, Kinds: kindOptions(noteKinds, j.Kind),
 		}
 		if first, rest, more := strings.Cut(j.Text, "\n"); more && strings.TrimSpace(rest) != "" {
 			row.Summary = first + " …"
@@ -173,6 +174,19 @@ func (s *Server) deleteJournal(w http.ResponseWriter, r *http.Request) {
 	id, err := pathID(r)
 	if err == nil {
 		err = s.store.DeleteJournal(r.Context(), id)
+	}
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	s.done(w, r, nextURL(r))
+}
+
+// starJournal stars or unstars an entry (SPEC §10 item 110).
+func (s *Server) starJournal(w http.ResponseWriter, r *http.Request) {
+	id, err := pathID(r)
+	if err == nil {
+		err = s.store.ToggleStar(r.Context(), id)
 	}
 	if err != nil {
 		s.fail(w, r, err)

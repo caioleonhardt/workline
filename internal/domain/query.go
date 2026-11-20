@@ -32,7 +32,7 @@ var QueryKeys = []QueryKey{
 	{"k", []string{"t", "d", "u", "b", "m", "ack", "task", "decision", "update", "blocker", "meeting", "scope_ack"}},
 	{"proj", nil},
 	{"act", nil},
-	{"is", []string{"open", "closed", "unassigned"}},
+	{"is", []string{"open", "closed", "unassigned", "starred"}},
 }
 
 var queryPriorities = map[string]Priority{
@@ -145,6 +145,8 @@ func parseTerm(tok string) (term, bool, error) {
 				t.holds = func(e JournalEntry, _, _ string) bool { return e.Kind == KindTask && e.ClosedOn().IsZero() != closed }
 			case "unassigned":
 				t.holds = func(e JournalEntry, _, _ string) bool { return e.ActivityID == 0 }
+			case "starred":
+				t.holds = func(e JournalEntry, _, _ string) bool { return e.Starred }
 			default:
 				return t, false, bad
 			}

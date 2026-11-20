@@ -198,6 +198,10 @@ html.js .apply-nojs { display: none; }
 #journal .rows li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
 .feed-text { flex: 1 1 280px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tag { text-decoration: none; }
+.star-form { flex: 0 0 auto; }
+button.star { min-height: 0; padding: 0 4px; border: 0; background: transparent; color: var(--muted); line-height: 1; }
+button.star[aria-pressed="true"] { color: #B45309; }
+button.star:hover { color: var(--text); }
 .tag.unassigned { color: var(--muted); font-style: italic; }
 /* Inline editor for journal entries and tasks: the text first, full width and
    growing with its content, then the fields, then Delete… / Cancel / Save. */

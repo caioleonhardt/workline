@@ -416,6 +416,10 @@
         var cur = cursor(), form = cur && cur.querySelector('.sub-toggle');
         if (form) form.requestSubmit();
       },
+      s: function () {
+        var cur = cursor(), form = cur && cur.querySelector('.star-form');
+        if (form) form.requestSubmit();
+      },
       o: focusBar,
       '[': function () { clickFirst('a[aria-label="Previous week"]'); },
       ']': function () { clickFirst('a[aria-label="Next week"]'); },

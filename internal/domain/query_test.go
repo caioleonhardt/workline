@@ -8,7 +8,7 @@ import (
 func TestQueryMatch(t *testing.T) {
 	open := JournalEntry{ID: 1, ActivityID: 7, Kind: KindTask, Text: "Review the API deploy", Priority: PriorityHigh}
 	done := JournalEntry{ID: 2, ActivityID: 7, Kind: KindTask, Text: "Draft plan", Priority: PriorityLow, ClosedAt: "2026-11-10 00:00"}
-	note := JournalEntry{ID: 3, ActivityID: 8, Kind: KindDecision, Text: "Go with code review on Fridays, see https://x.test/a"}
+	note := JournalEntry{ID: 3, ActivityID: 8, Kind: KindDecision, Text: "Go with code review on Fridays, see https://x.test/a", Starred: true}
 	loose := JournalEntry{ID: 4, Kind: KindMeeting, Text: "1:1 notes"}
 	ack := JournalEntry{ID: 5, ActivityID: 8, Kind: KindScopeAck, Text: "Scope acknowledged"}
 	names := map[int64][2]string{7: {"Atlas", "Migration to Postgres"}, 8: {"Big Thing", "Hiring"}}
@@ -43,6 +43,8 @@ func TestQueryMatch(t *testing.T) {
 		{"is:closed", []int64{2}},
 		{"!is:open", []int64{2, 3, 4, 5}},
 		{"is:unassigned", []int64{4}},
+		{"is:starred", []int64{3}},
+		{"!is:starred k:d", nil},
 		{"k:t !is:closed p:1 proj:atlas", []int64{1}},
 		{"https://x.test/a", []int64{3}}, // an unknown key: is text
 		{"1:1", []int64{4}},

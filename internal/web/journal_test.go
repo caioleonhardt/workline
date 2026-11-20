@@ -285,3 +285,33 @@ func TestPrefixesAndTaskPriority(t *testing.T) {
 		t.Errorf("bad priority: %d", rec.Code)
 	}
 }
+
+// A star toggles from the feed and answers like a task toggle (SPEC §10 item 110).
+func TestStarEntry(t *testing.T) {
+	h, st := newApp(t)
+	all, err := st.ListAllJournal(ctx)
+	if err != nil || len(all) == 0 {
+		t.Fatal(err)
+	}
+	id := strconv.FormatInt(all[0].ID, 10)
+	button := `<button class="star" aria-pressed="false"`
+	wantBody(t, get(h, "/"), button)
+
+	rec := post(h, "/journal/"+id+"/star", url.Values{"next": {"/search?q=is%3Astarred"}})
+	wantStatus(t, rec, http.StatusSeeOther)
+	if loc := rec.Header().Get("Location"); loc != "/search?q=is%3Astarred" {
+		t.Errorf("Location = %q", loc)
+	}
+	rec = get(h, "/search?q=is%3Astarred")
+	wantBody(t, rec, `<li tabindex="-1" data-entry data-id="`+id+`"`, `aria-pressed="true"`)
+	if n := strings.Count(rec.Body.String(), "data-entry data-id"); n != 1 {
+		t.Errorf("%d starred rows, want 1", n)
+	}
+
+	rec = hxPost(h, "/journal/"+id+"/star", url.Values{"next": {"/"}})
+	wantStatus(t, rec, http.StatusOK)
+	if strings.Contains(rec.Body.String(), `aria-pressed="true"`) {
+		t.Error("HX unstar still shows a starred row")
+	}
+	wantStatus(t, post(h, "/journal/99999/star", url.Values{"next": {"/"}}), http.StatusNotFound)
+}
