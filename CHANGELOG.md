@@ -5,6 +5,20 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
+Upgrading from 0.10.0: run `workline migrate` once before `serve`.
+
+### Added
+- A 1:1 report at `/report` (Report in the top bar, `gr`, or "1:1 report" on
+  the journal page). Pick From and To (the last 7 days by default) and
+  optionally a project. It lists Highlights, Done, Progress (each activity's %
+  at the start and end of the range), New (activities, tasks and scope
+  acknowledgements), Decisions and Blockers.
+- The report downloads as Markdown (`/report.md`) or copies with "Copy
+  Markdown", written to read well pasted into an email.
+- Star journal entries (☆ on each row, or `s`) to pick what goes in the
+  report's Highlights. "Highlights only" keeps just those. `is:starred` finds
+  them in search.
+
 ### Changed
 - Closed tasks appear in the journal at the time they were closed, so the
   journal page and the export list what was closed in the weeks shown, even
