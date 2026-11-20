@@ -262,8 +262,11 @@ POST   /tasks/{id}/toggle                  close or reopen a task entry
 POST   /journal                            add (hidden `activity`; kind `task` adds a task)
 POST   /journal/{id}                       edit (tasks too)
 POST   /journal/{id}/delete                (tasks too)
+POST   /journal/{id}/star                  star or unstar an entry
 POST   /activities/{id}/scope-ack
 GET    /export/journal.md
+GET    /report                             1:1 report page
+GET    /report.md                          1:1 report as Markdown
 GET    /static/*                           embedded assets
 ```
 
@@ -296,6 +299,7 @@ GET    /static/*                           embedded assets
 11. **Journal page.** `/` shows the last two weeks for 1:1s; the timeline moves to `/timeline` (§10 items 94–95).
 12. **Vim keys.** Normal-mode keys move a cursor over entries, search the page and act on the focused entry (§10 items 99–100).
 13. **Search with filters.** A query syntax with terms, exclusions and qualifiers, run by the server over the whole journal (§10 items 102–103).
+14. **1:1 report.** Starred entries and a report of a chosen range, as a page and as Markdown for email (§10 items 110–114; see `docs/product-review.md`).
 
 Each milestone ends with `go vet ./...` and `go test ./...` green.
 
@@ -465,3 +469,16 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 ### Decisions (close time, 2026-11-19)
 108. **One close field.** `closed_on` and `closed_at` said the same thing, so migration 0008 drops `closed_on`; `closed_at` alone records a close, and `closed_on` in §4 is its day. Closes recorded without a time (older and seeded tasks) get `00:00`, which the completion popups show. The seed file gives closed tasks `closed_at` at `00:00`. The DB checks that only a task has a `closed_at` and that its day is not before the task's `date`.
 109. **Log date.** The journal is a log, and closing a task is an event in it. An entry's log date and time are a closed task's `closed_at`, else the entry's `date` and `logged_at`. Every journal list (feed, journal page, search, export) orders by log date, then log time (untimed entries after timed ones when newest first, before them when oldest first), then id; the journal page and the export pick entries by log date. This amends items 34, 49, 66 and 95. A closed task's row leads with its close date and time and ends with `opened {date}`; the export writes `(closed, opened {date})`. A task is still one row: when it is reopened it goes back to its opening date, and a task opened in a week and closed later is listed under the week it was closed in. The Edit form's Opened field still edits `date`.
+
+### Decisions (Milestone 14, 1:1 report, 2026-11-20)
+110. **Starred entries.** Any journal entry, `scope_ack` included, can be starred (migration 0009, `starred` 0/1). `POST /journal/{id}/star` toggles it and answers like a task toggle (303 to `next`, or the page fragment with `HX-Request`). Feed rows (timeline, journal page, search) and the report's highlights have a ☆/★ button with `aria-pressed`; in Normal mode `s` toggles the focused entry's star. Editing an entry keeps its star. `is:starred` matches starred entries.
+111. **Activity creation day.** `activities.created_on` (migration 0010) is the local day an activity was created, from the clock; `created_at` stays as it was (UTC, from SQLite) and is not used. Existing activities take the date of their "Activity created" entry, else the day of `created_at`.
+112. **Report page** `GET /report?from=&to=&project=&only=starred`. From and To default to today − 6 and today; From after To is refused. `project` narrows it to one project (Unassigned entries are then left out); archived projects are left out (item 33). Entries are picked by log date (item 109). Sections, each left out when empty, items tagged `Project / Activity` or `Unassigned`:
+    - **Highlights**: starred entries in the range, oldest first.
+    - **Done**: tasks closed in the range, by activity; then activities whose `done_on` is in the range ("Finished").
+    - **Progress**: activities active or blocked now, or finished in the range, that overlap the range: progress at From − 1 → at To (§4.2 at a date: closed by then / scope then; without tasks 100 once done), the change, open tasks now and the due date.
+    - **New**: activities created in the range (item 111) with their requester; tasks opened in the range, by activity; scope acknowledgements in the range.
+    - **Decisions** and **Blockers**: entries of that kind in the range; Blockers first lists the activities blocked now.
+    `only=starred` keeps Highlights alone. The page has the date form (GET, works without scripting), the sections, **Download .md** and, with scripting, **Copy Markdown**. Its root is `#dash`, with the bar and the statusline. `gr` goes to it; the top navigation reads Journal · Timeline · Report · Projects; the journal page links to the report of its range.
+113. **Report Markdown** `GET /report.md` with the same parameters, downloaded as `workline-1on1-{to}.md`. It must read well as plain text in an email: a `#` title, `##` sections, `-` bullets with two-space indented sub-bullets, no tables or bold. The title line is `1:1 update · {from} to {to}`, followed by the project name when narrowed.
+114. Progress in the report is by task count, like everywhere else; weighting tasks is out of scope.
