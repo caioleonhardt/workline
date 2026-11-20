@@ -137,6 +137,23 @@ type JournalEntry struct {
 // ClosedOn is the day a task entry was closed, zero while open or for other kinds.
 func (j JournalEntry) ClosedOn() Date { return stampDate(j.ClosedAt) }
 
+// LogDate is the day the entry sits at in the journal: a closed task's close
+// day, else its date.
+func (j JournalEntry) LogDate() Date {
+	if c := j.ClosedOn(); !c.IsZero() {
+		return c
+	}
+	return j.Date
+}
+
+// LogTime is the "HH:MM" that goes with LogDate, or "" for none.
+func (j JournalEntry) LogTime() string {
+	if j.ClosedAt != "" {
+		return StampTime(j.ClosedAt)
+	}
+	return j.Time()
+}
+
 // Task returns the entry as a task.
 func (j JournalEntry) Task() Task {
 	return Task{ID: j.ID, ActivityID: j.ActivityID, Text: j.Text, CreatedOn: j.Date, ClosedAt: j.ClosedAt, Priority: j.Priority}
@@ -153,10 +170,7 @@ func stampDate(stamp string) Date {
 	if len(stamp) < 10 {
 		return 0
 	}
-	d, err := ParseDate(stamp[:10])
-	if err != nil {
-		return 0
-	}
+	d, _ := ParseDate(stamp[:10]) // zero when invalid
 	return d
 }
 

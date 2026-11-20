@@ -6,6 +6,9 @@ each release is tagged `vX.Y.Z` in git.
 ## [Unreleased]
 
 ### Changed
+- Closed tasks appear in the journal at the time they were closed, so the
+  journal page and the export list what was closed in the weeks shown, even
+  tasks opened earlier. Their rows end with `opened {date}`.
 - A task's close is one date and time. Tasks closed before close times were
   recorded show `00:00`. Existing databases need `workline migrate`.
 

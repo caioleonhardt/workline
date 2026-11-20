@@ -56,13 +56,13 @@ func exportMarkdown(scope string, from, to, generated domain.Date, projects []ex
 
 func writeEntries(b *strings.Builder, entries []domain.JournalEntry) {
 	for _, e := range entries {
-		when := e.Date.String()
-		if t := e.Time(); t != "" {
+		when := e.LogDate().String()
+		if t := e.LogTime(); t != "" {
 			when += " " + t
 		}
 		text := strings.ReplaceAll(strings.TrimRight(e.Text, "\n"), "\n", "\n  ")
-		if !e.ClosedOn().IsZero() {
-			text += " (closed " + e.ClosedOn().String() + ")"
+		if e.ClosedAt != "" {
+			text += " (closed, opened " + e.Date.String() + ")"
 		}
 		fmt.Fprintf(b, "- %s **%s** — %s\n", when, kindLabel(e.Kind), text)
 	}

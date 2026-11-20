@@ -86,7 +86,7 @@ func TestSearchPageMutationsReturn(t *testing.T) {
 	if rec.Header().Get("HX-Push-Url") != next {
 		t.Errorf("HX-Push-Url = %q", rec.Header().Get("HX-Push-Url"))
 	}
-	wantBody(t, rec, `class="search-page"`, "Walrus check", "closed ")
+	wantBody(t, rec, `class="search-page"`, "Walrus check", "opened ")
 	rec = post(h, "/tasks/"+ids[0]+"/toggle", url.Values{"next": {next}})
 	wantStatus(t, rec, 303)
 	if rec.Header().Get("Location") != next {

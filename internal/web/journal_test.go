@@ -202,7 +202,7 @@ func TestUnassignedEntries(t *testing.T) {
 	if rec := edit("999"); rec.Code != http.StatusUnprocessableEntity {
 		t.Errorf("filed under a missing activity: %d", rec.Code)
 	}
-	wantBody(t, get(h, "/export/journal.md"), "## Unassigned\n\n- "+testToday+" 14:05 **Task** — Filed task (closed "+testToday+")")
+	wantBody(t, get(h, "/export/journal.md"), "## Unassigned\n\n- "+testToday+" 14:05 **Task** — Filed task (closed, opened "+testToday+")")
 }
 
 func TestParsePrefix(t *testing.T) {

@@ -333,7 +333,8 @@ func TestMigration0005MovesTasksIntoTheJournal(t *testing.T) {
 		}
 	}
 	entries, _ := s.ListJournal(ctx, 1)
-	if len(entries) != 6 || entries[3].ID != 1 || entries[3].LoggedAt != "2026-01-01 09:00" || entries[2].Kind != domain.KindScopeAck {
+	// newest first by log date: the kickoff task closed on 2026-02-01 sits above the entry of 2026-01-01
+	if len(entries) != 6 || entries[3].ID != 3 || entries[4].ID != 1 || entries[4].LoggedAt != "2026-01-01 09:00" || entries[2].Kind != domain.KindScopeAck {
 		t.Errorf("journal: %+v", entries)
 	}
 	// the ack pointed at deleted task 3, so it now points at the last task before it

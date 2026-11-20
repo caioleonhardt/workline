@@ -170,3 +170,21 @@ func TestJournalEntryTask(t *testing.T) {
 		t.Errorf("Task() = %+v, want %+v", got, want)
 	}
 }
+
+func TestLogDate(t *testing.T) {
+	for _, c := range []struct {
+		name               string
+		j                  JournalEntry
+		wantDate, wantTime string
+	}{
+		{"note", JournalEntry{Date: d(t, "2026-03-01"), LoggedAt: "2026-03-02 09:00"}, "2026-03-01", "09:00"},
+		{"untimed note", JournalEntry{Date: d(t, "2026-03-01")}, "2026-03-01", ""},
+		{"open task", JournalEntry{Kind: KindTask, Date: d(t, "2026-03-01"), LoggedAt: "2026-03-01 08:00"}, "2026-03-01", "08:00"},
+		{"bad close stamp", JournalEntry{Kind: KindTask, Date: d(t, "2026-03-01"), ClosedAt: "2026-13-05 17:40"}, "2026-03-01", "17:40"},
+		{"closed task", JournalEntry{Kind: KindTask, Date: d(t, "2026-03-01"), LoggedAt: "2026-03-01 08:00", ClosedAt: "2026-03-05 17:40"}, "2026-03-05", "17:40"},
+	} {
+		if got, gotTime := c.j.LogDate().String(), c.j.LogTime(); got != c.wantDate || gotTime != c.wantTime {
+			t.Errorf("%s: %s %q, want %s %q", c.name, got, gotTime, c.wantDate, c.wantTime)
+		}
+	}
+}

@@ -201,6 +201,32 @@ func TestListJournalBetween(t *testing.T) {
 	if got := texts("2027-01-01", ""); got != "" {
 		t.Errorf("empty range: %q", got)
 	}
+
+	// a closed task sits at its close: opened in February, closed on 2026-03-01 at 10:00
+	task, err := s.AddTask(ctx, a.ID, "task", date(t, "2026-02-20"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	toggle := func() {
+		t.Helper()
+		if _, err := s.ToggleTask(ctx, task.ID, domain.FixedClock{D: date(t, "2026-03-01"), Hour: 10}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	toggle()
+	if got, want := texts("2026-02-01", "2026-03-01"), "untimed|early|task|late"; got != want {
+		t.Errorf("closed task: %q, want %q", got, want)
+	}
+	if got := texts("2026-02-20", "2026-02-28"); got != "" {
+		t.Errorf("closed task still at its opening day: %q", got)
+	}
+	if feed, _ := s.ListJournal(ctx, a.ID); feed[1].Text != "late" || feed[2].Text != "task" {
+		t.Errorf("newest first by log date: %+v", feed)
+	}
+	toggle() // reopened: back at its opening day
+	if got, want := texts("2026-02-01", "2026-02-28"), "task"; got != want {
+		t.Errorf("reopened task: %q, want %q", got, want)
+	}
 }
 
 func TestListJournalFeed(t *testing.T) {

@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strconv"
 	"strings"
@@ -106,6 +107,30 @@ func TestJournalPageMutations(t *testing.T) {
 	plain := post(h, "/tasks/"+strconv.FormatInt(added.ID, 10)+"/toggle", url.Values{"next": {"/?week=2026-11-02"}})
 	if loc := plain.Header().Get("Location"); plain.Code != http.StatusSeeOther || loc != "/?week=2026-11-02" {
 		t.Errorf("without JS: %d %q", plain.Code, loc)
+	}
+}
+
+// A task opened before the weeks shown and closed in them is in the feed, at
+// its close (SPEC §10 item 109).
+func TestJournalPageFeedShowsClosedTasks(t *testing.T) {
+	h, st := newApp(t)
+	task, err := st.AddTask(ctx, 2, "Closed for the 1:1", date(t, "2026-10-01"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.ToggleTask(ctx, task.ID, domain.FixedClock{D: date(t, "2026-11-12"), Hour: 16, Minute: 30}); err != nil {
+		t.Fatal(err)
+	}
+	for name, rec := range map[string]*httptest.ResponseRecorder{"page": get(h, "/"), "fragment": hxGet(h, "/")} {
+		body := rec.Body.String()
+		feed := body[strings.Index(body, `id="journal"`):]
+		if !bodyOrderIn(feed, "Request received in 1:1", `<span class="muted mono">2026-11-12 16:30</span>`, "Closed for the 1:1", "opened 2026-10-01", "Kafka dependencies removed") {
+			t.Errorf("%s: closed task not in the feed at its close", name)
+		}
+	}
+	// the week it was opened in no longer lists it
+	if body := get(h, "/?week=2026-10-05").Body.String(); strings.Contains(body[strings.Index(body, `id="journal"`):], "Closed for the 1:1") {
+		t.Error("closed task still in the feed of its opening week")
 	}
 }
 

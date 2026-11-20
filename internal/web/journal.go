@@ -9,15 +9,16 @@ import (
 )
 
 type journalRow struct {
-	ID                                int64
-	Date, Time, Kind, KindLabel, Text string // Time is empty for entries without a logged time
-	Summary                           string // the first line, with "…" when more follow (SPEC §10 item 107)
-	Closed                            string // a closed task's close date
-	Priority, PriorityLabel           string // a task's priority; empty for none
-	IsTask                            bool   // a task keeps its kind, so its Edit form has no kind select
-	ReadOnly                          bool   // scope_ack entries cannot be edited
-	Kinds                             []option
-	Priorities                        []option // a task's Edit form choices
+	ID                          int64
+	Date, Kind, KindLabel, Text string // Date is the entry's own (a task's opening day)
+	Logged                      string // where it sits in the log: log date, and log time when known
+	Summary                     string // the first line, with "…" when more follow (SPEC §10 item 107)
+	Closed                      string // a closed task's close date
+	Priority, PriorityLabel     string // a task's priority; empty for none
+	IsTask                      bool   // a task keeps its kind, so its Edit form has no kind select
+	ReadOnly                    bool   // scope_ack entries cannot be edited
+	Kinds                       []option
+	Priorities                  []option // a task's Edit form choices
 }
 
 // noteKinds are the kinds an entry other than a task can be edited to; the
@@ -53,7 +54,7 @@ func journalRows(entries []domain.JournalEntry) []journalRow {
 	var rows []journalRow
 	for _, j := range entries {
 		row := journalRow{
-			ID: j.ID, Date: j.Date.String(), Time: j.Time(), Kind: string(j.Kind), KindLabel: kindLabel(j.Kind), Text: j.Text,
+			ID: j.ID, Date: j.Date.String(), Logged: strings.TrimSpace(j.LogDate().String() + " " + j.LogTime()), Kind: string(j.Kind), KindLabel: kindLabel(j.Kind), Text: j.Text,
 			Closed: j.ClosedOn().String(), Priority: string(j.Priority), PriorityLabel: priorityLabel(j.Priority),
 			IsTask: j.Kind == domain.KindTask, ReadOnly: j.Kind == domain.KindScopeAck, Kinds: kindOptions(noteKinds, j.Kind),
 		}

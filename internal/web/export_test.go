@@ -29,7 +29,7 @@ func TestExportMarkdownFormat(t *testing.T) {
 		"- 2026-03-02 **Meeting** — Kick-off\n" +
 		"- 2026-04-20 14:05 **Decision** — first line\n  second line\n" +
 		"- 2026-05-04 **Task** — Open task\n" +
-		"- 2026-05-05 **Task** — Done task (closed 2026-06-01)\n" +
+		"- 2026-06-01 00:00 **Task** — Done task (closed, opened 2026-05-05)\n" +
 		"- 2026-11-18 16:02 **Scope acknowledged** — Scope change acknowledged\n" +
 		"\n## Unassigned\n\n" +
 		"- 2026-11-19 **Update** — Loose note\n"

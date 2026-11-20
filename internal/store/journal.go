@@ -12,6 +12,15 @@ import (
 
 const journalColumns = `id, coalesce(activity_id, 0), date, kind, text, logged_at, closed_at, priority`
 
+// An entry sits in the journal at its log date and time: a closed task at its
+// close, anything else at its date and logged time (SPEC §10 item 109).
+const (
+	logDate = `coalesce(substr(closed_at, 1, 10), date)`
+	logTime = `coalesce(closed_at, logged_at)`
+	newest  = `ORDER BY ` + logDate + ` DESC, ` + logTime + ` IS NULL, ` + logTime + ` DESC, id DESC`
+	oldest  = `ORDER BY ` + logDate + `, ` + logTime + ` IS NOT NULL, ` + logTime + `, id`
+)
+
 func insertJournal(ctx context.Context, q queryer, j domain.JournalEntry) (int64, error) {
 	if err := j.Validate(); err != nil {
 		return 0, err
@@ -72,15 +81,15 @@ func (s *Store) queryJournal(ctx context.Context, query string, args ...any) ([]
 	return out, rows.Err()
 }
 
-// ListJournal returns an activity's entries, newest first.
+// ListJournal returns an activity's entries, newest first by log date.
 func (s *Store) ListJournal(ctx context.Context, activityID int64) ([]domain.JournalEntry, error) {
 	return s.queryJournal(ctx,
 		`SELECT `+journalColumns+` FROM journal_entries
-		 WHERE activity_id = ? ORDER BY date DESC, logged_at IS NULL, logged_at DESC, id DESC`, activityID)
+		 WHERE activity_id = ? `+newest, activityID)
 }
 
 // ListJournalFeed returns up to limit entries of the given activities (and
-// the Unassigned ones when unassigned is set), newest first (date, then logged
+// the Unassigned ones when unassigned is set), newest first (log date, then log
 // time with untimed entries last, then id), and whether more exist beyond the
 // limit.
 func (s *Store) ListJournalFeed(ctx context.Context, activityIDs []int64, unassigned bool, limit int) ([]domain.JournalEntry, bool, error) {
@@ -97,7 +106,7 @@ func (s *Store) ListJournalFeed(ctx context.Context, activityIDs []int64, unassi
 	entries, err := s.queryJournal(ctx,
 		`SELECT `+journalColumns+` FROM journal_entries
 		 WHERE (? AND activity_id IS NULL) OR activity_id IN (`+in+`)
-		 ORDER BY date DESC, logged_at IS NULL, logged_at DESC, id DESC LIMIT ?`, args...)
+		 `+newest+` LIMIT ?`, args...)
 	if err != nil {
 		return nil, false, err
 	}
@@ -108,21 +117,21 @@ func (s *Store) ListJournalFeed(ctx context.Context, activityIDs []int64, unassi
 }
 
 // ListAllJournal returns every entry, Unassigned included, in the feed's
-// order: newest first (date, then logged time with untimed entries last, then id).
+// order: newest first (log date, then log time with untimed entries last, then id).
 func (s *Store) ListAllJournal(ctx context.Context) ([]domain.JournalEntry, error) {
 	return s.queryJournal(ctx,
 		`SELECT `+journalColumns+` FROM journal_entries
-		 ORDER BY date DESC, logged_at IS NULL, logged_at DESC, id DESC`)
+		 `+newest)
 }
 
-// ListJournalBetween returns the entries of all activities whose date lies in
-// from..to inclusive (a zero bound is open), oldest first: by date, then
-// logged time with untimed entries first, then id.
+// ListJournalBetween returns the entries of all activities whose log date lies
+// in from..to inclusive (a zero bound is open), oldest first: by log date, then
+// log time with untimed entries first, then id.
 func (s *Store) ListJournalBetween(ctx context.Context, from, to domain.Date) ([]domain.JournalEntry, error) {
 	return s.queryJournal(ctx,
 		`SELECT `+journalColumns+` FROM journal_entries
-		 WHERE (?1 = '' OR date >= ?1) AND (?2 = '' OR date <= ?2)
-		 ORDER BY date, logged_at IS NOT NULL, logged_at, id`, from.String(), to.String())
+		 WHERE (?1 = '' OR `+logDate+` >= ?1) AND (?2 = '' OR `+logDate+` <= ?2)
+		 `+oldest, from.String(), to.String())
 }
 
 // EditJournal rewrites the date, kind, text and priority of entry id from j,
