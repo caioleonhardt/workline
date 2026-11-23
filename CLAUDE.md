@@ -28,6 +28,12 @@ Dependency direction: `web → store → domain` and `web → domain`. `domain` 
 - CSS: one hand-written `web/static/app.css` using the tokens in SPEC §6. Vanilla JS only if htmx can't do it, kept in `web/static/app.js`.
 - Accessibility: real buttons, links and labels; `aria-pressed`/`aria-expanded` where SPEC says.
 
+## Alpha (version < 1.0.0)
+- Breaking changes (schema, routes, keys, export formats) are allowed to keep the design clean, under torvalds-agent supervision, with a SPEC §10 decision.
+- `workline migrate` must bring existing data to the new model: every breaking change ships a numbered migration that moves, backfills or renames data. Dropping data needs a §10 decision.
+- Each such migration gets a store test: old schema and rows, migrate, assert the data.
+- Note it under Unreleased in `CHANGELOG.md` with the "run `workline migrate`" line.
+
 ## Testing
 - `internal/domain`: table-driven tests for every rule in SPEC §4 (open/scope at date, progress, bins and clipping, every scope-creep branch including after an acknowledgement). Aim for full coverage here.
 - `internal/store`: tests against a temp-file SQLite DB with migrations applied.
