@@ -266,7 +266,7 @@ dialog#keys { border: 1px solid var(--border); border-radius: 12px; background: 
 html.js .feed li:has(details.edit:not([open])) { cursor: pointer; }
 html.js .feed li:has(details.edit:not([open])):hover { background: var(--bg); }
 html.js .feed details.edit:not([open]) > .edit-toggle:not(:focus-visible) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-/* 1:1 report (SPEC §10 item 112). */
+/* Report (SPEC §10 item 112). */
 .report-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; margin-top: 8px; }
 .report-form .check { font-size: 13px; }
 .report { padding: 20px 24px; }

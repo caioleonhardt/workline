@@ -1,6 +1,7 @@
 package web
 
 import (
+	"io/fs"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -11,11 +12,11 @@ import (
 )
 
 func TestReportMarkdown(t *testing.T) {
-	got := reportMarkdown("1:1 update · 2026-11-12 to 2026-11-18", []reportSection{
+	got := reportMarkdown("Update · 2026-11-12 to 2026-11-18", []reportSection{
 		{"Highlights", []reportLine{{Text: "2026-11-17 · Decision · Atlas / Migration: Cut over on Dec 2\nafter the freeze", StarID: 9}}},
 		{"Done", []reportLine{{Text: "Atlas / Migration", Sub: []string{"Write runbook", "Dry run"}}, {Text: "Finished: Atlas / Old API"}}},
 	})
-	want := `# 1:1 update · 2026-11-12 to 2026-11-18
+	want := `# Update · 2026-11-12 to 2026-11-18
 
 ## Highlights
 
@@ -52,7 +53,7 @@ func TestReportPage(t *testing.T) {
 	rec := get(h, "/report")
 	wantStatus(t, rec, http.StatusOK)
 	wantBody(t, rec, `<div id="dash" class="report-page"`, `value="2026-11-12"`, `value="2026-11-18"`,
-		"<h1>1:1 update · 2026-11-12 to 2026-11-18</h1>", "<h2>Highlights</h2>", "<h2>New</h2>", "<h2>Decisions</h2>", "<h2>Progress</h2>",
+		"<h1>Update · 2026-11-12 to 2026-11-18</h1>", "<h2>Highlights</h2>", "<h2>New</h2>", "<h2>Decisions</h2>", "<h2>Progress</h2>",
 		"Cut over on Dec 2", "Write runbook", `action="/journal/`+strconv.FormatInt(dec.ID, 10)+`/star"`,
 		`href="/report.md?from=2026-11-12&amp;to=2026-11-18"`, `id="report-md"`)
 	if rec.Header().Get("Vary") != "HX-Request" {
@@ -73,17 +74,17 @@ func TestReportPage(t *testing.T) {
 
 	rec = get(h, "/report.md?from=2026-11-18&to=2026-11-18")
 	wantStatus(t, rec, http.StatusOK)
-	if cd := rec.Header().Get("Content-Disposition"); cd != `attachment; filename="workline-1on1-2026-11-18.md"` {
+	if cd := rec.Header().Get("Content-Disposition"); cd != `attachment; filename="workline-report-2026-11-18.md"` {
 		t.Errorf("Content-Disposition = %q", cd)
 	}
-	if !strings.HasPrefix(rec.Body.String(), "# 1:1 update · 2026-11-18 to 2026-11-18\n") || !strings.Contains(rec.Body.String(), "\n## Decisions\n\n- 2026-11-18 · ") {
+	if !strings.HasPrefix(rec.Body.String(), "# Update · 2026-11-18 to 2026-11-18\n") || !strings.Contains(rec.Body.String(), "\n## Decisions\n\n- 2026-11-18 · ") {
 		t.Errorf("markdown:\n%s", rec.Body)
 	}
 
 	// a project narrows it and names it
 	rec = get(h, "/report.md?project=1")
 	wantStatus(t, rec, http.StatusOK)
-	if first, _, _ := strings.Cut(rec.Body.String(), "\n"); !strings.HasPrefix(first, "# 1:1 update · 2026-11-12 to 2026-11-18 · ") {
+	if first, _, _ := strings.Cut(rec.Body.String(), "\n"); !strings.HasPrefix(first, "# Update · 2026-11-12 to 2026-11-18 · ") {
 		t.Errorf("heading %q", first)
 	}
 
@@ -99,4 +100,33 @@ func TestReportPage(t *testing.T) {
 		}
 	}
 	wantBody(t, get(h, "/"), `href="/report?from=2026-11-09&amp;to=2026-11-18"`)
+}
+
+// The app's own wording does not assume a 1:1 or a tech lead (SPEC §10 item 116);
+// entries may say what they like.
+func TestNeutralWording(t *testing.T) {
+	for _, dir := range []string{"templates", "static"} {
+		var fsys fs.FS = templateFS
+		if dir == "static" {
+			fsys = staticFS
+		}
+		err := fs.WalkDir(fsys, dir, func(path string, d fs.DirEntry, err error) error {
+			if err != nil || d.IsDir() || strings.HasSuffix(path, ".min.js") {
+				return err
+			}
+			b, err := fs.ReadFile(fsys, path)
+			if err != nil {
+				return err
+			}
+			for _, w := range []string{"1:1", "1on1", "tech lead"} {
+				if strings.Contains(strings.ToLower(string(b)), w) {
+					t.Errorf("%s says %q", path, w)
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 }

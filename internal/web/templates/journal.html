@@ -14,7 +14,7 @@
 <span id="feed-text-{{.ID}}" class="feed-text{{if .Closed}} done-text{{end}}">{{.Summary}}</span>{{if .Closed}} <span class="muted mono small">opened {{.Date}}</span>{{end}}
 <form class="inline star-form" method="post" action="/journal/{{.ID}}/star">
 <input type="hidden" name="next" value="{{$.Next}}">
-<button class="star" aria-pressed="{{if .Starred}}true{{else}}false{{end}}" aria-label="Star for the 1:1 report" title="Star for the 1:1 report">{{if .Starred}}★{{else}}☆{{end}}</button>
+<button class="star" aria-pressed="{{if .Starred}}true{{else}}false{{end}}" aria-label="Star for the report" title="Star for the report">{{if .Starred}}★{{else}}☆{{end}}</button>
 </form>
 {{if not .ReadOnly}}
 <details class="edit">

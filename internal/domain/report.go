@@ -27,7 +27,7 @@ func ProgressAt(a Activity, tasks []Task, t Date) int {
 	return percent(closed, scope)
 }
 
-// ReportInput is what the 1:1 report is built from (SPEC §10 item 112). The
+// ReportInput is what the report is built from (SPEC §10 item 112). The
 // caller leaves out what the report must not show (archived projects, other
 // projects, Unassigned work) from all of Activities, Tasks and Entries.
 type ReportInput struct {
@@ -64,7 +64,7 @@ type ReportProgress struct {
 	Before, After, Open int
 }
 
-// Report is the 1:1 report: each section in display order, empty when it has nothing.
+// Report is the report of a range: each section in display order, empty when it has nothing.
 type Report struct {
 	From, To   Date
 	Highlights []ReportItem
@@ -79,7 +79,7 @@ type Report struct {
 	Blockers   []ReportItem
 }
 
-// BuildReport builds the 1:1 report. Activities are listed by project name,
+// BuildReport builds the report. Activities are listed by project name,
 // then start, then id, with Unassigned work last.
 func BuildReport(in ReportInput) Report {
 	r := Report{From: in.From, To: in.To}

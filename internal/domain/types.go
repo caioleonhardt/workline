@@ -133,7 +133,7 @@ type JournalEntry struct {
 	LoggedAt   string // "YYYY-MM-DD HH:MM" local time it was logged; empty for older entries
 	ClosedAt   string
 	Priority   Priority // tasks only
-	Starred    bool     // picked for the 1:1 report's highlights
+	Starred    bool     // picked for the report's highlights
 }
 
 // ClosedOn is the day a task entry was closed, zero while open or for other kinds.

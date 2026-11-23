@@ -13,7 +13,7 @@ import (
 	"workline/internal/store"
 )
 
-// The 1:1 report (SPEC §10 items 112–113): one model, shown as a page and
+// The report (SPEC §10 items 112–113): one model, shown as a page and
 // written as Markdown that reads well as plain text in an email.
 
 // reportLine is a bullet; Sub are its indented bullets. StarID is set on a
@@ -161,7 +161,7 @@ func (s *Server) loadReport(ctx context.Context, q url.Values) (reportData, erro
 		}
 	}
 	d.Report = domain.BuildReport(in)
-	d.Heading = fmt.Sprintf("1:1 update · %s to %s", from, to)
+	d.Heading = fmt.Sprintf("Update · %s to %s", from, to)
 	if project != 0 {
 		d.Heading += " · " + shownProjects[0].Name
 	}
@@ -312,7 +312,7 @@ func (s *Server) reportMD(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="workline-1on1-%s.md"`, d.To))
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="workline-report-%s.md"`, d.To))
 	fmt.Fprint(w, reportMarkdown(d.Heading, reportSections(d.Report)))
 }
 
@@ -332,7 +332,7 @@ func (s *Server) renderReport(w http.ResponseWriter, r *http.Request, uri string
 		return
 	}
 	v := reportView{
-		Title: "1:1 report · Workline", Next: uri,
+		Title: "Report · Workline", Next: uri,
 		From: d.From.String(), To: d.To.String(), OnlyStarred: d.OnlyStarred,
 		Projects: []option{{"", "All projects", d.Project == 0}},
 		Heading:  d.Heading,

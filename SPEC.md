@@ -1,6 +1,6 @@
 # Workline — Specification (v1)
 
-A local-first tracker for a tech lead's activities: everything you are asked to do, not only what lives in Jira. Activities are grouped by **project**, broken into **tasks**, documented in a **journal**, and shown on a yearly timeline as **burndowns** (open tasks over time) with a **scope-creep** signal.
+A local-first tracker for your activities: everything you are asked to do, not only what lives in Jira. Activities are grouped by **project**, broken into **tasks**, documented in a **journal**, and shown on a yearly timeline as **burndowns** (open tasks over time) with a **scope-creep** signal.
 
 The visual reference is the mockup in `docs/mockup.png` (exported from the design canvas). When this spec and the mockup disagree, this spec wins.
 
@@ -218,7 +218,7 @@ Shown beside the timeline (below it on narrow screens) when `sel` is set.
 Effect: the flag clears and, per §4.4, returns only if scope grows again from the new baseline.
 
 ### 5.5 Export (milestone 5)
-`GET /export/journal.md?project=&from=&to=`: Markdown grouped by project → activity, with journal entries in date order, for 1:1 preparation.
+`GET /export/journal.md?project=&from=&to=`: Markdown grouped by project → activity, with journal entries in date order.
 
 ---
 
@@ -265,8 +265,8 @@ POST   /journal/{id}/delete                (tasks too)
 POST   /journal/{id}/star                  star or unstar an entry
 POST   /activities/{id}/scope-ack
 GET    /export/journal.md
-GET    /report                             1:1 report page
-GET    /report.md                          1:1 report as Markdown
+GET    /report                             report page
+GET    /report.md                          report as Markdown
 GET    /static/*                           embedded assets
 ```
 
@@ -296,10 +296,10 @@ GET    /static/*                           embedded assets
 8. **Version.** `workline version` (§10 item 90).
 9. **Unassigned entries.** Log without choosing an activity; file entries later (§10 item 91).
 10. **Task priority and bar prefixes.** Tasks get a priority; `/t`, `/d`, `/u`… set the kind from the bar (§10 items 92–93).
-11. **Journal page.** `/` shows the last two weeks for 1:1s; the timeline moves to `/timeline` (§10 items 94–95).
+11. **Journal page.** `/` shows the last two weeks; the timeline moves to `/timeline` (§10 items 94–95).
 12. **Vim keys.** Normal-mode keys move a cursor over entries, search the page and act on the focused entry (§10 items 99–100).
 13. **Search with filters.** A query syntax with terms, exclusions and qualifiers, run by the server over the whole journal (§10 items 102–103).
-14. **1:1 report.** Starred entries and a report of a chosen range, as a page and as Markdown for email (§10 items 110–114; see `docs/product-review.md`).
+14. **Report.** Starred entries and a report of a chosen range, as a page and as Markdown for email (§10 items 110–114; see `docs/product-review.md`).
 15. **Neutral wording.** No "1:1" or "tech lead" in the app: the report is "Report", its Markdown title `Update · {from} to {to}`, its download `workline-report-{to}.md`; README and SPEC follow. History (CHANGELOG, migrations, `docs/product-review.md`) stays as written (§10 item 116).
 16. **Keys rename.** `gr` goes to the roadmap (the timeline until 20), the report moves to `gR`, and `gt` is freed (§10 item 117).
 17. **Tasks page.** `GET /tasks?page=&state=open|closed|all&project=`, paginated, reached by `gt` and a Tasks nav link; `[`/`]` move between pages.
@@ -478,7 +478,7 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 108. **One close field.** `closed_on` and `closed_at` said the same thing, so migration 0008 drops `closed_on`; `closed_at` alone records a close, and `closed_on` in §4 is its day. Closes recorded without a time (older and seeded tasks) get `00:00`, which the completion popups show. The seed file gives closed tasks `closed_at` at `00:00`. The DB checks that only a task has a `closed_at` and that its day is not before the task's `date`.
 109. **Log date.** The journal is a log, and closing a task is an event in it. An entry's log date and time are a closed task's `closed_at`, else the entry's `date` and `logged_at`. Every journal list (feed, journal page, search, export) orders by log date, then log time (untimed entries after timed ones when newest first, before them when oldest first), then id; the journal page and the export pick entries by log date. This amends items 34, 49, 66 and 95. A closed task's row leads with its close date and time and ends with `opened {date}`; the export writes `(closed, opened {date})`. A task is still one row: when it is reopened it goes back to its opening date, and a task opened in a week and closed later is listed under the week it was closed in. The Edit form's Opened field still edits `date`.
 
-### Decisions (Milestone 14, 1:1 report, 2026-11-20)
+### Decisions (Milestone 14, report, 2026-11-20)
 110. **Starred entries.** Any journal entry, `scope_ack` included, can be starred (migration 0009, `starred` 0/1). `POST /journal/{id}/star` toggles it and answers like a task toggle (303 to `next`, or the page fragment with `HX-Request`). Feed rows (timeline, journal page, search) and the report's highlights have a ☆/★ button with `aria-pressed`; in Normal mode `s` toggles the focused entry's star. Editing an entry keeps its star. `is:starred` matches starred entries.
 111. **Activity creation day.** `activities.created_on` (migration 0010) is the local day an activity was created, from the clock; `created_at` stays as it was (UTC, from SQLite) and is not used. Existing activities take the date of their "Activity created" entry, else the day of `created_at`; seeded ones take their start date.
 112. **Report page** `GET /report?from=&to=&project=&only=starred`. From and To default to today − 6 and today; From after To is refused. `project` narrows it to one project (Unassigned entries are then left out); archived projects are left out (item 33). Entries are picked by log date (item 109). Sections, each left out when empty, items tagged `Project / Activity` or `Unassigned`:
@@ -488,7 +488,7 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
     - **New**: activities created in the range (item 111) with their requester; tasks opened in the range, by activity; scope acknowledgements in the range.
     - **Decisions** and **Blockers**: entries of that kind in the range; Blockers first lists the activities blocked now.
     `only=starred` keeps Highlights alone. The page has the date form (GET, works without scripting), the sections, **Download .md** and, with scripting, **Copy Markdown**. Its root is `#dash`, with the bar and the statusline. `gr` goes to it; the top navigation reads Journal · Timeline · Report · Projects; the journal page links to the report of its range, up to today. Download .md carries the page's resolved range, so it matches what is shown.
-113. **Report Markdown** `GET /report.md` with the same parameters, downloaded as `workline-1on1-{to}.md`. It must read well as plain text in an email: a `#` title, `##` sections, `-` bullets with two-space indented sub-bullets, no tables or bold. The title line is `1:1 update · {from} to {to}`, followed by the project name when narrowed.
+113. **Report Markdown** `GET /report.md` with the same parameters, downloaded as `workline-report-{to}.md` (item 116). It must read well as plain text in an email: a `#` title, `##` sections, `-` bullets with two-space indented sub-bullets, no tables or bold. The title line is `Update · {from} to {to}`, followed by the project name when narrowed.
 114. Progress in the report is by task count, like everywhere else; weighting tasks is out of scope.
 
 ### Decisions (milestones 15–22, 2026-11-23)

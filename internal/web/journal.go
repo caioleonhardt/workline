@@ -17,7 +17,7 @@ type journalRow struct {
 	Priority, PriorityLabel     string // a task's priority; empty for none
 	IsTask                      bool   // a task keeps its kind, so its Edit form has no kind select
 	ReadOnly                    bool   // scope_ack entries cannot be edited
-	Starred                     bool   // a highlight of the 1:1 report
+	Starred                     bool   // a highlight of the report
 	Kinds                       []option
 	Priorities                  []option // a task's Edit form choices
 }

@@ -1,6 +1,6 @@
 # Workline
 
-Local-first tracker for a tech lead's work: projects, tasks, journals, and burndown timelines with scope-creep signals.
+Local-first tracker for your work: projects, tasks, journals, and burndown timelines with scope-creep signals.
 
 Workline tracks everything you are asked to do, not only what lives in Jira. Activities are grouped by project, broken into tasks, documented in a dated journal, and drawn on a year or quarter timeline as burndowns of open tasks over time.
 
@@ -8,12 +8,12 @@ It is a single Go binary with an embedded SQLite database. It works offline, lis
 
 ## Features
 
-- **Journal page** (the home page) for the last two weeks: one burndown of all tasks with completion dots, open tasks by priority, and the entries of those weeks. Built for weekly 1:1s.
+- **Journal page** (the home page) for the last two weeks: one burndown of all tasks with completion dots, open tasks by priority, and the entries of those weeks.
 - **Fast journaling** from a bar at the bottom of every page: no activity needed (entries stay Unassigned until filed), and prefixes like `/t1 Fix the deploy` (high-priority task), `/d` decision and `/u` update.
 - **Timeline dashboard** by year or quarter, grouped by project, with filters for project, month, status and scope creep. Every view is a bookmarkable URL.
 - **Burndowns** computed from task open/close dates, never entered by hand.
 - **Scope-creep signal** when an activity grows 75% past its baseline, or when work arrives faster than it closes over the last 30 days. Acknowledging it resets the baseline and logs the change to the journal.
-- **Journal** per activity, exportable as Markdown for 1:1 preparation.
+- **Journal** per activity, exportable as Markdown.
 - **Keyboard shortcuts**: `j` journal bar, `t` / `d` / `u` / `b` / `m` log a task, decision, update, blocker or meeting, `n` new activity, `/` focus filter, `Esc` close panel.
 
 ## Install
