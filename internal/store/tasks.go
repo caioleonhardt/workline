@@ -10,13 +10,13 @@ import (
 )
 
 // taskColumns reads a journal entry of kind task as a domain.Task.
-const taskColumns = `id, coalesce(activity_id, 0), text, date, closed_at, priority`
+const taskColumns = `id, coalesce(activity_id, 0), coalesce(project_id, 0), text, date, closed_at, priority`
 
 func scanTask(r scanner) (domain.Task, error) {
 	var s domain.Task
 	var created, priority string
 	var closedAt sql.NullString
-	if err := r.Scan(&s.ID, &s.ActivityID, &s.Text, &created, &closedAt, &priority); err != nil {
+	if err := r.Scan(&s.ID, &s.ActivityID, &s.ProjectID, &s.Text, &created, &closedAt, &priority); err != nil {
 		return s, err
 	}
 	s.ClosedAt, s.Priority = closedAt.String, domain.Priority(priority)

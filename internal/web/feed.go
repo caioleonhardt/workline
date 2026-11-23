@@ -3,17 +3,18 @@ package web
 import (
 	"context"
 	"strconv"
+	"strings"
 
 	"workline/internal/domain"
 )
 
-// feedRow is a journal entry with the activity it belongs to.
+// feedRow is a journal entry with the activity or project it belongs to.
 type feedRow struct {
 	journalRow
-	Project, Activity string
-	ActivityHref      string     // empty when the feed is already narrowed to the activity
-	Unassigned        bool       // the entry has no activity yet
-	FileTo            []optGroup // an Unassigned entry's Edit form offers these activities
+	Project, Activity string     // Activity is empty for a project's own entry
+	ActivityHref      string     // its activity or project on the roadmap; empty when the feed is narrowed to it
+	Unassigned        bool       // the entry has neither activity nor project
+	FileTo            []optGroup // an entry outside any activity can be filed under these
 }
 
 // optGroup is a labelled group of select options.
@@ -22,18 +23,47 @@ type optGroup struct {
 	Options []option
 }
 
-// fileChoices lists where an entry can be filed: Unassigned, then the live
-// activities by project, with cur selected.
-func fileChoices(groups []domain.Group, cur int64) []optGroup {
-	out := []optGroup{{Options: []option{{"", "Unassigned", cur == 0}}}}
+// fileChoices lists where an entry can be filed: Unassigned, then each live
+// project, itself and then its activities, with cur (an entryLink) selected.
+func fileChoices(groups []domain.Group, cur string) []optGroup {
+	out := []optGroup{{Options: []option{{"", "Unassigned", cur == ""}}}}
 	for _, g := range groups {
-		og := optGroup{Label: g.Project.Name}
+		p := entryLink(0, g.Project.ID)
+		og := optGroup{Label: g.Project.Name, Options: []option{{p, g.Project.Name + " (project)", p == cur}}}
 		for _, a := range g.Activities {
-			og.Options = append(og.Options, option{strconv.FormatInt(a.ID, 10), a.Name, a.ID == cur})
+			v := entryLink(a.ID, 0)
+			og.Options = append(og.Options, option{v, a.Name, v == cur})
 		}
 		out = append(out, og)
 	}
 	return out
+}
+
+// entryLink is the form value naming where an entry belongs: an activity's
+// id, "p" and a project's id, or "" for Unassigned (SPEC §10 item 120).
+func entryLink(activityID, projectID int64) string {
+	switch {
+	case activityID != 0:
+		return strconv.FormatInt(activityID, 10)
+	case projectID != 0:
+		return "p" + strconv.FormatInt(projectID, 10)
+	}
+	return ""
+}
+
+// parseLink reads an entryLink back.
+func parseLink(v string) (activityID, projectID int64, err error) {
+	if v == "" {
+		return 0, 0, nil
+	}
+	n, err := strconv.ParseInt(strings.TrimPrefix(v, "p"), 10, 64)
+	if err != nil || n <= 0 {
+		return 0, 0, domain.Invalid("choose an activity, a project, or none")
+	}
+	if strings.HasPrefix(v, "p") {
+		return 0, n, nil
+	}
+	return n, 0, nil
 }
 
 type journalView struct {
@@ -47,12 +77,12 @@ type journalView struct {
 	MoreCount     int
 }
 
-// buildJournal loads the feed for the given activities, plus the Unassigned
-// entries when unassigned is set: newest first, feedStep entries at a time
-// (SPEC §10 items 73, 77 and 91). filing lists the activities an entry can be
-// filed under.
-func (s *Server) buildJournal(ctx context.Context, f Filter, uri string, ids []int64, unassigned bool, selected *panelView, itemOf map[int64]domain.ActivityWithTasks, projects []domain.Project, filing []domain.Group) (journalView, error) {
-	entries, more, err := s.store.ListJournalFeed(ctx, ids, unassigned, f.Feed)
+// buildJournal loads the feed for the given activities and projects, plus the
+// Unassigned entries when unassigned is set: newest first, feedStep entries at
+// a time (SPEC §10 items 73, 77, 91 and 120). filing lists where an entry can
+// be filed.
+func (s *Server) buildJournal(ctx context.Context, f Filter, uri string, ids, projectIDs []int64, unassigned bool, selected *panelView, itemOf map[int64]domain.ActivityWithTasks, projects []domain.Project, filing []domain.Group) (journalView, error) {
+	entries, more, err := s.store.ListJournalFeed(ctx, ids, projectIDs, unassigned, f.Feed)
 	if err != nil {
 		return journalView{}, err
 	}
@@ -65,13 +95,23 @@ func (s *Server) buildJournal(ctx context.Context, f Filter, uri string, ids []i
 		v.Title, v.ShowAllHref = selected.Name, f.WithSel(0).URL()
 	}
 	for i, row := range journalRows(entries) {
-		a := itemOf[entries[i].ActivityID]
-		fr := feedRow{journalRow: row, Project: projectName[a.ProjectID], Activity: a.Name, Unassigned: entries[i].ActivityID == 0}
-		if selected == nil && !fr.Unassigned {
-			fr.ActivityHref = f.WithSel(a.ID).URL()
+		e := entries[i]
+		fr := feedRow{journalRow: row, Unassigned: e.Unassigned()}
+		switch {
+		case e.ActivityID != 0:
+			a := itemOf[e.ActivityID]
+			fr.Project, fr.Activity = projectName[a.ProjectID], a.Name
+			if selected == nil {
+				fr.ActivityHref = f.WithSel(a.ID).URL()
+			}
+		case e.ProjectID != 0:
+			fr.Project = projectName[e.ProjectID]
+			if f.Project != e.ProjectID {
+				fr.ActivityHref = f.WithProject(e.ProjectID).URL()
+			}
 		}
-		if fr.Unassigned {
-			fr.FileTo = fileChoices(filing, 0)
+		if e.ActivityID == 0 {
+			fr.FileTo = fileChoices(filing, entryLink(0, e.ProjectID))
 		}
 		v.Entries = append(v.Entries, fr)
 	}

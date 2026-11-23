@@ -56,8 +56,8 @@ func (s *Server) loadSearchIndex(ctx context.Context) (searchIndex, error) {
 func (ix searchIndex) find(q domain.Query) []domain.JournalEntry {
 	var out []domain.JournalEntry
 	for _, e := range ix.entries {
-		a, live := ix.actOf[e.ActivityID]
-		if (live || e.ActivityID == 0) && q.Match(e, ix.projectName[a.ProjectID], a.Name) {
+		project, activity, live := where(ix.projectName, ix.actOf, e.ActivityID, e.ProjectID)
+		if live && q.Match(e, project, activity) {
 			out = append(out, e)
 		}
 	}
@@ -103,7 +103,7 @@ func (s *Server) buildSearch(ctx context.Context, uri string) (searchView, error
 		Title: "Search · Workline", Next: uri, Query: params.Get("q"), ClearHref: localPath(params.Get("from")),
 		quickBar: newQuickBar(quickAddView{Pick: true, Next: uri}),
 	}
-	v.QuickFile = fileChoices(ix.filing, 0)
+	v.QuickFile = fileChoices(ix.filing, "")
 	q, err := domain.ParseQuery(v.Query)
 	var qe *domain.QueryError
 	if errors.As(err, &qe) {

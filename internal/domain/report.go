@@ -34,12 +34,13 @@ type ReportInput struct {
 	From, To    Date
 	Projects    []Project
 	Activities  []Activity
-	Tasks       []Task         // every task of Activities, and Unassigned ones
+	Tasks       []Task         // every task of Activities, of Projects and Unassigned ones
 	Entries     []JournalEntry // those whose log date is in From..To, oldest first
 	OnlyStarred bool
 }
 
-// ReportItem is one journal entry with where it belongs; Activity is empty for Unassigned.
+// ReportItem is one journal entry with where it belongs: Activity is empty for
+// a project's entry, and both are empty for Unassigned.
 type ReportItem struct {
 	Project, Activity string
 	Entry             JournalEntry
@@ -80,7 +81,7 @@ type Report struct {
 }
 
 // BuildReport builds the report. Activities are listed by project name,
-// then start, then id, with Unassigned work last.
+// then start, then id, then the projects' own entries, with Unassigned work last.
 func BuildReport(in ReportInput) Report {
 	r := Report{From: in.From, To: in.To}
 	projectName := map[int64]string{}
@@ -98,12 +99,25 @@ func BuildReport(in ReportInput) Report {
 		}
 		return a.ID < b.ID
 	})
-	rank := map[int64]int{0: len(acts)} // Unassigned last
+	// Tasks are grouped by owner: an activity's id, a project's id negated, or 0 for Unassigned.
+	owner := func(activityID, projectID int64) int64 {
+		if activityID != 0 {
+			return activityID
+		}
+		return -projectID
+	}
+	rank := map[int64]int{0: len(acts) + len(in.Projects)} // Unassigned last
 	actOf := map[int64]Activity{}
 	for i, a := range acts {
 		rank[a.ID], actOf[a.ID] = i, a
 	}
+	for i, p := range in.Projects {
+		rank[-p.ID] = len(acts) + i
+	}
 	item := func(e JournalEntry) ReportItem {
+		if e.ProjectID != 0 {
+			return ReportItem{Project: projectName[e.ProjectID], Entry: e}
+		}
 		a := actOf[e.ActivityID]
 		return ReportItem{Project: projectName[a.ProjectID], Activity: a.Name, Entry: e}
 	}
@@ -122,7 +136,7 @@ func BuildReport(in ReportInput) Report {
 	for _, e := range in.Entries {
 		switch {
 		case e.Kind == KindTask && e.ClosedAt != "":
-			closed[e.ActivityID] = append(closed[e.ActivityID], e)
+			closed[owner(e.ActivityID, e.ProjectID)] = append(closed[owner(e.ActivityID, e.ProjectID)], e)
 		case e.Kind == KindScopeAck:
 			r.Acks = append(r.Acks, item(e))
 		case e.Kind == KindDecision:
@@ -135,9 +149,9 @@ func BuildReport(in ReportInput) Report {
 	tasksOf := map[int64][]Task{}
 	for _, t := range in.Tasks {
 		tasksOf[t.ActivityID] = append(tasksOf[t.ActivityID], t)
-		if inRange(t.CreatedOn) {
-			opened[t.ActivityID] = append(opened[t.ActivityID], JournalEntry{
-				ID: t.ID, ActivityID: t.ActivityID, Date: t.CreatedOn, Kind: KindTask, Text: t.Text, ClosedAt: t.ClosedAt, Priority: t.Priority,
+		if k := owner(t.ActivityID, t.ProjectID); inRange(t.CreatedOn) {
+			opened[k] = append(opened[k], JournalEntry{
+				ID: t.ID, ActivityID: t.ActivityID, ProjectID: t.ProjectID, Date: t.CreatedOn, Kind: KindTask, Text: t.Text, ClosedAt: t.ClosedAt, Priority: t.Priority,
 			})
 		}
 	}
@@ -181,6 +195,10 @@ func groupTasks(by map[int64][]JournalEntry, rank map[int64]int, actOf map[int64
 	sort.Slice(ids, func(i, j int) bool { return rank[ids[i]] < rank[ids[j]] })
 	var out []ReportTasks
 	for _, id := range ids {
+		if id < 0 {
+			out = append(out, ReportTasks{Project: projectName[-id], Tasks: by[id]})
+			continue
+		}
 		a := actOf[id]
 		out = append(out, ReportTasks{Project: projectName[a.ProjectID], Activity: a.Name, Tasks: by[id]})
 	}

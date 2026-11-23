@@ -20,7 +20,7 @@ type taskListRow struct {
 	ID                      int64
 	Text, Created, Closed   string // Closed is empty while open
 	Priority, PriorityLabel string
-	Project, Activity       string
+	Project, Activity       string // Activity is empty for a project's own task
 	ActivityHref            string // empty for Unassigned
 }
 
@@ -117,11 +117,15 @@ func (s *Server) buildTasksPage(ctx context.Context, uri string) (tasksPageView,
 		if state == "open" && !open || state == "closed" && open {
 			return true
 		}
-		if t.ActivityID == 0 {
+		if t.ActivityID == 0 && t.ProjectID == 0 {
 			return project != 0
 		}
-		a, live := actOf[t.ActivityID]
-		return !live || project != 0 && a.ProjectID != project
+		owner := t.ProjectID
+		if a, ok := actOf[t.ActivityID]; ok {
+			owner = a.ProjectID
+		}
+		_, live := projectName[owner]
+		return !live || project != 0 && owner != project
 	})
 	if state == "closed" {
 		slices.SortFunc(tasks, func(a, b domain.Task) int { // newest close first
@@ -142,7 +146,7 @@ func (s *Server) buildTasksPage(ctx context.Context, uri string) (tasksPageView,
 	if len(tasks) == 1 {
 		v.Count = fmt.Sprintf("1 task · page %d of %d", page, pages)
 	}
-	v.QuickFile = fileChoices(filing, 0)
+	v.QuickFile = fileChoices(filing, "")
 	for _, st := range []string{"open", "closed", "all"} {
 		v.States = append(v.States, option{st, st, st == state})
 	}
@@ -161,10 +165,8 @@ func (s *Server) buildTasksPage(ctx context.Context, uri string) (tasksPageView,
 			ID: t.ID, Text: t.Text, Created: t.CreatedOn.String(), Closed: t.ClosedOn().String(),
 			Priority: string(t.Priority), PriorityLabel: priorityLabel(t.Priority),
 		}
-		if a, ok := actOf[t.ActivityID]; ok {
-			row.Project, row.Activity = projectName[a.ProjectID], a.Name
-			row.ActivityHref = "/roadmap?sel=" + strconv.FormatInt(a.ID, 10)
-		}
+		row.Project, row.Activity, _ = where(projectName, actOf, t.ActivityID, t.ProjectID)
+		row.ActivityHref = entryHref(t.ActivityID, t.ProjectID)
 		v.Tasks = append(v.Tasks, row)
 	}
 	return v, nil

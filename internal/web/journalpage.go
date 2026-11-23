@@ -109,29 +109,29 @@ func (s *Server) buildJournalPage(ctx context.Context, uri string) (journalPageV
 		v.TodayHref = "/"
 		v.QuickAdd.Date = day.String()
 	}
-	v.QuickFile = fileChoices(filing, 0)
+	v.QuickFile = fileChoices(filing, "")
 
 	// The feed: the day's entries of live projects and Unassigned ones, newest first.
 	entries = slices.DeleteFunc(entries, func(j domain.JournalEntry) bool {
-		_, ok := actOf[j.ActivityID]
-		return j.ActivityID != 0 && !ok
+		_, _, live := where(projectName, actOf, j.ActivityID, j.ProjectID)
+		return !live
 	})
 	slices.Reverse(entries)
 	v.Journal = journalView{Next: uri, Title: "Journal", FullLoadLinks: true, Entries: pageFeedRows(entries, projectName, actOf, filing)}
 	return v, nil
 }
 
-// pageFeedRows builds feed rows for a page other than the timeline: each
-// activity tag is a link to the timeline with it selected.
+// pageFeedRows builds feed rows for a page other than the roadmap: each
+// activity or project tag is a link to the roadmap.
 func pageFeedRows(entries []domain.JournalEntry, projectName map[int64]string, actOf map[int64]domain.Activity, filing []domain.Group) []feedRow {
 	var out []feedRow
 	for i, row := range journalRows(entries) {
-		a := actOf[entries[i].ActivityID]
-		fr := feedRow{journalRow: row, Project: projectName[a.ProjectID], Activity: a.Name, Unassigned: entries[i].ActivityID == 0}
-		if fr.Unassigned {
-			fr.FileTo = fileChoices(filing, 0)
-		} else {
-			fr.ActivityHref = "/roadmap?sel=" + strconv.FormatInt(a.ID, 10)
+		e := entries[i]
+		fr := feedRow{journalRow: row, ActivityHref: entryHref(e.ActivityID, e.ProjectID)}
+		fr.Project, fr.Activity, _ = where(projectName, actOf, e.ActivityID, e.ProjectID)
+		fr.Unassigned = e.Unassigned()
+		if e.ActivityID == 0 {
+			fr.FileTo = fileChoices(filing, entryLink(e.ActivityID, e.ProjectID))
 		}
 		out = append(out, fr)
 	}
@@ -156,9 +156,33 @@ func liveIndex(projects []domain.Project, acts []domain.Activity) (map[int64]str
 	}
 	var filing []domain.Group
 	for _, p := range projects {
-		if as := liveOf[p.ID]; len(as) > 0 {
-			filing = append(filing, domain.Group{Project: p, Activities: as})
-		}
+		filing = append(filing, domain.Group{Project: p, Activities: liveOf[p.ID]})
 	}
 	return projectName, actOf, filing
+}
+
+// where names the project and activity an entry or task belongs to (activity
+// empty for a project's own, both empty for Unassigned), and whether it is
+// live: Unassigned, or in a project that is not archived.
+func where(projectName map[int64]string, actOf map[int64]domain.Activity, activityID, projectID int64) (project, activity string, live bool) {
+	switch {
+	case activityID != 0:
+		a, ok := actOf[activityID]
+		return projectName[a.ProjectID], a.Name, ok
+	case projectID != 0:
+		name, ok := projectName[projectID]
+		return name, "", ok
+	}
+	return "", "", true
+}
+
+// entryHref links an entry's activity, or its project, on the roadmap; "" for Unassigned.
+func entryHref(activityID, projectID int64) string {
+	switch {
+	case activityID != 0:
+		return "/roadmap?sel=" + strconv.FormatInt(activityID, 10)
+	case projectID != 0:
+		return "/roadmap?project=" + strconv.FormatInt(projectID, 10)
+	}
+	return ""
 }

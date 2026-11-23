@@ -30,7 +30,7 @@
 <label class="check"><input type="checkbox"{{if .Closed}} checked{{end}}><span{{if .Closed}} class="done-text"{{end}}>{{.Text}}</span></label>
 <button class="apply">{{if .Closed}}Reopen{{else}}Close{{end}}</button>
 </form>
-<span class="task-meta">{{if .Priority}}<span class="chip prio-{{.Priority}}">{{.PriorityLabel}}</span> {{end}}{{if .ActivityHref}}<a class="tag small" href="{{.ActivityHref}}" hx-boost="false">{{.Project}} › {{.Activity}}</a>{{else}}<span class="tag small unassigned">Unassigned</span>{{end}} <span class="muted mono small">{{if .Closed}}closed {{.Closed}} · {{end}}opened {{.Created}}</span></span>
+<span class="task-meta">{{if .Priority}}<span class="chip prio-{{.Priority}}">{{.PriorityLabel}}</span> {{end}}{{if .ActivityHref}}<a class="tag small" href="{{.ActivityHref}}" hx-boost="false">{{.Project}}{{if .Activity}} › {{.Activity}}{{end}}</a>{{else}}<span class="tag small unassigned">Unassigned</span>{{end}} <span class="muted mono small">{{if .Closed}}closed {{.Closed}} · {{end}}opened {{.Created}}</span></span>
 </li>
 {{else}}<li class="muted">No tasks.</li>{{end}}
 </ul>

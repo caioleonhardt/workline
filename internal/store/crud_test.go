@@ -325,16 +325,16 @@ func TestTasks(t *testing.T) {
 	if _, err := s.ToggleTask(ctx, st.ID, fixed(d2)); err != nil { // closed again
 		t.Fatal(err)
 	}
-	if err := s.EditJournal(ctx, st.ID, nil, domain.JournalEntry{Date: date(t, "2026-03-01"), Kind: domain.KindTask, Text: "one!"}); !errors.Is(err, domain.ErrInvalid) {
+	if err := s.EditJournal(ctx, st.ID, false, domain.JournalEntry{Date: date(t, "2026-03-01"), Kind: domain.KindTask, Text: "one!"}); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("created after closed: %v", err)
 	}
-	if err := s.EditJournal(ctx, st.ID, nil, domain.JournalEntry{Date: d1.AddDays(1), Kind: domain.KindTask, Text: "one!"}); err != nil {
+	if err := s.EditJournal(ctx, st.ID, false, domain.JournalEntry{Date: d1.AddDays(1), Kind: domain.KindTask, Text: "one!"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.EditJournal(ctx, st.ID, nil, domain.JournalEntry{Date: d1, Kind: domain.KindTask, Text: ""}); !errors.Is(err, domain.ErrInvalid) {
+	if err := s.EditJournal(ctx, st.ID, false, domain.JournalEntry{Date: d1, Kind: domain.KindTask, Text: ""}); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("edit blank: %v", err)
 	}
-	if err := s.EditJournal(ctx, 999, nil, domain.JournalEntry{Date: d1, Kind: domain.KindTask, Text: "x"}); !errors.Is(err, ErrNotFound) {
+	if err := s.EditJournal(ctx, 999, false, domain.JournalEntry{Date: d1, Kind: domain.KindTask, Text: "x"}); !errors.Is(err, ErrNotFound) {
 		t.Errorf("edit missing: %v", err)
 	}
 	subs, err := s.ListTasks(ctx, a.ID)

@@ -2,7 +2,6 @@ package web
 
 import (
 	"net/http"
-	"strconv"
 	"strings"
 
 	"workline/internal/domain"
@@ -25,8 +24,8 @@ type journalRow struct {
 // noteKinds are the kinds an entry other than a task can be edited to; the
 // quick-add bar also offers task.
 var (
-	noteKinds  = []domain.Kind{domain.KindUpdate, domain.KindDecision, domain.KindBlocker, domain.KindMeeting}
-	quickKinds = []domain.Kind{domain.KindUpdate, domain.KindDecision, domain.KindBlocker, domain.KindMeeting, domain.KindTask}
+	noteKinds  = []domain.Kind{domain.KindUpdate, domain.KindNote, domain.KindDecision, domain.KindBlocker, domain.KindMeeting}
+	quickKinds = []domain.Kind{domain.KindUpdate, domain.KindNote, domain.KindDecision, domain.KindBlocker, domain.KindMeeting, domain.KindTask}
 )
 
 func kindOptions(kinds []domain.Kind, cur domain.Kind) []option {
@@ -75,13 +74,13 @@ func journalRows(entries []domain.JournalEntry) []journalRow {
 // prefixKinds are the bar's prefixes: "/t text" logs a task, and so on
 // (SPEC §10 item 93).
 var prefixKinds = map[byte]domain.Kind{
-	't': domain.KindTask, 'd': domain.KindDecision, 'u': domain.KindUpdate, 'b': domain.KindBlocker, 'm': domain.KindMeeting,
+	't': domain.KindTask, 'd': domain.KindDecision, 'u': domain.KindUpdate, 'b': domain.KindBlocker, 'm': domain.KindMeeting, 'n': domain.KindNote,
 }
 
 // prefixPriorities follow /t: "/t1 text" is a high-priority task.
 var prefixPriorities = map[byte]domain.Priority{'1': domain.PriorityHigh, '2': domain.PriorityMedium, '3': domain.PriorityLow}
 
-// parsePrefix reads a leading "/t", "/t1".."/t3", "/d", "/u", "/b" or "/m"
+// parsePrefix reads a leading "/t", "/t1".."/t3", "/d", "/u", "/b", "/m" or "/n"
 // followed by a space or line break and some text. ok is false, and the text
 // is to be logged as typed, for anything else.
 func parsePrefix(text string) (kind domain.Kind, p domain.Priority, rest string, ok bool) {
@@ -104,30 +103,16 @@ func parsePrefix(text string) (kind domain.Kind, p domain.Priority, rest string,
 	return kind, p, strings.TrimSpace(text[n:]), true
 }
 
-// formActivity reads the form's `activity` field: an activity id, or empty
-// for Unassigned.
-func formActivity(r *http.Request) (int64, error) {
-	v := r.PostFormValue("activity")
-	if v == "" {
-		return 0, nil
-	}
-	id, err := strconv.ParseInt(v, 10, 64)
-	if err != nil || id <= 0 {
-		return 0, domain.Invalid("choose an activity, or none")
-	}
-	return id, nil
-}
-
-// addJournal logs an entry on the activity named by the form's `activity`
-// field, or Unassigned when it is empty or missing.
+// addJournal logs an entry on the activity or project named by the form's
+// `activity` field (an entryLink), or Unassigned when it is empty or missing.
 func (s *Server) addJournal(w http.ResponseWriter, r *http.Request) {
-	id, err := formActivity(r)
+	activity, project, err := parseLink(r.PostFormValue("activity"))
 	day := s.clock.Today()
 	if err == nil && r.PostFormValue("date") != "" {
 		day, err = formDate(r, "date")
 	}
 	if err == nil {
-		j := domain.JournalEntry{ActivityID: id, Date: day, Text: formText(r), LoggedAt: domain.Stamp(s.clock.Now())}
+		j := domain.JournalEntry{ActivityID: activity, ProjectID: project, Date: day, Text: formText(r), LoggedAt: domain.Stamp(s.clock.Now())}
 		j.Kind, j.Priority = domain.Kind(r.PostFormValue("kind")), formPriority(r)
 		if kind, p, rest, ok := parsePrefix(j.Text); ok {
 			j.Kind, j.Priority, j.Text = kind, p, rest
@@ -145,23 +130,20 @@ func (s *Server) addJournal(w http.ResponseWriter, r *http.Request) {
 }
 
 // editJournal rewrites an entry, and files it when the form has an
-// `activity` field (empty for Unassigned).
+// `activity` field (an entryLink; empty for Unassigned).
 func (s *Server) editJournal(w http.ResponseWriter, r *http.Request) {
 	id, err := pathID(r)
 	var day domain.Date
 	if err == nil {
 		day, err = formDate(r, "date")
 	}
-	var activity *int64
-	if err == nil && r.PostForm.Has("activity") {
-		var a int64
-		a, err = formActivity(r)
-		activity = &a
+	j := domain.JournalEntry{Date: day, Kind: domain.Kind(r.PostFormValue("kind")), Text: formText(r), Priority: formPriority(r)}
+	file := r.PostForm.Has("activity")
+	if err == nil && file {
+		j.ActivityID, j.ProjectID, err = parseLink(r.PostFormValue("activity"))
 	}
 	if err == nil {
-		err = s.store.EditJournal(r.Context(), id, activity, domain.JournalEntry{
-			Date: day, Kind: domain.Kind(r.PostFormValue("kind")), Text: formText(r), Priority: formPriority(r),
-		})
+		err = s.store.EditJournal(r.Context(), id, file, j)
 	}
 	if err != nil {
 		s.fail(w, r, err)

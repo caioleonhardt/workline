@@ -135,3 +135,33 @@ func TestBuildReport(t *testing.T) {
 	only := BuildReport(in)
 	check("only starred", only, Report{From: from, To: to, Highlights: r.Highlights})
 }
+
+// A project's own entries and tasks are tagged with the project alone and come
+// after the activities, before Unassigned work (SPEC §10 item 120).
+func TestBuildReportProjectEntries(t *testing.T) {
+	projects := []Project{{ID: 1, Name: "P"}}
+	a := Activity{ID: 1, ProjectID: 1, Name: "A", Status: StatusActive, Start: d(t, "2026-01-01"), Due: d(t, "2026-12-31")}
+	task := func(id, activity, project int64) Task {
+		s := sub(t, id, "2026-11-15", "")
+		s.ActivityID, s.ProjectID, s.Text = activity, project, "t"
+		return s
+	}
+	r := BuildReport(ReportInput{
+		From: d(t, "2026-11-14"), To: d(t, "2026-11-20"), Projects: projects, Activities: []Activity{a},
+		Tasks: []Task{task(10, 0, 0), task(11, 0, 1), task(12, 1, 0)},
+		Entries: []JournalEntry{
+			{ID: 20, ProjectID: 1, Kind: KindDecision, Date: d(t, "2026-11-15"), Text: "d"},
+			{ID: 21, ActivityID: 1, Kind: KindDecision, Date: d(t, "2026-11-16"), Text: "d"},
+		},
+	})
+	var got []string
+	for _, g := range r.Opened {
+		got = append(got, g.Project+"/"+g.Activity)
+	}
+	if want := []string{"P/A", "P/", "/"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("opened groups %v, want %v", got, want)
+	}
+	if len(r.Decisions) != 2 || r.Decisions[0].Project != "P" || r.Decisions[0].Activity != "" || r.Decisions[1].Activity != "A" {
+		t.Errorf("decisions: %+v", r.Decisions)
+	}
+}

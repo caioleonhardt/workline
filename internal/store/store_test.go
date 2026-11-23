@@ -509,3 +509,47 @@ func TestMigration0010DatesActivityCreation(t *testing.T) {
 		t.Errorf("created on %s, %s", acts[0].CreatedOn, acts[1].CreatedOn)
 	}
 }
+
+// Migration 0011 rebuilds the journal with project_id and the note kind,
+// keeping every entry's id, links, close and star (SPEC §10 item 120).
+func TestMigration0011AddsProjectNotes(t *testing.T) {
+	path, db := dbAt(t, 10)
+	for _, q := range []string{
+		`INSERT INTO projects (id, name) VALUES (1, 'P')`,
+		`INSERT INTO activities (id, project_id, name, status, start_date, due_date) VALUES (1, 1, 'a', 'active', '2026-01-01', '2026-12-31')`,
+		`INSERT INTO journal_entries (activity_id, date, kind, text, logged_at, closed_at, priority, starred) VALUES
+		   (1, '2026-01-02', 'task', 'closed', NULL, '2026-01-03 10:00', 'high', 0),
+		   (NULL, '2026-01-02', 'decision', 'loose', '2026-01-02 09:00', NULL, '', 1),
+		   (1, '2026-01-05', 'update', 'deleted newest', NULL, NULL, '', 0)`,
+		`DELETE FROM journal_entries WHERE id = 3`,
+	} {
+		if _, err := db.ExecContext(ctx, q); err != nil {
+			t.Fatal(err)
+		}
+	}
+	db.Close()
+
+	if m, err := Migrate(ctx, path); err != nil || m.From != 10 || m.After["journal_entries"] != 2 {
+		t.Fatalf("Migrate = %+v, %v", m, err)
+	}
+	s, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	all, err := s.ListAllJournal(ctx)
+	if err != nil || len(all) != 2 {
+		t.Fatalf("%+v %v", all, err)
+	}
+	task, loose := all[0], all[1] // newest first: the task sits at its close
+	if task.ID != 1 || task.ActivityID != 1 || task.ProjectID != 0 || task.ClosedAt != "2026-01-03 10:00" || task.Priority != domain.PriorityHigh {
+		t.Errorf("task: %+v", task)
+	}
+	if loose.ID != 2 || !loose.Unassigned() || !loose.Starred || loose.LoggedAt != "2026-01-02 09:00" {
+		t.Errorf("loose: %+v", loose)
+	}
+	note, err := s.AddJournal(ctx, domain.JournalEntry{ProjectID: 1, Date: date(t, "2026-02-01"), Kind: domain.KindNote, Text: "on the project"})
+	if err != nil || note.ID != 4 {
+		t.Errorf("next id = %d, %v", note.ID, err)
+	}
+}

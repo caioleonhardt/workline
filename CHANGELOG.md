@@ -8,6 +8,9 @@ each release is tagged `vX.Y.Z` in git.
 Upgrading from 0.10.0: run `workline migrate` once before `serve`.
 
 ### Added
+- Notes: a `note` kind (`/n` in the bar), and entries can belong to a project
+  as well as to an activity or to nothing. Pick the project in "File under".
+  Needs `workline migrate`.
 - Home is the journal of one day, today by default. ‹ › (or `[` `]`) move a
   day, `t` comes back to today, and entries are logged on the day shown.
 - A Tasks page (`/tasks`, `gt`): all tasks, open by default, with closed and

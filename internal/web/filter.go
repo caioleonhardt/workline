@@ -138,6 +138,12 @@ func (f Filter) WithSel(id int64) Filter {
 	return f
 }
 
+// WithProject returns f narrowed to one project, with no selection.
+func (f Filter) WithProject(id int64) Filter {
+	f.Project, f.Sel = id, 0
+	return f
+}
+
 // inScope applies the period, project and month filters (not status or creep).
 func (f Filter) inScope(a domain.Activity) bool {
 	if f.Project != 0 && a.ProjectID != f.Project {

@@ -154,7 +154,7 @@ func TestJournalSummary(t *testing.T) {
 func TestUnassignedEntries(t *testing.T) {
 	h, st := newApp(t)
 	wantStatus(t, post(h, "/journal", url.Values{"kind": {"task"}, "text": {"Loose task"}, "next": {"/"}}), http.StatusSeeOther)
-	feed, _, _ := st.ListJournalFeed(ctx, nil, true, 10)
+	feed, _, _ := st.ListJournalFeed(ctx, nil, nil, true, 10)
 	if len(feed) != 1 || feed[0].ActivityID != 0 {
 		t.Fatalf("unassigned: %+v", feed)
 	}
@@ -195,7 +195,7 @@ func TestUnassignedEntries(t *testing.T) {
 		t.Error("filed entries offer no filing select")
 	}
 	wantStatus(t, edit(""), http.StatusSeeOther)
-	if feed, _, _ := st.ListJournalFeed(ctx, nil, true, 10); len(feed) != 1 {
+	if feed, _, _ := st.ListJournalFeed(ctx, nil, nil, true, 10); len(feed) != 1 {
 		t.Errorf("not unassigned again: %+v", feed)
 	}
 	if rec := edit("999"); rec.Code != http.StatusUnprocessableEntity {

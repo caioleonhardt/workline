@@ -138,17 +138,20 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 		}
 	}
 	var filing []domain.Group
+	var projectIDs []int64 // the projects whose own entries the feed shows
 	for _, p := range projects {
-		if as := liveOf[p.ID]; len(as) > 0 {
-			filing = append(filing, domain.Group{Project: p, Activities: as})
+		filing = append(filing, domain.Group{Project: p, Activities: liveOf[p.ID]})
+		if f.Project == 0 || f.Project == p.ID {
+			projectIDs = append(projectIDs, p.ID)
 		}
 	}
 	ids := visibleIDs
 	unassigned := f.Project == 0 // Unassigned entries belong to no project
 	if panel != nil {
-		ids, unassigned = []int64{panel.ID}, false // a selection narrows the journal to its activity
+		// a selection narrows the journal to its activity
+		ids, projectIDs, unassigned = []int64{panel.ID}, nil, false
 	}
-	journal, err := s.buildJournal(ctx, f, uri, ids, unassigned, panel, itemOf, projects, filing)
+	journal, err := s.buildJournal(ctx, f, uri, ids, projectIDs, unassigned, panel, itemOf, projects, filing)
 	if err != nil {
 		return dashboardView{}, err
 	}

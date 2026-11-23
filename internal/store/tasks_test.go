@@ -20,7 +20,7 @@ func TestToggleStampsAndClearsClosedAt(t *testing.T) {
 		t.Errorf("stored: %+v", subs[1])
 	}
 	// editing text or creation date leaves the close time alone
-	if err := s.EditJournal(ctx, st.ID, nil, domain.JournalEntry{Date: date(t, "2026-02-02"), Kind: domain.KindTask, Text: "renamed"}); err != nil {
+	if err := s.EditJournal(ctx, st.ID, false, domain.JournalEntry{Date: date(t, "2026-02-02"), Kind: domain.KindTask, Text: "renamed"}); err != nil {
 		t.Fatal(err)
 	}
 	if subs, _ := s.ListTasks(ctx, a.ID); subs[1].ClosedAt != "2026-02-10 17:40" || subs[1].Text != "renamed" {
@@ -66,7 +66,7 @@ func TestTaskPriority(t *testing.T) {
 	if ts, _ := s.ListTasks(ctx, a.ID); ts[len(ts)-1].Priority != domain.PriorityHigh {
 		t.Errorf("priority not stored: %+v", ts)
 	}
-	if err := s.EditJournal(ctx, j.ID, nil, domain.JournalEntry{Date: j.Date, Kind: domain.KindTask, Text: "later", Priority: domain.PriorityLow}); err != nil {
+	if err := s.EditJournal(ctx, j.ID, false, domain.JournalEntry{Date: j.Date, Kind: domain.KindTask, Text: "later", Priority: domain.PriorityLow}); err != nil {
 		t.Fatal(err)
 	}
 	if es, _ := s.ListJournal(ctx, a.ID); es[0].Priority != domain.PriorityLow {

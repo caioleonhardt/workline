@@ -140,9 +140,13 @@ func (s *Server) loadReport(ctx context.Context, q url.Values) (reportData, erro
 	}
 	_, _, d.Filing = liveIndex(projects, acts)
 	_, actOf, _ := liveIndex(shownProjects, acts)
-	shown := func(activityID int64) bool {
+	shownProject := map[int64]bool{}
+	for _, p := range shownProjects {
+		shownProject[p.ID] = true
+	}
+	shown := func(activityID, projectID int64) bool {
 		_, ok := actOf[activityID]
-		return ok || activityID == 0 && project == 0
+		return ok || shownProject[projectID] || activityID == 0 && projectID == 0 && project == 0
 	}
 	in := domain.ReportInput{From: from, To: to, Projects: shownProjects, OnlyStarred: only}
 	for _, a := range acts {
@@ -151,12 +155,12 @@ func (s *Server) loadReport(ctx context.Context, q url.Values) (reportData, erro
 		}
 	}
 	for _, t := range tasks {
-		if shown(t.ActivityID) {
+		if shown(t.ActivityID, t.ProjectID) {
 			in.Tasks = append(in.Tasks, t)
 		}
 	}
 	for _, e := range entries {
-		if shown(e.ActivityID) {
+		if shown(e.ActivityID, e.ProjectID) {
 			in.Entries = append(in.Entries, e)
 		}
 	}
@@ -169,8 +173,11 @@ func (s *Server) loadReport(ctx context.Context, q url.Values) (reportData, erro
 }
 
 func reportTag(project, activity string) string {
-	if activity == "" {
+	switch {
+	case project == "":
 		return "Unassigned"
+	case activity == "":
+		return project
 	}
 	return project + " / " + activity
 }
@@ -344,7 +351,7 @@ func (s *Server) renderReport(w http.ResponseWriter, r *http.Request, uri string
 		v.Projects = append(v.Projects, option{strconv.FormatInt(p.ID, 10), p.Name, p.ID == d.Project})
 	}
 	v.Markdown = reportMarkdown(v.Heading, v.Sections)
-	v.QuickFile = fileChoices(d.Filing, 0)
+	v.QuickFile = fileChoices(d.Filing, "")
 	for _, mod := range mods {
 		mod(&v.quickBar)
 	}

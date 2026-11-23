@@ -10,7 +10,7 @@ import (
 	"workline/internal/domain"
 )
 
-const journalColumns = `id, coalesce(activity_id, 0), date, kind, text, logged_at, closed_at, priority, starred`
+const journalColumns = `id, coalesce(activity_id, 0), coalesce(project_id, 0), date, kind, text, logged_at, closed_at, priority, starred`
 
 // An entry sits in the journal at its log date and time: a closed task at its
 // close, anything else at its date and logged time (SPEC §10 item 109).
@@ -26,8 +26,8 @@ func insertJournal(ctx context.Context, q queryer, j domain.JournalEntry) (int64
 		return 0, err
 	}
 	res, err := q.ExecContext(ctx,
-		`INSERT INTO journal_entries (activity_id, date, kind, text, logged_at, priority) VALUES (?, ?, ?, ?, ?, ?)`,
-		activityRef(j.ActivityID), j.Date.String(), string(j.Kind), j.Text, sql.NullString{String: j.LoggedAt, Valid: j.LoggedAt != ""}, string(j.Priority))
+		`INSERT INTO journal_entries (activity_id, project_id, date, kind, text, logged_at, priority) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		ref(j.ActivityID), ref(j.ProjectID), j.Date.String(), string(j.Kind), j.Text, sql.NullString{String: j.LoggedAt, Valid: j.LoggedAt != ""}, string(j.Priority))
 	if err != nil {
 		return 0, mapErr(err)
 	}
@@ -41,11 +41,11 @@ func userKind(k domain.Kind) error {
 	return nil
 }
 
-// activityRef stores an activity id, with 0 (Unassigned) as NULL.
-func activityRef(id int64) sql.NullInt64 { return sql.NullInt64{Int64: id, Valid: id != 0} }
+// ref stores an activity or project id, with 0 (none) as NULL.
+func ref(id int64) sql.NullInt64 { return sql.NullInt64{Int64: id, Valid: id != 0} }
 
 // AddJournal adds a user-written entry; the caller stamps LoggedAt. Kind
-// scope_ack is refused. ActivityID 0 logs it Unassigned.
+// scope_ack is refused. With neither ActivityID nor ProjectID it is Unassigned.
 func (s *Store) AddJournal(ctx context.Context, j domain.JournalEntry) (domain.JournalEntry, error) {
 	if err := userKind(j.Kind); err != nil {
 		return j, err
@@ -69,7 +69,7 @@ func (s *Store) queryJournal(ctx context.Context, query string, args ...any) ([]
 		var j domain.JournalEntry
 		var date, kind, priority string
 		var loggedAt, closedAt sql.NullString
-		if err := rows.Scan(&j.ID, &j.ActivityID, &date, &kind, &j.Text, &loggedAt, &closedAt, &priority, &j.Starred); err != nil {
+		if err := rows.Scan(&j.ID, &j.ActivityID, &j.ProjectID, &date, &kind, &j.Text, &loggedAt, &closedAt, &priority, &j.Starred); err != nil {
 			return nil, fmt.Errorf("scan journal: %w", err)
 		}
 		j.Kind, j.LoggedAt, j.ClosedAt, j.Priority = domain.Kind(kind), loggedAt.String, closedAt.String, domain.Priority(priority)
@@ -88,24 +88,28 @@ func (s *Store) ListJournal(ctx context.Context, activityID int64) ([]domain.Jou
 		 WHERE activity_id = ? `+newest, activityID)
 }
 
-// ListJournalFeed returns up to limit entries of the given activities (and
-// the Unassigned ones when unassigned is set), newest first (log date, then log
-// time with untimed entries last, then id), and whether more exist beyond the
-// limit.
-func (s *Store) ListJournalFeed(ctx context.Context, activityIDs []int64, unassigned bool, limit int) ([]domain.JournalEntry, bool, error) {
-	if (len(activityIDs) == 0 && !unassigned) || limit <= 0 {
+// ListJournalFeed returns up to limit entries of the given activities and
+// projects (and the Unassigned ones when unassigned is set), newest first (log
+// date, then log time with untimed entries last, then id), and whether more
+// exist beyond the limit.
+func (s *Store) ListJournalFeed(ctx context.Context, activityIDs, projectIDs []int64, unassigned bool, limit int) ([]domain.JournalEntry, bool, error) {
+	if (len(activityIDs) == 0 && len(projectIDs) == 0 && !unassigned) || limit <= 0 {
 		return nil, false, nil
 	}
-	args := make([]any, 0, len(activityIDs)+2)
+	args := make([]any, 0, len(activityIDs)+len(projectIDs)+2)
 	args = append(args, unassigned)
 	for _, id := range activityIDs {
 		args = append(args, id)
 	}
+	for _, id := range projectIDs {
+		args = append(args, id)
+	}
 	args = append(args, limit+1)
-	in := strings.TrimPrefix(strings.Repeat(",?", len(activityIDs)), ",")
+	marks := func(n int) string { return strings.TrimPrefix(strings.Repeat(",?", n), ",") }
 	entries, err := s.queryJournal(ctx,
 		`SELECT `+journalColumns+` FROM journal_entries
-		 WHERE (? AND activity_id IS NULL) OR activity_id IN (`+in+`)
+		 WHERE (? AND activity_id IS NULL AND project_id IS NULL)
+		    OR activity_id IN (`+marks(len(activityIDs))+`) OR project_id IN (`+marks(len(projectIDs))+`)
 		 `+newest+` LIMIT ?`, args...)
 	if err != nil {
 		return nil, false, err
@@ -135,11 +139,12 @@ func (s *Store) ListJournalBetween(ctx context.Context, from, to domain.Date) ([
 }
 
 // EditJournal rewrites the date, kind, text and priority of entry id from j,
-// and files it under *activity (0 for Unassigned) unless activity is nil.
+// and, when file is set, files it under j's activity or project (neither for
+// Unassigned).
 // scope_ack entries are read-only, and an entry cannot become a task or stop
 // being one. A task's date (the day it was opened) cannot move after the day
 // it was closed.
-func (s *Store) EditJournal(ctx context.Context, id int64, activity *int64, j domain.JournalEntry) error {
+func (s *Store) EditJournal(ctx context.Context, id int64, file bool, j domain.JournalEntry) error {
 	if err := userKind(j.Kind); err != nil {
 		return err
 	}
@@ -148,9 +153,10 @@ func (s *Store) EditJournal(ctx context.Context, id int64, activity *int64, j do
 	}
 	res, err := s.db.ExecContext(ctx,
 		`UPDATE journal_entries SET date = ?1, kind = ?2, text = ?3, priority = ?7,
-		   activity_id = CASE WHEN ?5 THEN ?6 ELSE activity_id END
+		   activity_id = CASE WHEN ?5 THEN ?6 ELSE activity_id END,
+		   project_id = CASE WHEN ?5 THEN ?8 ELSE project_id END
 		 WHERE id = ?4 AND kind <> 'scope_ack' AND (kind = 'task') = (?2 = 'task')`,
-		j.Date.String(), string(j.Kind), j.Text, id, activity != nil, activityRef(deref(activity)), string(j.Priority))
+		j.Date.String(), string(j.Kind), j.Text, id, file, ref(j.ActivityID), string(j.Priority), ref(j.ProjectID))
 	if err != nil {
 		return fmt.Errorf("edit journal %d: %w", id, mapErr(err))
 	}
@@ -167,13 +173,6 @@ func (s *Store) ToggleStar(ctx context.Context, id int64) error {
 		return err
 	}
 	return fmt.Errorf("journal entry %d: %w", id, ErrNotFound)
-}
-
-func deref(p *int64) int64 {
-	if p == nil {
-		return 0
-	}
-	return *p
 }
 
 // DeleteJournal removes a user-written entry. scope_ack entries are read-only.

@@ -17,6 +17,7 @@ type exportActivity struct {
 
 type exportProject struct {
 	Name       string
+	Notes      []domain.JournalEntry // the project's own entries, before its activities
 	Activities []exportActivity
 }
 
@@ -40,6 +41,10 @@ func exportMarkdown(scope string, from, to, generated domain.Date, projects []ex
 	}
 	for _, p := range projects {
 		fmt.Fprintf(&b, "\n## %s\n", p.Name)
+		if len(p.Notes) > 0 {
+			b.WriteString("\n")
+			writeEntries(&b, p.Notes)
+		}
 		for _, a := range p.Activities {
 			fmt.Fprintf(&b, "\n### %s\n%s · requested by %s · %s → %s\n\n",
 				a.Name, capitalize(string(a.Status)), orDash(a.RequestedBy), a.Start, a.Due)
@@ -129,9 +134,14 @@ func (s *Server) exportJournal(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	byActivity := map[int64][]domain.JournalEntry{}
+	byActivity := map[int64][]domain.JournalEntry{} // 0: Unassigned
+	byProject := map[int64][]domain.JournalEntry{}
 	for _, e := range entries {
-		byActivity[e.ActivityID] = append(byActivity[e.ActivityID], e)
+		if e.ProjectID != 0 {
+			byProject[e.ProjectID] = append(byProject[e.ProjectID], e)
+		} else {
+			byActivity[e.ActivityID] = append(byActivity[e.ActivityID], e)
+		}
 	}
 	slices.SortStableFunc(projects, func(a, b domain.Project) int {
 		return strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
@@ -144,13 +154,13 @@ func (s *Server) exportJournal(w http.ResponseWriter, r *http.Request) {
 	})
 	var out []exportProject
 	for _, p := range projects {
-		ep := exportProject{Name: p.Name}
+		ep := exportProject{Name: p.Name, Notes: byProject[p.ID]}
 		for _, a := range acts {
 			if a.ProjectID == p.ID && len(byActivity[a.ID]) > 0 {
 				ep.Activities = append(ep.Activities, exportActivity{Activity: a, Entries: byActivity[a.ID]})
 			}
 		}
-		if len(ep.Activities) > 0 {
+		if len(ep.Notes) > 0 || len(ep.Activities) > 0 {
 			out = append(out, ep)
 		}
 	}

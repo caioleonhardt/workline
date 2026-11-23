@@ -44,24 +44,24 @@ func TestJournal(t *testing.T) {
 		t.Errorf("missing activity: %v", err)
 	}
 
-	if err := s.EditJournal(ctx, old.ID, nil, domain.JournalEntry{Date: date(t, "2026-02-02"), Kind: domain.KindUpdate, Text: "edited"}); err != nil {
+	if err := s.EditJournal(ctx, old.ID, false, domain.JournalEntry{Date: date(t, "2026-02-02"), Kind: domain.KindUpdate, Text: "edited"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.EditJournal(ctx, old.ID, nil, domain.JournalEntry{Date: date(t, "2026-02-02"), Kind: domain.KindScopeAck, Text: "x"}); !errors.Is(err, domain.ErrInvalid) {
+	if err := s.EditJournal(ctx, old.ID, false, domain.JournalEntry{Date: date(t, "2026-02-02"), Kind: domain.KindScopeAck, Text: "x"}); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("edit into scope_ack: %v", err)
 	}
-	if err := s.EditJournal(ctx, old.ID, nil, domain.JournalEntry{Date: date(t, "2026-02-02"), Kind: domain.KindUpdate, Text: ""}); !errors.Is(err, domain.ErrInvalid) {
+	if err := s.EditJournal(ctx, old.ID, false, domain.JournalEntry{Date: date(t, "2026-02-02"), Kind: domain.KindUpdate, Text: ""}); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("edit blank: %v", err)
 	}
-	if err := s.EditJournal(ctx, 999, nil, domain.JournalEntry{Date: date(t, "2026-02-02"), Kind: domain.KindUpdate, Text: "x"}); !errors.Is(err, ErrNotFound) {
+	if err := s.EditJournal(ctx, 999, false, domain.JournalEntry{Date: date(t, "2026-02-02"), Kind: domain.KindUpdate, Text: "x"}); !errors.Is(err, ErrNotFound) {
 		t.Errorf("edit missing: %v", err)
 	}
 	// a task keeps its kind, and other entries cannot become tasks
-	if err := s.EditJournal(ctx, old.ID, nil, domain.JournalEntry{Date: date(t, "2026-02-02"), Kind: domain.KindTask, Text: "edited"}); !errors.Is(err, domain.ErrInvalid) {
+	if err := s.EditJournal(ctx, old.ID, false, domain.JournalEntry{Date: date(t, "2026-02-02"), Kind: domain.KindTask, Text: "edited"}); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("update into task: %v", err)
 	}
 	task, _ := s.AddTask(ctx, a.ID, "a task", date(t, "2026-02-01"))
-	if err := s.EditJournal(ctx, task.ID, nil, domain.JournalEntry{Date: date(t, "2026-02-01"), Kind: domain.KindUpdate, Text: "a task"}); !errors.Is(err, domain.ErrInvalid) {
+	if err := s.EditJournal(ctx, task.ID, false, domain.JournalEntry{Date: date(t, "2026-02-01"), Kind: domain.KindUpdate, Text: "a task"}); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("task into update: %v", err)
 	}
 	if err := s.DeleteJournal(ctx, newB.ID); err != nil {
@@ -78,7 +78,7 @@ func TestJournal(t *testing.T) {
 		t.Fatal(err)
 	}
 	ackID, _ = res.LastInsertId()
-	if err := s.EditJournal(ctx, ackID, nil, domain.JournalEntry{Date: date(t, "2026-04-02"), Kind: domain.KindUpdate, Text: "x"}); !errors.Is(err, ErrReadOnly) {
+	if err := s.EditJournal(ctx, ackID, false, domain.JournalEntry{Date: date(t, "2026-04-02"), Kind: domain.KindUpdate, Text: "x"}); !errors.Is(err, ErrReadOnly) {
 		t.Errorf("edit scope_ack: %v", err)
 	}
 	if err := s.DeleteJournal(ctx, ackID); !errors.Is(err, ErrReadOnly) {
@@ -121,7 +121,7 @@ func TestJournalLoggedAt(t *testing.T) {
 	}
 
 	// editing never changes when it was logged
-	if err := s.EditJournal(ctx, backfilled, nil, domain.JournalEntry{Date: date(t, "2026-02-02"), Kind: domain.KindDecision, Text: "edited"}); err != nil {
+	if err := s.EditJournal(ctx, backfilled, false, domain.JournalEntry{Date: date(t, "2026-02-02"), Kind: domain.KindDecision, Text: "edited"}); err != nil {
 		t.Fatal(err)
 	}
 	list, _ = s.ListJournal(ctx, a.ID)
@@ -247,7 +247,7 @@ func TestListJournalFeed(t *testing.T) {
 	add(b.ID, "2026-02-01", "", "b old")
 	texts := func(ids []int64, limit int) (string, bool) {
 		t.Helper()
-		es, more, err := s.ListJournalFeed(ctx, ids, false, limit)
+		es, more, err := s.ListJournalFeed(ctx, ids, nil, false, limit)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -301,7 +301,7 @@ func TestUnassignedJournal(t *testing.T) {
 	// the feed shows them only when asked, alone or with activities
 	feed := func(ids []int64, unassigned bool) int {
 		t.Helper()
-		es, _, err := s.ListJournalFeed(ctx, ids, unassigned, 50)
+		es, _, err := s.ListJournalFeed(ctx, ids, nil, unassigned, 50)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -314,28 +314,45 @@ func TestUnassignedJournal(t *testing.T) {
 		t.Errorf("all tasks, Unassigned first: %+v", all)
 	}
 
-	// filing: nil keeps the activity, an id moves it, 0 unassigns it again
-	file := func(id int64, to *int64, kind domain.Kind) error {
-		return s.EditJournal(ctx, id, to, domain.JournalEntry{Date: date(t, "2026-03-01"), Kind: kind, Text: "filed"})
+	// filing: without file the links stay; with it the entry moves to its
+	// activity, its project, or Unassigned
+	file := func(id int64, file bool, to domain.JournalEntry) error {
+		to.Date, to.Text = date(t, "2026-03-01"), "filed"
+		return s.EditJournal(ctx, id, file, to)
 	}
-	if err := file(task.ID, nil, domain.KindTask); err != nil {
+	if err := file(task.ID, false, domain.JournalEntry{Kind: domain.KindTask, ActivityID: a.ID}); err != nil {
 		t.Fatal(err)
 	}
 	if ts, _ := s.ListTasks(ctx, a.ID); len(ts) != 1 {
-		t.Errorf("nil moved the task: %+v", ts)
+		t.Errorf("an edit without file moved the task: %+v", ts)
 	}
-	if err := file(task.ID, &a.ID, domain.KindTask); err != nil {
+	if err := file(task.ID, true, domain.JournalEntry{Kind: domain.KindTask, ActivityID: a.ID}); err != nil {
 		t.Fatal(err)
 	}
 	if ts, _ := s.ListTasks(ctx, a.ID); len(ts) != 2 || ts[1].ID != task.ID {
 		t.Errorf("task not filed: %+v", ts)
 	}
-	none, missing := int64(0), int64(999)
-	if err := file(task.ID, &none, domain.KindTask); err != nil || feed(nil, true) != 2 {
+	if err := file(task.ID, true, domain.JournalEntry{Kind: domain.KindTask}); err != nil || feed(nil, true) != 2 {
 		t.Errorf("unassign: %v", err)
 	}
-	if err := file(note.ID, &missing, domain.KindUpdate); !errors.Is(err, domain.ErrInvalid) {
+	if err := file(note.ID, true, domain.JournalEntry{Kind: domain.KindUpdate, ActivityID: 999}); !errors.Is(err, domain.ErrInvalid) {
 		t.Errorf("filed under a missing activity: %v", err)
+	}
+	// a project link: in the project's feed, not in the Unassigned one
+	if err := file(note.ID, true, domain.JournalEntry{Kind: domain.KindNote, ProjectID: a.ProjectID}); err != nil {
+		t.Fatal(err)
+	}
+	if es, _, _ := s.ListJournalFeed(ctx, nil, []int64{a.ProjectID}, false, 50); len(es) != 1 || es[0].ProjectID != a.ProjectID || es[0].Kind != domain.KindNote {
+		t.Errorf("project feed: %+v", es)
+	}
+	if feed(nil, true) != 1 {
+		t.Error("a project note is still Unassigned")
+	}
+	if err := file(note.ID, true, domain.JournalEntry{Kind: domain.KindNote, ProjectID: 999}); !errors.Is(err, domain.ErrInvalid) {
+		t.Errorf("filed under a missing project: %v", err)
+	}
+	if err := file(note.ID, true, domain.JournalEntry{Kind: domain.KindNote, ActivityID: a.ID, ProjectID: a.ProjectID}); !errors.Is(err, domain.ErrInvalid) {
+		t.Errorf("filed under both: %v", err)
 	}
 }
 
@@ -392,7 +409,7 @@ func TestToggleStar(t *testing.T) {
 		t.Fatalf("star: %v", err)
 	}
 	// editing keeps the star
-	if err := s.EditJournal(ctx, j.ID, nil, domain.JournalEntry{Date: date(t, "2026-02-02"), Kind: domain.KindUpdate, Text: "e"}); err != nil || !starred() {
+	if err := s.EditJournal(ctx, j.ID, false, domain.JournalEntry{Date: date(t, "2026-02-02"), Kind: domain.KindUpdate, Text: "e"}); err != nil || !starred() {
 		t.Fatalf("edit dropped the star: %v", err)
 	}
 	if err := s.ToggleStar(ctx, j.ID); err != nil || starred() {

@@ -10,7 +10,7 @@
 <button class="apply">{{if .Closed}}Reopen{{else}}Close{{end}}</button>
 </form>{{else}}<span class="feed-toggle" aria-hidden="true"></span>{{end}}
 <span class="muted mono">{{.Logged}}</span> <span class="chip kind-{{.Kind}}">{{.KindLabel}}</span>{{if .Priority}} <span class="chip prio-{{.Priority}}">{{.PriorityLabel}}</span>{{end}}
-{{if .ActivityHref}}<a class="tag small" href="{{.ActivityHref}}"{{if $.FullLoadLinks}} hx-boost="false"{{end}}>{{.Project}} › {{.Activity}}</a>{{else if .Unassigned}}<span class="tag small unassigned">Unassigned</span>{{end}}
+{{if .ActivityHref}}<a class="tag small" href="{{.ActivityHref}}"{{if $.FullLoadLinks}} hx-boost="false"{{end}}>{{.Project}}{{if .Activity}} › {{.Activity}}{{end}}</a>{{else if .Unassigned}}<span class="tag small unassigned">Unassigned</span>{{end}}
 <span id="feed-text-{{.ID}}" class="feed-text{{if .Closed}} done-text{{end}}">{{.Summary}}</span>{{if .Closed}} <span class="muted mono small">opened {{.Date}}</span>{{end}}
 <form class="inline star-form" method="post" action="/journal/{{.ID}}/star">
 <input type="hidden" name="next" value="{{$.Next}}">
@@ -26,7 +26,7 @@
 <textarea class="editor-text" id="text-feed-{{.ID}}" name="text" rows="3" required>{{.Text}}</textarea>
 <div class="editor-meta">
 {{if .IsTask}}<input type="hidden" name="kind" value="task">{{else}}<label>Kind<select name="kind">{{range .Kinds}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>{{end}}
-{{with .FileTo}}<label>Activity<select name="activity">{{range .}}{{if .Label}}<optgroup label="{{.Label}}">{{end}}{{range .Options}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}{{if .Label}}</optgroup>{{end}}{{end}}</select></label>{{end}}
+{{with .FileTo}}<label>File under<select name="activity">{{range .}}{{if .Label}}<optgroup label="{{.Label}}">{{end}}{{range .Options}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}{{if .Label}}</optgroup>{{end}}{{end}}</select></label>{{end}}
 {{with .Priorities}}<label>Priority<select name="priority">{{range .}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>{{end}}
 <label>{{if .IsTask}}Opened{{else}}Date{{end}}<input type="date" name="date" value="{{.Date}}" required></label>
 </div>

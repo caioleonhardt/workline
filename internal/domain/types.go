@@ -53,6 +53,7 @@ const (
 	KindDecision Kind = "decision"
 	KindBlocker  Kind = "blocker"
 	KindMeeting  Kind = "meeting"
+	KindNote     Kind = "note"
 	KindScopeAck Kind = "scope_ack"
 	KindTask     Kind = "task"
 )
@@ -60,7 +61,7 @@ const (
 // Valid reports whether k is a known kind.
 func (k Kind) Valid() bool {
 	switch k {
-	case KindUpdate, KindDecision, KindBlocker, KindMeeting, KindScopeAck, KindTask:
+	case KindUpdate, KindDecision, KindBlocker, KindMeeting, KindNote, KindScopeAck, KindTask:
 		return true
 	}
 	return false
@@ -111,7 +112,8 @@ type Activity struct {
 // kind task that the burndown, progress and scope rules work on.
 type Task struct {
 	ID         int64
-	ActivityID int64 // 0: Unassigned
+	ActivityID int64 // 0: none
+	ProjectID  int64 // set only when the task belongs to a project and no activity
 	Text       string
 	CreatedOn  Date
 	ClosedAt   string // "YYYY-MM-DD HH:MM" local time it was closed; empty while open
@@ -121,12 +123,13 @@ type Task struct {
 // ClosedOn is the day the task was closed, zero while open.
 func (s Task) ClosedOn() Date { return stampDate(s.ClosedAt) }
 
-// JournalEntry is a dated note on an activity, or Unassigned when ActivityID
-// is 0. An entry of kind task is a task opened on Date; only tasks have
-// ClosedAt.
+// JournalEntry is a dated note on an activity, on a project, or Unassigned
+// when it has neither (SPEC §10 item 120). An entry of kind task is a task
+// opened on Date; only tasks have ClosedAt.
 type JournalEntry struct {
 	ID         int64
-	ActivityID int64 // 0: Unassigned
+	ActivityID int64 // 0: none
+	ProjectID  int64 // 0: none; never set together with ActivityID
 	Date       Date
 	Kind       Kind
 	Text       string
@@ -135,6 +138,9 @@ type JournalEntry struct {
 	Priority   Priority // tasks only
 	Starred    bool     // picked for the report's highlights
 }
+
+// Unassigned reports whether the entry belongs to neither an activity nor a project.
+func (j JournalEntry) Unassigned() bool { return j.ActivityID == 0 && j.ProjectID == 0 }
 
 // ClosedOn is the day a task entry was closed, zero while open or for other kinds.
 func (j JournalEntry) ClosedOn() Date { return stampDate(j.ClosedAt) }
@@ -158,7 +164,7 @@ func (j JournalEntry) LogTime() string {
 
 // Task returns the entry as a task.
 func (j JournalEntry) Task() Task {
-	return Task{ID: j.ID, ActivityID: j.ActivityID, Text: j.Text, CreatedOn: j.Date, ClosedAt: j.ClosedAt, Priority: j.Priority}
+	return Task{ID: j.ID, ActivityID: j.ActivityID, ProjectID: j.ProjectID, Text: j.Text, CreatedOn: j.Date, ClosedAt: j.ClosedAt, Priority: j.Priority}
 }
 
 // stampLayout is the format of JournalEntry.LoggedAt.
@@ -273,6 +279,8 @@ func (j JournalEntry) Validate() error {
 		return Invalid("unknown journal kind %q", j.Kind)
 	case j.Kind == KindScopeAck && j.ActivityID == 0:
 		return Invalid("an acknowledgement belongs to an activity")
+	case j.ActivityID != 0 && j.ProjectID != 0:
+		return Invalid("an entry belongs to an activity or to a project, not both")
 	case j.LoggedAt != "" && !validStamp(j.LoggedAt):
 		return Invalid("logged time %q is not YYYY-MM-DD HH:MM", j.LoggedAt)
 	case !j.Priority.Valid():
