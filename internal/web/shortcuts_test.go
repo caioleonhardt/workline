@@ -58,14 +58,15 @@ func TestShortcutScriptRules(t *testing.T) {
 	js := get(h, "/static/app.js").Body.String()
 	for _, want := range []string{
 		"if (!window.worklineBound)", // registered once although app.js re-runs after every swap
-		"e.ctrlKey || e.altKey || e.metaKey",
+		"(e.ctrlKey && !esc) || e.altKey || e.metaKey",
+		"e.key === '[' && e.ctrlKey && !e.altKey && !e.metaKey", // Ctrl+[ is Esc
 		"/^(INPUT|TEXTAREA|SELECT|SUMMARY)$/.test(t.tagName)",
 		"if (editor) return;",                  // the editor's buttons don't take Normal-mode keys
 		"ra.left - rb.left || ra.top - rb.top", // h/l follow the screen, not the markup
-		"e.key === 'Escape'",
+		"e.key === 'Escape'", "if (esc) {",
 		"t.id === 'quickadd-text'", "t.blur()", // Esc in the bar's field only blurs it
 		"e.key === 'Enter' && !e.shiftKey && !e.isComposing", "t.form.requestSubmit()", // Enter logs, Shift+Enter is a newline
-		"if (document.querySelector('dialog[open]')) return;",              // the keys dialog keeps its keys
+		"var dialog = document.querySelector('dialog[open]');",             // the keys dialog keeps its keys
 		"t.matches('[data-entry]') && t.querySelector('a.tag')",            // Enter on a link or button stays theirs
 		"if (key === 'g' || key === 'd')", "Date.now() - pendingAt < 1000", // gg, gj, gt, gp, dd
 		"gg:", "G:", "h:", "l:", "i:", "dd:", "x:", "o: focusBar", "'[':", "']':", "gj:", "gt:", "gp:", "O:", "f:", "'?':", "Escape:",

@@ -454,6 +454,8 @@
     };
     document.addEventListener('keydown', function (e) {
       var t = e.target;
+      // Ctrl+[ is Esc, as in Vim.
+      var esc = e.key === 'Escape' || (e.key === '[' && e.ctrlKey && !e.altKey && !e.metaKey);
       var editor = t && t.closest && t.closest('.editor');
       if (editor && !e.defaultPrevented && !e.isComposing) {
         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -461,7 +463,7 @@
           editor.querySelector('.editor-form').requestSubmit();
           return;
         }
-        if (e.key === 'Escape') {
+        if (esc) {
           e.preventDefault();
           closeEditor(editor);
         }
@@ -479,14 +481,14 @@
           e.preventDefault();
           return recall(t, older ? -1 : 1);
         }
-        if (e.key === 'Enter' || e.key === 'Escape') {
+        if (e.key === 'Enter' || esc) {
           e.preventDefault();
-          closeSearch(e.key === 'Escape' ? 'cancel' : e.ctrlKey || e.metaKey ? 'filter' : 'mark');
+          closeSearch(esc ? 'cancel' : e.ctrlKey || e.metaKey ? 'filter' : 'mark');
         }
         return;
       }
-      if (e.ctrlKey || e.altKey || e.metaKey || e.defaultPrevented) return;
-      if (e.key === 'Escape' && t && t.id === 'quickadd-text') {
+      if ((e.ctrlKey && !esc) || e.altKey || e.metaKey || e.defaultPrevented) return;
+      if (esc && t && t.id === 'quickadd-text') {
         e.preventDefault();
         t.blur();
         return;
@@ -498,7 +500,11 @@
         return;
       }
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|SUMMARY)$/.test(t.tagName))) return;
-      if (document.querySelector('dialog[open]')) return;
+      var dialog = document.querySelector('dialog[open]');
+      if (dialog) {
+        if (esc && e.key !== 'Escape') dialog.close(); // the browser closes it on Esc itself
+        return;
+      }
       // Enter on the cursor itself follows its activity link; on a link or button it stays theirs.
       if (e.key === 'Enter') {
         var link = t && t.matches && t.matches('[data-entry]') && t.querySelector('a.tag');
@@ -509,7 +515,7 @@
         return;
       }
       // g and d wait up to a second for the second key of gg, gj, gt, gr, gp and dd.
-      var key = (Date.now() - pendingAt < 1000 ? pending : '') + e.key;
+      var key = (Date.now() - pendingAt < 1000 ? pending : '') + (esc ? 'Escape' : e.key);
       pending = '';
       if (key === 'g' || key === 'd') {
         pending = key;
