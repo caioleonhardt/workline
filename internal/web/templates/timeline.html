@@ -20,7 +20,7 @@
 <div class="tl-row lane" data-project="{{.ID}}">
 <div class="tl-label lane-label"><span class="proj-name">{{.Name}}</span><span class="small muted">{{.CountLabel}} · <span class="mono">{{.PctLabel}}</span></span>{{if .FlagLabel}}<span class="creep-text small">{{.FlagLabel}}</span>{{end}}</div>
 <div class="tl-track" style="height:{{.Height}}px">
-{{range .Bars}}<a class="bar {{.Status}}{{if .ClipStart}} clip-start{{end}}{{if .ClipEnd}} clip-end{{end}}{{if .ScopeChip}} creep{{end}}{{if .Selected}} sel{{end}}" href="{{.Href}}" title="{{.Tip}}"{{if .Selected}} aria-current="true"{{end}} style="left:{{.Left}}%;width:{{.Width}}%;top:{{.Top}}px"><span class="bar-fill" style="width:{{.Progress}}%"></span><span class="bar-text">{{.Name}} · {{.PctLabel}}</span></a>
+{{range .Bars}}<a class="bar {{.Status}}{{if .ClipStart}} clip-start{{end}}{{if .ClipEnd}} clip-end{{end}}{{if .ScopeChip}} creep{{end}}{{if .Selected}} sel{{end}}{{if .Late}} late{{end}}" href="{{.Href}}" title="{{.Tip}}"{{if .Selected}} aria-current="true"{{end}} style="left:{{.Left}}%;width:{{.Width}}%;top:{{.Top}}px{{if .Late}};--due:{{.DueAt}}%;--tolerated:{{.ToleratedAt}}%{{end}}"><span class="bar-fill" style="width:{{.Progress}}%"></span><span class="bar-text">{{.Name}} · {{.PctLabel}}</span></a>
 {{end}}</div>
 </div>
 {{else}}

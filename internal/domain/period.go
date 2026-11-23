@@ -110,9 +110,9 @@ func Gridlines(year int, p Period) []Date {
 	return out
 }
 
-// Overlaps reports whether the activity's start..due span intersects from..to.
+// Overlaps reports whether the activity's start..End span intersects from..to.
 func (a Activity) Overlaps(from, to Date) bool {
-	return !a.Start.After(to) && !a.Due.Before(from)
+	return !a.Start.After(to) && !a.End().Before(from)
 }
 
 // IsToday reports whether today falls inside the column.

@@ -10,6 +10,9 @@ each release is tagged `vX.Y.Z` in git.
   with its activities indented under it (no more "Name (project)").
 
 ### Added
+- Activities closed after their due date run on the roadmap to the day they
+  were closed, shaded green up to the due date, orange for the next 20% of
+  their planned span, and red beyond.
 - A week view of the journal (`vw`, or Week in the header): the 7 days up to
   the date, like a feed; `vd` goes back to the day. Entries sit under a
   heading per day (23/11/2026) and rows show only their time.

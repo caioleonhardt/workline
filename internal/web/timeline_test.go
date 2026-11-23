@@ -274,3 +274,32 @@ func TestBarsAreLinks(t *testing.T) {
 		}
 	}
 }
+
+// A done activity closed after its due date runs to its close: green within
+// schedule, orange through the tolerance, red after (SPEC §10 item 128).
+func TestLateCloseGradient(t *testing.T) {
+	h, st := newApp(t)
+	clock := domain.FixedClock{D: date(t, testToday)}
+	a, err := st.CreateActivity(ctx, store.NewActivity{ProjectID: 2, Name: "Late one", Start: date(t, "2026-10-01"), Due: date(t, "2026-10-10"), Tasks: []string{"x"}}, clock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SetActivityStatus(ctx, a.ID, domain.StatusDone, date(t, testToday)); err != nil {
+		t.Fatal(err)
+	}
+	// 2026-10-01..11-18 is 49 days; due ends day 10, the 2-day tolerance day 12
+	bar := barOf(t, get(h, "/roadmap?status=done").Body.String(), "Late one")
+	for _, want := range []string{`class="bar done late"`, "--due:20.41%;--tolerated:24.49%", "closed 2026-11-18, 39 days late"} {
+		if !strings.Contains(bar, want) {
+			t.Errorf("bar lacks %q: %s", want, bar)
+		}
+	}
+	// on time: a plain bar
+	if bar := barOf(t, get(h, "/roadmap?status=done").Body.String(), "Postmortem: inference latency incident"); strings.Contains(bar, " late\"") || strings.Contains(bar, "--due") {
+		t.Errorf("on-time bar drawn late: %s", bar)
+	}
+	css := get(h, "/static/app.css").Body.String()
+	if !strings.Contains(css, ".bar.late {") || !strings.Contains(css, "var(--warn) calc(var(--tolerated) - 3%), var(--over) calc(var(--tolerated) + 3%)") {
+		t.Error("the late gradient is missing")
+	}
+}

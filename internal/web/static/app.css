@@ -91,6 +91,10 @@ textarea { border: 1px solid var(--border); border-radius: 8px; padding: 8px; fo
 .bar:focus-visible { outline: 2px solid var(--bar); outline-offset: 1px; }
 .bar.sel { box-shadow: 0 0 0 2px var(--bar); }
 .bar.creep { border: 1.5px solid var(--creep-fg); }
+/* A late close (SPEC §10 item 128): green within schedule, orange through the
+   tolerance, red beyond, blending over a few percent at each boundary. */
+.bar.late { --ok: #8FD1AE; --warn: #F6B26B; --over: #E8746A; background: linear-gradient(to right, var(--ok) 0, var(--ok) calc(var(--due) - 3%), var(--warn) calc(var(--due) + 3%), var(--warn) calc(var(--tolerated) - 3%), var(--over) calc(var(--tolerated) + 3%), var(--over) 100%); }
+.bar.late .bar-fill { display: none; }
 .bar.planned { --tint: #E1E4EA; --bar: #8B94A5; } .bar.active { --tint: #D3DDFA; --bar: #2F5BEA; }
 .bar.blocked { --tint: #FADFC2; --bar: #E07A12; } .bar.done { --tint: #CFE8DA; --bar: #1F8A5B; }
 .bar.clip-start { border-top-left-radius: 0; border-bottom-left-radius: 0; } .bar.clip-end { border-top-right-radius: 0; border-bottom-right-radius: 0; }

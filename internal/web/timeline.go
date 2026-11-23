@@ -66,6 +66,8 @@ type barView struct {
 	ClipStart, ClipEnd  bool // the span runs past the period's start or end
 	Progress            int  // % of tasks done, drawn as the bar's fill
 	PctLabel            string
+	Late                bool // done after its due date: drawn as a schedule gradient
+	DueAt, ToleratedAt  pct  // where, along the bar, the due date and the tolerance end
 }
 
 // The bars of a project are packed into as few lines as they fit in.
@@ -160,7 +162,7 @@ func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 		slices.SortStableFunc(acts, func(a, b domain.Activity) int { return cmp.Compare(max(a.Start, from), max(b.Start, from)) })
 		spans := make([]domain.Span, len(acts))
 		for i, a := range acts {
-			spans[i] = domain.Span{From: max(a.Start, from), To: min(a.Due, to)}
+			spans[i] = domain.Span{From: max(a.Start, from), To: min(a.End(), to)}
 		}
 		lanes, n := domain.Lanes(spans)
 		gv.Height = max(n, 1)*barLine + 2*barPad
@@ -191,11 +193,19 @@ func buildBar(f Filter, ax axis, from, to, today domain.Date, it domain.Activity
 		ID: it.ID, Name: it.Name, Href: f.WithSel(it.ID).URL(), Selected: it.ID == f.Sel,
 		Status: string(it.Status), StatusLabel: capitalize(string(it.Status)),
 		Progress:  domain.Progress(it.Status, it.Tasks),
-		ClipStart: it.Start.Before(from), ClipEnd: it.Due.After(to),
+		ClipStart: it.Start.Before(from), ClipEnd: it.End().After(to),
 	}
 	b.PctLabel = strconv.Itoa(b.Progress) + "%"
-	b.Left, b.Width = ax.span(max(it.Start, from), min(it.Due, to))
+	first, last := max(it.Start, from), min(it.End(), to)
+	b.Left, b.Width = ax.span(first, last)
 	b.Width = max(b.Width, 0.6)
+	// A late close: green to the due date, orange through the tolerance, red after
+	// (SPEC §10 item 128). Stops are along the bar as drawn, so they may fall outside it.
+	if tolerated, late := it.Overrun(); late {
+		days := float64(last.Sub(first) + 1)
+		at := func(d domain.Date) pct { return pct(float64(d.AddDays(1).Sub(first)) / days * 100) }
+		b.Late, b.DueAt, b.ToleratedAt = true, at(it.Due), at(tolerated)
+	}
 	if c.Flagged {
 		b.ScopeChip = "Scope"
 		if c.Added > 0 {
@@ -203,6 +213,9 @@ func buildBar(f Filter, ax axis, from, to, today domain.Date, it domain.Activity
 		}
 	}
 	b.Tip = fmt.Sprintf("%s · %s · %s → %s", it.Name, b.StatusLabel, it.Start, it.Due)
+	if b.Late {
+		b.Tip += fmt.Sprintf(" · closed %s, %d days late", it.DoneOn, it.DoneOn.Sub(it.Due))
+	}
 	if it.RequestedBy != "" {
 		b.Tip += " · requested by " + it.RequestedBy
 	}
