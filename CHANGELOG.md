@@ -9,7 +9,7 @@ Upgrading from 0.10.0: run `workline migrate` once before `serve`.
 
 ### Added
 - `Ctrl+[` works as `Esc` everywhere, as in Vim.
-- A report at `/report` (Report in the top bar, `gr`, or "Report" on
+- A report at `/report` (Report in the top bar, `gR`, or "Report" on
   the journal page). Pick From and To (the last 7 days by default) and
   optionally a project. It lists Highlights, Done, Progress (each activity's %
   at the start and end of the range), New (activities, tasks and scope
@@ -26,6 +26,9 @@ Upgrading from 0.10.0: run `workline migrate` once before `serve`.
   tasks opened earlier. Their rows end with `opened {date}`.
 - A task's close is one date and time. Tasks closed before close times were
   recorded show `00:00`.
+
+### Changed
+- `gr` goes to the timeline (was `gt`).
 
 ## [0.10.0] — 2026-11-19
 

@@ -431,8 +431,8 @@
       '[': function () { clickFirst('a[aria-label="Previous week"]'); },
       ']': function () { clickFirst('a[aria-label="Next week"]'); },
       gj: function () { clickFirst('nav a[href="/"]'); },
-      gt: function () { clickFirst('nav a[href="/timeline"]'); },
-      gr: function () { clickFirst('nav a[href="/report"]'); },
+      gr: function () { clickFirst('nav a[href="/timeline"]'); },
+      gR: function () { clickFirst('nav a[href="/report"]'); },
       gp: function () { clickFirst('nav a[href="/projects"]'); },
       O: function () { if (!document.querySelector('a.cancel-new')) clickFirst('a.new-activity'); },
       f: function () {
@@ -514,7 +514,7 @@
         }
         return;
       }
-      // g and d wait up to a second for the second key of gg, gj, gt, gr, gp and dd.
+      // g and d wait up to a second for the second key of gg, gj, gr, gR, gp and dd.
       var key = (Date.now() - pendingAt < 1000 ? pending : '') + (esc ? 'Escape' : e.key);
       pending = '';
       if (key === 'g' || key === 'd') {

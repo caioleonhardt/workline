@@ -444,7 +444,7 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
     - `i` opens the focused entry's editor; Esc or Cancel returns the cursor to the entry. `x` closes or reopens a task that has a toggle. `dd` opens the editor at the Delete… confirm step with Confirm focused; nothing is deleted without it. `Enter` follows the entry's activity link.
     - `o` focuses the bar keeping its kind (the `/t`… prefixes of item 93 choose another).
     - `/` opens a search line; Enter moves to the first entry after the cursor whose text contains the query (case-insensitive) and marks all matches; `n`/`N` move to the next/previous match, wrapping, re-read from the page so they survive swaps. Esc in Normal mode clears the marks first.
-    - `[`/`]` previous/next week on the journal page; `gj`/`gt`/`gp` go to Journal, Timeline, Projects; on the timeline `O` opens New activity and `f` focuses the Project filter. `Esc` otherwise cancels the new-activity form, else closes the panel (item 68).
+    - `[`/`]` previous/next week on the journal page; `gj`/`gr`/`gR`/`gp` go to Journal, Timeline (the roadmap from milestone 20), Report, Projects (item 117); on the timeline `O` opens New activity and `f` focuses the Project filter. `Esc` otherwise cancels the new-activity form, else closes the panel (item 68).
     - `?` opens a dialog listing the keys; the pages' hint lines say "Press ? for keys".
     This replaces the keys of items 68, 76 and 97 (`n`, `/` as filter or bar, `j`, `t d u b m`). Without scripting nothing changes. No counts, Visual mode, registers or `:` commands.
 100. **Server-side search** over the whole journal is left for later; `/` searches only the entries on the page. (Superseded by item 103.)
