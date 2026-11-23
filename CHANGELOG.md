@@ -5,9 +5,7 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
-### Fixed
-- The "Log to" and "File under" selects list each project once, as a choice,
-  with its activities indented under it (no more "Name (project)").
+## [0.12.0] — 2026-11-23
 
 ### Added
 - Activities closed after their due date run on the roadmap to the day they
@@ -16,6 +14,10 @@ each release is tagged `vX.Y.Z` in git.
 - A week view of the journal (`vw`, or Week in the header): the 7 days up to
   the date, like a feed; `vd` goes back to the day. Entries sit under a
   heading per day (23/11/2026) and rows show only their time.
+
+### Fixed
+- The "Log to" and "File under" selects list each project once, as a choice,
+  with its activities indented under it (no more "Name (project)").
 
 ## [0.11.0] — 2026-11-23
 
@@ -220,7 +222,8 @@ First release.
 - `serve` on 127.0.0.1:7357 and `seed` with the baseline data.
 - CI running gofmt, vet and tests.
 
-[Unreleased]: ../../compare/v0.11.0...HEAD
+[Unreleased]: ../../compare/v0.12.0...HEAD
+[0.12.0]: ../../compare/v0.11.0...v0.12.0
 [0.11.0]: ../../compare/v0.10.0...v0.11.0
 [0.10.0]: ../../compare/v0.9.0...v0.10.0
 [0.9.0]: ../../compare/v0.8.0...v0.9.0
