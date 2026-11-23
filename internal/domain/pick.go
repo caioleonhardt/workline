@@ -3,6 +3,7 @@ package domain
 import (
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // Candidate is something a command can name: a project or an activity.
@@ -61,7 +62,8 @@ func Pick(arg string, cs []Candidate) (c Candidate, several []string, ok bool) {
 func initials(name string) string {
 	var b strings.Builder
 	for _, w := range strings.Fields(name) {
-		b.WriteString(w[:1])
+		r, _ := utf8.DecodeRuneInString(w)
+		b.WriteRune(r)
 	}
 	return b.String()
 }

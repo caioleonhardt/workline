@@ -295,8 +295,9 @@
       else input.blur();
       if (!run || !typed) return say('');
       var body = new URLSearchParams({ q: typed, next: location.pathname + location.search });
-      fetch('/context', { method: 'POST', body: body }).then(function (res) {
-        if (res.ok) return location.reload();
+      // The server answers 303 to the page; reloading is enough, so the redirect is not followed.
+      fetch('/context', { method: 'POST', body: body, redirect: 'manual' }).then(function (res) {
+        if (res.ok || res.type === 'opaqueredirect') return location.reload();
         return res.text().then(function (text) { say(text.trim(), true); });
       }).catch(function () { say('Command failed', true); });
     }

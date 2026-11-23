@@ -109,7 +109,7 @@ type Activity struct {
 }
 
 // Task is one checkable item of an activity: the view of a journal entry of
-// kind task that the burndown, progress and scope rules work on.
+// kind task that the progress and scope rules work on.
 type Task struct {
 	ID         int64
 	ActivityID int64 // 0: none

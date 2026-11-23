@@ -8,7 +8,7 @@ import (
 func TestPick(t *testing.T) {
 	cs := []Candidate{
 		{1, "CLM"}, {2, "CLM tooling"}, {3, "Order platform modernisation"},
-		{4, "Platform and tooling"}, {5, "Team and people"},
+		{4, "Platform and tooling"}, {5, "Team and people"}, {6, "Écoute à distance"},
 	}
 	for _, c := range []struct {
 		arg     string
@@ -23,7 +23,8 @@ func TestPick(t *testing.T) {
 		{"opm", 3, nil},    // initials
 		{"people", 5, nil}, // substring
 		{"tooling", 0, []string{"CLM tooling", "Platform and tooling"}},
-		{"pl", 4, nil}, // prefix of one beats substring of others
+		{"pl", 4, nil},  // prefix of one beats substring of others
+		{"éàd", 6, nil}, // initials of non-ASCII words
 		{"zzz", 0, nil},
 		{"  ", 0, nil},
 	} {
