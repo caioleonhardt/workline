@@ -26,8 +26,6 @@ Upgrading from 0.10.0: run `workline migrate` once before `serve`.
   tasks opened earlier. Their rows end with `opened {date}`.
 - A task's close is one date and time. Tasks closed before close times were
   recorded show `00:00`.
-
-### Changed
 - `gr` goes to the timeline (was `gt`).
 
 ## [0.10.0] — 2026-11-19
