@@ -33,19 +33,6 @@ func newQuickBar(target quickAddView) quickBar {
 	return quickBar{QuickAdd: target, QuickKinds: kindOptions(quickKinds, domain.KindUpdate), QuickPrios: priorityOptions(domain.PriorityNone)}
 }
 
-type tileView struct {
-	Label, Class string
-	Value        int
-}
-
-func buildTiles(t domain.Tiles) []tileView {
-	return []tileView{
-		{"Active", "active", t.Active}, {"Blocked", "blocked", t.Blocked}, {"Planned", "planned", t.Planned},
-		{"Done this year", "done", t.DoneThisYear}, {"Open tasks now", "", t.OpenTasks},
-		{"Scope creep flags", "creep", t.ScopeFlags},
-	}
-}
-
 type dashboardView struct {
 	Title, Next string
 	NewHref     string // header link that opens the inline form
@@ -58,7 +45,6 @@ type dashboardView struct {
 	Controls    controlsView
 	quickBar
 	Journal  journalView
-	Tiles    []tileView
 	Timeline timelineView
 }
 
@@ -117,7 +103,6 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 		live[p.ID] = true
 	}
 	var panel *panelView
-	var tileItems []domain.ActivityWithTasks // the project filter only, not period or status
 	creeps := map[int64]domain.Creep{}
 	counts := map[domain.Status]int{}
 	creepCount := 0
@@ -137,9 +122,6 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 		liveOf[a.ProjectID] = append(liveOf[a.ProjectID], a)
 		if a.ID == f.Sel {
 			panel = buildPanel(it.Activity, projects, it.Tasks, it.Ack, today, uri)
-		}
-		if f.Project == 0 || a.ProjectID == f.Project {
-			tileItems = append(tileItems, it)
 		}
 		if !f.inScope(a) {
 			continue
@@ -190,11 +172,6 @@ func (s *Server) buildDashboard(ctx context.Context, uri string) (dashboardView,
 		Timeline: buildTimeline(f, today, timelineData{Groups: groups, ItemOf: itemOf, Creeps: creeps}),
 		quickBar: newQuickBar(quickAddView{Name: "Unassigned", Next: uri}),
 	}
-	tiles := domain.ComputeTiles(tileItems, f.Year, today)
-	if f.Project == 0 {
-		tiles.OpenTasks += domain.OpenAt(subsOf[0], today) // Unassigned tasks
-	}
-	v.Tiles = buildTiles(tiles)
 	if panel != nil {
 		v.QuickAdd = quickAddView{ID: panel.ID, Name: panel.Name, Project: panel.ProjectName, Next: uri, ClearHref: panel.CloseHref}
 	}

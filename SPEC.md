@@ -11,8 +11,8 @@ The visual reference is the mockup in `docs/mockup.png` (exported from the desig
 **Goals (v1)**
 - Single user, single machine, single binary. Works offline.
 - Track projects → activities → tasks, with a dated journal per activity.
-- Year and quarter timeline dashboards with filters.
-- Burndown and scope-creep computed from dated events, never entered by hand.
+- A roadmap by year or quarter, with filters.
+- Progress and scope creep computed from dated events, never entered by hand.
 
 **Non-goals (v1)**
 - Authentication, multiple users, sharing, sync, hosting.
@@ -106,13 +106,8 @@ All functions below live in `internal/domain`, take plain structs and a `today` 
 
 Project progress = closed / total over all tasks of its visible activities.
 
-### 4.3 Burndown series
-For an activity, from `start_date` to `min(due_date, today)`, split into bins of size `step`. Each bin reports `openAt(a, binEnd)`.
-
-- Timeline rows: `step` = 7 days in Year view, 2 days in Quarter view.
-- Detail panel: always 7 days, over the full `start_date … due_date` span. Bins after today are "ahead" (no value, drawn as a dashed frame). The panel bin also reports `scopeAt` for the scope layer.
-- Row bar height is scaled by **one global maximum**: the highest weekly `openAt` reached by any activity. This keeps rows comparable ("taller = more open").
-- Bins outside the visible period are dropped; bins crossing its edge are clipped.
+### 4.3 Roadmap bars
+An activity is drawn as one bar from `start_date` to `due_date`, clipped to the visible period; an activity outside the period is not listed. The bar is filled by its progress (§4.2). Burndown series were removed with milestone 20 (§10 item 125).
 
 ### 4.4 Scope creep
 Constants: `GrowthThreshold = 75` (%), `Window = 30` days, `KickoffGrace = 7` days.
@@ -154,8 +149,8 @@ Reason texts (shown in the detail panel):
 ### 5.0 Journal page (`GET /`)
 The home page and the entry point: the journal of one day, today by default (§10 item 124). ‹ › move a day, Today comes back, and the bar logs to the day shown. Only journal entries; open tasks live on `/tasks`. No detail panel.
 
-### 5.1 Dashboard (`GET /timeline`)
-Header with the app name and period eyebrow (e.g. `2026 · ACTIVITY TIMELINE` or `Q4 2026 · OCT–DEC`) and a **New activity** button.
+### 5.1 Roadmap (`GET /roadmap`)
+Header with the app name and period eyebrow (e.g. `2026 · ROADMAP` or `Q4 2026 · OCT–DEC`) and a **New activity** button.
 
 Controls, all reflected in the **URL query string** so any view is bookmarkable:
 
@@ -176,25 +171,22 @@ Controls, all reflected in the **URL query string** so any view is bookmarkable:
 - The scope-creep toggle shows the number of flagged activities in scope.
 - "Clear filters" appears when any filter is active.
 
-**Summary tiles** (respect the project filter only): Active, Blocked, Planned, Done this year, Open tasks now, Scope creep flags.
-
-**Timeline**
+**Roadmap**
 - Left column (300px): labels. Right: the period track.
 - Overlays on the track: gridlines, a shaded band for the selected month, and a **Today** line with a label.
-- Grouped by project. **Project row = one line**: chevron, name, `· N activities`, `· P% done`, and `· K scope flags` if any. No burndown on project rows. Clicking toggles collapse (state kept in a cookie or `localStorage`).
+- Grouped by project. **Project row = one line**: chevron, name, `· N activities`, `· P% done`, and `· K scope flags` if any. Clicking toggles collapse (state kept in a cookie or `localStorage`).
 - **Activity row**:
   - Left: name, status chip, a scope chip (`Scope +N`) when flagged, `open / total`, then dates and requester.
-  - Track: a thin span line from start to due; burndown bins in the status colour; a dashed box from today to due (not for `done`); completion dots (one per day on which tasks were closed; hovering or focusing one lists them); `P%` at the right end.
+  - Track: one bar from start to due in the status colour, clipped (square-ended) at the period's edges, filled by progress, labelled with the name and `P%` (§4.3).
   - Clicking the row or bar selects the activity (`sel=`) and opens the detail panel.
 - **Order.** Activities within a project: not-done before done; then priority `high`, `medium`, `low`, none; then due date; then id. Projects: by the best priority among their shown not-done activities (projects with only done activities last); then name.
 - Empty state: "No activities match these filters."
-- Legend below the timeline.
+- Legend below the roadmap.
 
 ### 5.2 Detail panel
 Shown beside the timeline (below it on narrow screens) when `sel` is set.
 - Project name (eyebrow), activity name, requested by, dates.
 - Status select (saves on change), progress %, `x of y tasks done`.
-- **Burndown** (weekly): scope layer, open layer, dashed future weeks, today marker. Caption `peak N open · weekly`.
 - **Scope**: three stats, then the warning if flagged.
   - The stats are Baseline ("At kickoff", or "Baseline (ack {date})"), Now with growth %, and Last 30 days `+add30 / −close30`.
   - When flagged, a warning shows the reason text and the **Acknowledge and log to journal** button.
@@ -250,7 +242,7 @@ Pages return full HTML. When `HX-Request` is set, return the fragment being swap
 
 ```
 GET    /                                   journal page of `date` (§10 item 124); any query key but `date` (or an old `week`) redirects to /timeline
-GET    /timeline                           dashboard (timeline)
+GET    /roadmap                            roadmap (§10 item 125); /timeline redirects here
 GET    /projects                           projects page
 POST   /projects                           create
 POST   /projects/{id}                      update (rename/archive)
@@ -390,7 +382,7 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 61. Accepted: a swap resets the timeline's horizontal scroll and drops unsent panel text.
 62. Panel burndown heights are relative to the activity's total tasks (as in the mockup).
 63. **HX validation errors** (422) show in a small error bar above the dashboard (`HX-Retarget`/`HX-Reswap`), leaving the dashboard as it was. Without JS, item 27's error page applies.
-64. With nothing selected, the panel shows "Select an activity to see its burndown, scope, tasks and journal." 
+64. With nothing selected, the panel shows "Select an activity to see its scope, tasks and journal." (amended by item 125) 
 65. A period shows only activities whose start–due range overlaps it (open activities do not carry past their due date). Projects with no visible activity are hidden.
 
 ### Decisions (Milestone 5, 2026-11-19)
@@ -503,3 +495,4 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 122. **Ctrl+[ is Esc.** Everywhere Esc acts (entry editor, search line, quick-add bar, Normal mode, the keys dialog), `Ctrl+[` does the same, as in Vim. It is the one Ctrl key the key layer takes (amends item 99).
 123. **Tasks page** `GET /tasks?state=open|closed|all&project=&page=`. Every task of live projects (item 33), Unassigned ones only with all projects (item 91), 50 a page. Open and all are ordered like the panel (`domain.SortTasks`), closed by newest close. A bad `page` is 1, one past the end the last page. Each row has the close/reopen checkbox, priority, activity tag and dates; ‹ Previous / Next › links, and `[`/`]` follow them. Tasks are few enough to filter and page in Go after one query. The nav reads Journal · Tasks · Timeline · Report · Projects; `gt` opens it.
 124. **Journal is home.** `GET /?date=YYYY-MM-DD` shows the journal of that day; no `date`, or a bad one, is today, and future days are allowed. Entries are picked by log date (item 109), newest first, from live projects and Unassigned. ‹ › go to the previous and next day (the URL of today is `/`), and a Today link shows on any other day. The bar carries the day shown in a hidden `date` field, so entries are logged on it; the Edit form still moves an entry to another day. Keys: `[`/`]` previous/next day, `t` today. Tiles, the burndown strip and open tasks leave the page. An old `?week=` is ignored. Export links the day; Report links the default report. This replaces item 95.
+125. **Roadmap.** The timeline becomes the roadmap at `/roadmap`: quarter columns (or months, or one quarter's months), one lane per project, one bar per activity from start to due (§4.3). Filters, the detail panel and the journal feed stay. The burndown bins, the dashed today-to-due box, completion dots and their popups, the summary tiles and the panel's burndown chart are removed, with their domain code (`Burndown`, `BurndownRange`, `BurndownDetail`, `ClipBins`, `GlobalMax`, `ComputeTiles`). `/timeline`, and `/` with timeline state, redirect (302) to `/roadmap` with the same query; a mutation whose `next` is such an address answers with the roadmap one. Nav: Journal · Tasks · Roadmap · Report · Projects. No milestone markers, plan-vs-actual or health yet (item 119). This supersedes items 2, 15, 45, 48, 52, 55, 62 and 96 and the tiles of §5.1.

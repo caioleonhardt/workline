@@ -21,7 +21,7 @@ func TestVendoredHtmx(t *testing.T) {
 
 func TestPagesLoadHtmxWithSafeConfig(t *testing.T) {
 	h, _ := newApp(t)
-	for _, target := range []string{"/timeline", "/projects"} {
+	for _, target := range []string{"/roadmap", "/projects"} {
 		body := get(h, target).Body.String()
 		for _, want := range []string{`<script src="/static/htmx.min.js" defer>`, `"allowEval":false`, `"selfRequestsOnly":true`, `"historyCacheSize":0`} {
 			if !strings.Contains(body, want) {

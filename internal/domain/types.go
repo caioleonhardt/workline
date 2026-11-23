@@ -211,6 +211,9 @@ func validStamp(s string) bool {
 
 func blank(s string) bool { return strings.TrimSpace(s) == "" }
 
+// maxSpanDays bounds an activity's start..due span.
+const maxSpanDays = 3660
+
 // Validate checks the activity's own fields (not its ID or ProjectID).
 func (a Activity) Validate() error {
 	switch {

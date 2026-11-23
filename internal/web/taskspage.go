@@ -163,7 +163,7 @@ func (s *Server) buildTasksPage(ctx context.Context, uri string) (tasksPageView,
 		}
 		if a, ok := actOf[t.ActivityID]; ok {
 			row.Project, row.Activity = projectName[a.ProjectID], a.Name
-			row.ActivityHref = "/timeline?sel=" + strconv.FormatInt(a.ID, 10)
+			row.ActivityHref = "/roadmap?sel=" + strconv.FormatInt(a.ID, 10)
 		}
 		v.Tasks = append(v.Tasks, row)
 	}

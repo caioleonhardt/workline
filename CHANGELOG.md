@@ -30,7 +30,10 @@ Upgrading from 0.10.0: run `workline migrate` once before `serve`.
   tasks opened earlier. Their rows end with `opened {date}`.
 - A task's close is one date and time. Tasks closed before close times were
   recorded show `00:00`.
-- `gr` goes to the timeline (was `gt`).
+- The timeline is now a roadmap at `/roadmap` (`gr`, was `gt`): one bar per
+  activity from start to due, filled by tasks done. Burndowns, completion
+  dots, summary tiles and the panel's burndown chart are gone. `/timeline`
+  links redirect.
 - Home shows only journal entries: the two weeks, tiles, burndown strip and
   open tasks are gone (open tasks are on `/tasks`).
 

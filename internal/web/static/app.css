@@ -49,10 +49,6 @@ textarea { border: 1px solid var(--border); border-radius: 8px; padding: 8px; fo
 .pill { border-radius: 999px; }
 .pill[aria-pressed="true"] { background: var(--text); color: #fff; border-color: var(--text); }
 .seg .pill[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(22, 24, 29, 0.15); }
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 0 0 16px; }
-.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
-.tile-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
-.tile-value { font-size: 28px; font-weight: 700; }
 .dot { width: 8px; height: 8px; border-radius: 4px; background: var(--text); }
 .dot.planned { background: #8B94A5; } .dot.active { background: #2F5BEA; } .dot.blocked { background: #E07A12; }
 .dot.done { background: #1F8A5B; } .dot.creep { background: var(--creep-fg); }
@@ -81,53 +77,32 @@ textarea { border: 1px solid var(--border); border-radius: 8px; padding: 8px; fo
 .creep-text { color: var(--creep-fg); font-weight: 600; }
 .act-row { position: relative; border-bottom: 1px solid #EDEDE8; }
 .act-row.sel { background: rgba(47, 91, 234, 0.06); box-shadow: inset 3px 0 0 #2F5BEA; }
+.act-row .tl-track { min-height: 56px; }
 .act-label { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 12px 16px 12px 42px; color: var(--text); text-decoration: none; }
 .act-name { display: block; text-decoration: none; color: var(--text); font-weight: 600; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .act-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .chip.creep { background: var(--creep-bg); color: var(--creep-fg); font-weight: 600; }
 .empty { padding: 48px 16px; text-align: center; color: var(--muted); }
-.act-row .tl-track { height: 84px; }
 .tl-track > * { position: absolute; }
-.span-line { bottom: 14px; height: 2px; background: var(--tint, #D3DDFA); }
-.span-line.planned { --tint: #E1E4EA; --bar: #8B94A5; } .span-line.active { --tint: #D3DDFA; --bar: #2F5BEA; }
-.span-line.blocked { --tint: #FADFC2; --bar: #E07A12; } .span-line.done { --tint: #CFE8DA; --bar: #1F8A5B; }
-.plan { bottom: 14px; height: 14px; border: 1.5px dashed var(--bar); border-radius: 3px; opacity: 0.55; }
-.plan.planned { --bar: #8B94A5; } .plan.active { --bar: #2F5BEA; } .plan.blocked { --bar: #E07A12; } .plan.done { --bar: #1F8A5B; }
-.pct { top: 8px; padding-left: 6px; color: var(--muted); white-space: nowrap; }
+.bar { top: 50%; height: 26px; margin-top: -13px; border-radius: 6px; overflow: hidden; background: var(--tint); color: var(--text); }
+.bar.planned { --tint: #E1E4EA; --bar: #8B94A5; } .bar.active { --tint: #D3DDFA; --bar: #2F5BEA; }
+.bar.blocked { --tint: #FADFC2; --bar: #E07A12; } .bar.done { --tint: #CFE8DA; --bar: #1F8A5B; }
+.bar.clip-start { border-top-left-radius: 0; border-bottom-left-radius: 0; } .bar.clip-end { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.bar-fill { position: absolute; top: 0; bottom: 0; left: 0; background: var(--bar); opacity: 0.35; }
+.bar-text { position: relative; display: block; padding: 0 8px; font-size: 12px; font-weight: 600; line-height: 26px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Clicking anywhere on a row selects it: the name is the one real link; this
    overlay repeats it for the pointer only (no tab stop, hidden from assistive
-   technology). It sits above the sticky label (z-index 2) and below the
-   completion dots (z-index 4), which keep their own popups. */
+   technology). It sits above the sticky label (z-index 2). */
 .row-link { position: absolute; inset: 0; z-index: 3; cursor: pointer; }
 .act-row:hover { background: rgba(47, 91, 234, 0.04); }
-.done-dot { z-index: 4; }
-.bins { left: 0; right: 0; bottom: 16px; height: 44px; }
-.bin { position: absolute; bottom: 0; background: var(--bar); opacity: 0.85; }
-.bin.planned { --bar: #8B94A5; } .bin.active { --bar: #2F5BEA; } .bin.blocked { --bar: #E07A12; } .bin.done { --bar: #1F8A5B; }
 .legend { display: flex; flex-wrap: wrap; gap: 18px; padding: 12px 16px; border-top: 1px solid var(--border); color: var(--muted); background: #FAFAF8; }
 .legend span { display: flex; align-items: center; gap: 8px; }
 .swatch { display: inline-block; }
-.bin-sample { width: 18px; height: 12px; background: #2F5BEA; opacity: 0.85; border-radius: 2px; }
-.plan-sample { width: 18px; height: 12px; border: 1.5px dashed #2F5BEA; border-radius: 2px; opacity: 0.6; box-sizing: border-box; }
+.bar-sample { width: 18px; height: 12px; background: #D3DDFA; border-radius: 3px; }
 .today-sample { width: 2px; height: 14px; background: var(--today); }
 .proj-toggle .chevron { flex: none; transform: rotate(90deg); }
 .proj-toggle[aria-expanded="false"] .chevron { transform: none; }
 .act-row[hidden] { display: none; }
-.done-dot { bottom: -7px; width: 0; height: 44px; }
-.done-dot .dot { position: absolute; left: -22px; top: 0; width: 44px; height: 44px; min-height: 0; padding: 0; border: 0; background: transparent; cursor: help; }
-.done-dot .dot::before { content: ""; position: absolute; left: 17px; top: 17px; width: 10px; height: 10px; box-sizing: border-box; border-radius: 5px; border: 2px solid var(--surface); background: #16181D; }
-.popup { display: none; position: absolute; bottom: 38px; left: 0; transform: translateX(-50%); z-index: 6; width: max-content; max-width: 260px; max-height: 150px; overflow-y: auto; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: 0 4px 12px rgba(22, 24, 29, 0.18); font-size: 12px; text-align: left; }
-.popup ul { margin: 4px 0 0; padding-left: 16px; }
-.done-dot.left .popup { transform: none; left: -16px; }
-.done-dot.right .popup { transform: none; left: auto; right: -16px; }
-.done-dot.down .popup { bottom: auto; top: 38px; }
-.done-dot:hover, .done-dot:focus-within { z-index: 6; }
-.done-dot:hover .popup, .done-dot:focus-within .popup { display: block; }
-/* With JS the popup floats over the page, placed by app.js next to its dot, so the
-   timeline's scrolling box cannot clip it. */
-html.js .done-dot .popup, html.js .done-dot.left .popup, html.js .done-dot.right .popup, html.js .done-dot.down .popup { display: none; position: fixed; top: 0; left: 0; right: auto; bottom: auto; transform: none; z-index: 30; }
-html.js .done-dot.open .popup { display: block; }
-.dot-sample { width: 10px; height: 10px; border-radius: 5px; background: #16181D; }
 .work { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: auto 1fr; grid-template-areas: "timeline panel" "journal panel"; }
 .work > .timeline { grid-area: timeline; margin: 0; }
 .detail { grid-area: panel; align-self: start; min-width: 0; }
@@ -142,20 +117,6 @@ html.js .apply { display: none; }
 .check span { white-space: pre-wrap; }
 .check input { width: 14px; height: 14px; min-height: 0; accent-color: #2F5BEA; }
 .done-text { color: var(--muted); text-decoration: line-through; }
-.chart { display: flex; align-items: flex-end; gap: 2px; height: 120px; border-bottom: 1px solid #CFCFC8; }
-.cbin { flex: 1 1 0; min-width: 2px; height: 100%; position: relative; }
-.cbin > span { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 2px 2px 0 0; }
-.scope.planned, .scope-sample.planned { background: #E1E4EA; } .scope.active, .scope-sample.active { background: #D3DDFA; }
-.scope.blocked, .scope-sample.blocked { background: #FADFC2; } .scope.done, .scope-sample.done { background: #CFE8DA; }
-.open.planned, .open-sample.planned { background: #8B94A5; } .open.active, .open-sample.active { background: #2F5BEA; }
-.open.blocked, .open-sample.blocked { background: #E07A12; } .open.done, .open-sample.done { background: #1F8A5B; }
-.scope.ahead { background: transparent; border: 1.5px dashed #C9CDD5; box-sizing: border-box; }
-.today-mark { position: absolute; top: -4px; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: var(--today); }
-.axis { display: flex; justify-content: space-between; margin: 4px 0; }
-.legend-inline { display: flex; flex-wrap: wrap; gap: 14px; }
-.legend-inline span { display: flex; align-items: center; gap: 6px; }
-.open-sample, .scope-sample { width: 12px; height: 12px; border-radius: 2px; }
-.ahead-sample { width: 12px; height: 12px; border: 1.5px dashed #8B94A5; box-sizing: border-box; border-radius: 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .detail .card { padding: 20px; }
 .detail h2 { font-size: 21px; line-height: 1.25; margin: 6px 0; }

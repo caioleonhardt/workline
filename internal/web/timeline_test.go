@@ -3,7 +3,6 @@ package web
 import (
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -42,7 +41,7 @@ func TestAxis(t *testing.T) {
 
 func TestTimelineHeaderAndOverlay(t *testing.T) {
 	h, _ := newApp(t)
-	body := get(h, "/timeline").Body.String()
+	body := get(h, "/roadmap").Body.String()
 	for _, want := range []string{
 		`class="today-line" style="left:87.95%"`, `class="today-flag" style="left:87.95%">Today`,
 		"Q1 <span", "Jan–Mar", "3 open · 1 act.", "13 open · 5 act.", "Project · activity", "6 activities shown",
@@ -56,7 +55,7 @@ func TestTimelineHeaderAndOverlay(t *testing.T) {
 		t.Error("weekly gridlines only belong in the quarter view")
 	}
 
-	body = get(h, "/timeline?period=q4&month=11").Body.String()
+	body = get(h, "/roadmap?period=q4&month=11").Body.String()
 	for _, want := range []string{
 		`class="today-line" style="left:52.17%"`, "Oct", "Nov", "Dec",
 		`class="col sel" style="left:33.70%;width:32.61%"`, `class="band" style="left:33.70%;width:32.61%"`,
@@ -70,14 +69,14 @@ func TestTimelineHeaderAndOverlay(t *testing.T) {
 		t.Errorf("gridlines = %d", got)
 	}
 	// today is outside the period: no Today line
-	if body := get(h, "/timeline?period=q1").Body.String(); strings.Contains(body, "today-line") {
+	if body := get(h, "/roadmap?period=q1").Body.String(); strings.Contains(body, "today-line") {
 		t.Error("Today line outside the period")
 	}
 }
 
 func TestTimelineGroupsAndRows(t *testing.T) {
 	h, _ := newApp(t)
-	body := get(h, "/timeline?status=active&status=blocked&sel=1").Body.String()
+	body := get(h, "/roadmap?status=active&status=blocked&sel=1").Body.String()
 	// project row: count, progress over the visible activities, scope flags
 	for _, want := range []string{
 		"Order platform modernisation", "· 2 activities", "· 50% done", "· 2 scope flags",
@@ -98,7 +97,7 @@ func TestTimelineGroupsAndRows(t *testing.T) {
 		t.Error("exactly one row is current")
 	}
 	// no activities: the empty state
-	wantBody(t, get(h, "/timeline?status="), "No activities match these filters.")
+	wantBody(t, get(h, "/roadmap?status="), "No activities match these filters.")
 }
 
 func TestTimelineColumnLoadFuture(t *testing.T) {
@@ -106,7 +105,7 @@ func TestTimelineColumnLoadFuture(t *testing.T) {
 	if _, err := st.CreateActivity(ctx, store.NewActivity{ProjectID: 1, Name: "Next year", Start: date(t, "2027-02-01"), Due: date(t, "2027-03-01"), Tasks: []string{"x"}}, domain.FixedClock{D: date(t, testToday)}); err != nil {
 		t.Fatal(err)
 	}
-	wantBody(t, get(h, "/timeline?year=2027"), "1 planned")
+	wantBody(t, get(h, "/roadmap?year=2027"), "1 planned")
 }
 
 // rowTrack returns the markup of an activity's track, from its name to its bar link.
@@ -120,89 +119,48 @@ func rowTrack(t *testing.T, body, name string) string {
 	return body[i : i+j+250]
 }
 
-func TestTimelineRowSpanPlanAndLabel(t *testing.T) {
+// One bar per activity from start to due, clipped to the period, filled by
+// the share of tasks done (SPEC §10 item 125).
+func TestRoadmapBars(t *testing.T) {
 	h, _ := newApp(t)
-	row := rowTrack(t, get(h, "/timeline").Body.String(), "Consolidate order services into one Go service")
+	row := rowTrack(t, get(h, "/roadmap").Body.String(), "Consolidate order services into one Go service")
 	for _, want := range []string{
-		`class="span-line active" aria-hidden="true" style="left:16.44%;width:80.00%"`,
-		`class="plan active" aria-hidden="true" style="left:87.95%;width:8.49%"`, // today..due
-		`style="left:92.00%">63%`, // label sits at the due date, capped at 92%
-		`title="Consolidate order services into one Go service: 63% done, 3 open tasks. Show details" tabindex="-1" aria-hidden="true"`,
+		`<span class="bar active" aria-hidden="true" style="left:16.44%;width:80.00%"><span class="bar-fill" style="width:63%"></span><span class="bar-text">Consolidate order services into one Go service · 63%</span></span>`,
+		`title="Consolidate order services into one Go service: 2026-03-02 → 2026-12-18, 63% done, 3 open tasks. Show details" tabindex="-1" aria-hidden="true"`,
 	} {
 		if !strings.Contains(row, want) {
 			t.Errorf("year row lacks %q:\n%s", want, row)
 		}
 	}
-	// a planned activity's box starts at its start date
-	row = rowTrack(t, get(h, "/timeline").Body.String(), "2027 capacity and budget plan")
-	if !strings.Contains(row, `class="plan planned"`) || !strings.Contains(row, "left:89.32%") {
+	// a planned activity's bar starts at its start date
+	row = rowTrack(t, get(h, "/roadmap").Body.String(), "2027 capacity and budget plan")
+	if !strings.Contains(row, `class="bar planned"`) || !strings.Contains(row, "left:89.32%") {
 		t.Errorf("planned row: %s", row)
 	}
-
-	// quarter view: spans are clipped to the quarter, positions use the quarter's 92 days
-	q4 := get(h, "/timeline?period=q4").Body.String()
-	row = rowTrack(t, q4, "Consolidate order services into one Go service")
-	for _, want := range []string{`style="left:0.00%;width:85.87%"`, `class="plan active" aria-hidden="true" style="left:52.17%;width:33.70%"`} {
-		if !strings.Contains(row, want) {
-			t.Errorf("q4 row lacks %q:\n%s", want, row)
-		}
+	// quarter view: a bar that started earlier is clipped at the quarter's start
+	row = rowTrack(t, get(h, "/roadmap?period=q4").Body.String(), "Consolidate order services into one Go service")
+	if !strings.Contains(row, `<span class="bar active clip-start" aria-hidden="true" style="left:0.00%;width:85.87%">`) {
+		t.Errorf("q4 row: %s", row)
 	}
-	// done activities have no plan box
-	if strings.Contains(get(h, "/timeline?status=done").Body.String(), `class="plan done"`) {
-		t.Error("done activity has a plan box")
+	// one running through the whole quarter is clipped at both ends
+	row = rowTrack(t, get(h, "/roadmap?period=q3").Body.String(), "Consolidate order services into one Go service")
+	if !strings.Contains(row, `<span class="bar active clip-start clip-end" aria-hidden="true" style="left:0.00%;width:100.00%">`) {
+		t.Errorf("q3 row: %s", row)
 	}
-	// an activity wholly outside the period draws nothing visible
-	if body := get(h, "/timeline?period=q1&status=active&status=done").Body.String(); strings.Contains(body, "Hire senior ML") {
+	// an activity wholly outside the period is not listed
+	if body := get(h, "/roadmap?period=q1&status=active&status=done").Body.String(); strings.Contains(body, "Hire senior ML") {
 		t.Error("activity outside the period listed")
 	}
-}
-
-func TestTimelineBinsUseGlobalMax(t *testing.T) {
-	h, _ := newApp(t)
-	body := get(h, "/timeline").Body.String()
-	// the tallest weekly open count among visible activities is 5 (activity 1)
-	if !strings.Contains(body, "height:100.00%") {
-		t.Error("no bin reaches the global maximum")
+	// no burndown is left
+	if body := get(h, "/roadmap").Body.String(); strings.Contains(body, `class="bin`) || strings.Contains(body, "done-dot") || strings.Contains(body, `class="tile"`) {
+		t.Error("the roadmap still draws bins, completion dots or tiles")
 	}
-	for _, m := range regexp.MustCompile(`height:(\d+\.\d+)%`).FindAllStringSubmatch(body, -1) {
-		if h, _ := strconv.ParseFloat(m[1], 64); h > 100 {
-			t.Errorf("bin taller than the maximum: %s", m[1])
-		}
-	}
-	kafka := rowTrack(t, body, "Kafka upgrade readiness")
-	if n := strings.Count(kafka, `class="bin blocked"`); n != 11 {
-		t.Errorf("year view: %d weekly bins, want 11", n)
-	}
-	// the last, partial week (Nov 16-18) has 4 open of 5
-	if !strings.Contains(kafka, `style="left:87.40%;width:0.82%;height:80.00%"`) {
-		t.Errorf("last bin: %s", kafka)
-	}
-
-	// quarter view: 2-day bins clipped to the quarter
-	q4 := rowTrack(t, get(h, "/timeline?period=q4").Body.String(), "Kafka upgrade readiness")
-	if n := strings.Count(q4, `class="bin blocked"`); n != 25 {
-		t.Errorf("quarter view: %d bins, want 25", n)
-	}
-	// done activities stop at their done date: seeded done_on is the due date, so
-	// Postmortem (Jun 8 - Jun 26) has 3 weekly bins
-	post := rowTrack(t, get(h, "/timeline?status=done").Body.String(), "Postmortem: inference latency incident")
-	if n := strings.Count(post, `class="bin done"`); n != 3 {
-		t.Errorf("done activity bins = %d, want 3", n)
-	}
-}
-
-func TestTimelineHasNoJournalDots(t *testing.T) {
-	h, _ := newApp(t)
-	body := get(h, "/timeline").Body.String()
-	if strings.Contains(body, "dot-mark") || strings.Contains(body, "</i>Journal entry") {
-		t.Error("journal entries must not appear on the timeline")
-	}
-	wantBody(t, get(h, "/timeline"), "Activity: open tasks (taller = more open)", "Until due date")
+	wantBody(t, get(h, "/roadmap"), "Activity: start to due, filled by tasks done")
 }
 
 func TestProjectRowIsAnExpandedToggle(t *testing.T) {
 	h, _ := newApp(t)
-	body := get(h, "/timeline").Body.String()
+	body := get(h, "/roadmap").Body.String()
 	for _, want := range []string{
 		`<div class="grp" data-project="1">`,
 		`<button type="button" class="proj-row proj-toggle" aria-expanded="true">`,
@@ -233,106 +191,6 @@ func TestProjectRowIsAnExpandedToggle(t *testing.T) {
 	}
 }
 
-func maxBinHeight(t *testing.T, body string) float64 {
-	t.Helper()
-	top := 0.0
-	for _, m := range regexp.MustCompile(`height:(\d+\.\d+)%`).FindAllStringSubmatch(body, -1) {
-		h, _ := strconv.ParseFloat(m[1], 64)
-		top = max(top, h)
-	}
-	return top
-}
-
-// A task open from Tuesday to Friday is invisible in weekly samples but
-// shows in 2-day bins; heights must be scaled to the bins drawn (SPEC §10 item 48).
-func TestQuarterBinsNeverExceedFullHeight(t *testing.T) {
-	h, st := newApp(t)
-	a, err := st.CreateActivity(ctx, store.NewActivity{
-		NewProjectName: "Short work", Name: "Tue to Fri", Start: date(t, "2026-11-02"), Due: date(t, "2026-12-31"),
-		Tasks: []string{"closed at once"}, // created Mon Nov 2
-	}, domain.FixedClock{D: date(t, testToday)})
-	if err != nil {
-		t.Fatal(err)
-	}
-	subs, _ := st.ListTasks(ctx, a.ID)
-	if _, err := st.ToggleTask(ctx, subs[0].ID, domain.FixedClock{D: date(t, "2026-11-02")}); err != nil {
-		t.Fatal(err)
-	}
-	for i := 0; i < 6; i++ {
-		s, err := st.AddTask(ctx, a.ID, "tue-fri", date(t, "2026-11-03")) // Tuesday
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, err := st.ToggleTask(ctx, s.ID, domain.FixedClock{D: date(t, "2026-11-06")}); err != nil { // Friday
-			t.Fatal(err)
-		}
-	}
-	// alone in its project, the 2-day bins reach 6 open while every weekly sample is 0
-	solo := get(h, "/timeline?period=q4&project=5").Body.String()
-	if got := maxBinHeight(t, solo); got != 100 {
-		t.Errorf("tallest quarter bin = %.2f%%, want 100", got)
-	}
-	// next to the seeded activities the bins still never exceed the maximum
-	if got := maxBinHeight(t, get(h, "/timeline?period=q4").Body.String()); got != 100 {
-		t.Errorf("tallest bin with all activities = %.2f%%, want 100", got)
-	}
-	// the year view samples weekly: nothing is open at any week end, so its bars stay flat
-	if got := maxBinHeight(t, get(h, "/timeline?project=5").Body.String()); got != 0 {
-		t.Errorf("year view bar = %.2f%%, want 0", got)
-	}
-}
-
-func TestCompletionDotsOnePerDay(t *testing.T) {
-	h, st := newApp(t)
-	const name = "Kafka upgrade readiness"
-	row := rowTrack(t, get(h, "/timeline").Body.String(), name)
-	// seeded: one task closed on Oct 5 and one on Oct 19, neither with a time
-	if n := strings.Count(row, `class="done-dot center`); n != 2 {
-		t.Fatalf("dots = %d, want 2:\n%s", n, row)
-	}
-	for _, want := range []string{
-		`class="done-dot center down" style="left:75.89%"><button type="button" class="dot" aria-label="1 task completed on 2026-10-05" aria-describedby="done-2-2026-10-05">`,
-		`<span class="popup" id="done-2-2026-10-05"><strong>2026-10-05</strong><ul><li><span class="mono">00:00</span> Compatibility matrix</li></ul>`,
-		`style="left:79.73%"`,
-	} {
-		if !strings.Contains(row, want) {
-			t.Errorf("missing %q in:\n%s", want, row)
-		}
-	}
-	// outside the period nothing is drawn; inside, the same dots
-	if n := strings.Count(rowTrack(t, get(h, "/timeline?period=q3").Body.String(), name), "done-dot"); n != 0 {
-		t.Errorf("Q3 dots = %d", n)
-	}
-	if n := strings.Count(rowTrack(t, get(h, "/timeline?period=q4").Body.String(), name), `class="done-dot`); n != 2 {
-		t.Errorf("Q4 dots = %d", n)
-	}
-
-	// a day with several closures is still one dot; the popup lists them by time, then id
-	close := func(text string, created, closedOn string, hour, minute int) {
-		t.Helper()
-		sub, err := st.AddTask(ctx, 2, text, date(t, created))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, err := st.ToggleTask(ctx, sub.ID, domain.FixedClock{D: date(t, closedOn), Hour: hour, Minute: minute}); err != nil {
-			t.Fatal(err)
-		}
-	}
-	close("afternoon", "2026-10-01", "2026-10-05", 15, 45)
-	close("morning", "2026-10-01", "2026-10-05", 8, 10)
-	close("same minute, later id", "2026-10-01", "2026-10-05", 8, 10)
-	row = rowTrack(t, get(h, "/timeline").Body.String(), name)
-	if n := strings.Count(row, `class="done-dot`); n != 2 {
-		t.Errorf("dots = %d, want still 2", n)
-	}
-	popup := row[strings.Index(row, `id="done-2-2026-10-05"`):]
-	popup = popup[:strings.Index(popup, "</ul>")]
-	if !bodyOrderIn(popup, "Compatibility matrix", `<span class="mono">08:10</span> morning`, `<span class="mono">08:10</span> same minute, later id`, `<span class="mono">15:45</span> afternoon`) {
-		t.Errorf("popup order: %s", popup)
-	}
-	wantBody(t, get(h, "/timeline"), "4 tasks completed on 2026-10-05")
-}
-
 func bodyOrderIn(s string, parts ...string) bool {
 	last := -1
 	for _, p := range parts {
@@ -343,79 +201,6 @@ func bodyOrderIn(s string, parts ...string) bool {
 		last = i
 	}
 	return true
-}
-
-func TestCompletionPopupsStayInsideTheTrack(t *testing.T) {
-	h, st := newApp(t)
-	sub, _ := st.AddTask(ctx, 2, "early", date(t, "2026-01-02"))
-	if _, err := st.ToggleTask(ctx, sub.ID, domain.FixedClock{D: date(t, "2026-01-03")}); err != nil {
-		t.Fatal(err)
-	}
-	sub, _ = st.AddTask(ctx, 2, "today", date(t, "2026-11-01"))
-	if _, err := st.ToggleTask(ctx, sub.ID, domain.FixedClock{D: date(t, testToday)}); err != nil {
-		t.Fatal(err)
-	}
-	row := rowTrack(t, get(h, "/timeline").Body.String(), "Kafka upgrade readiness")
-	for _, want := range []string{`class="done-dot left down" style="left:0.55%"`, `class="done-dot right down" style="left:87.95%"`} {
-		if !strings.Contains(row, want) {
-			t.Errorf("missing %q", want)
-		}
-	}
-	// Q4 drops the January dot
-	if q4 := rowTrack(t, get(h, "/timeline?period=q4").Body.String(), "Kafka upgrade readiness"); strings.Contains(q4, "2026-01-03") {
-		t.Error("dot outside the period")
-	}
-	wantBody(t, get(h, "/timeline"), "Tasks completed")
-}
-
-// Popups open upward and fit above any row; the first two rows open downward
-// instead, but only when two more rows follow to hold them.
-func TestCompletionPopupsOpenDownInTheFirstRows(t *testing.T) {
-	h, _ := newApp(t)
-	downIn := func(body, name string) bool {
-		t.Helper()
-		row := rowTrack(t, body, name)
-		if !strings.Contains(row, "done-dot") {
-			t.Fatalf("%s has no dots", name)
-		}
-		return strings.Contains(row, " down\"")
-	}
-	// all default activities: six rows, so rows 1 and 2 (Kafka, Consolidate) open down
-	body := get(h, "/timeline").Body.String()
-	var order []string
-	for _, m := range regexp.MustCompile(`<a class="act-name" href="[^"]*"(?: aria-current="true")?>([^<]*)</a>`).FindAllStringSubmatch(body, -1) {
-		order = append(order, m[1])
-	}
-	if len(order) != 6 {
-		t.Fatalf("rows: %v", order)
-	}
-	for i, name := range order {
-		row := rowTrack(t, body, name)
-		if got := strings.Contains(row, " down\""); strings.Contains(row, "done-dot") && got != (i < 2) {
-			t.Errorf("row %d (%s): down = %v", i, name, got)
-		}
-	}
-	// project 3 has three rows: only the first has two rows below it
-	p3 := get(h, "/timeline?project=3").Body.String()
-	if !downIn(p3, "Team onboarding guide refresh") || downIn(p3, "Hire senior ML engineer") || downIn(p3, "Mentoring plan for two juniors") {
-		t.Error("project 3: only its first row opens downward")
-	}
-	// a lone row cannot hold a downward popup
-	if downIn(get(h, "/timeline?project=4&status=done").Body.String(), "Postmortem: inference latency incident") {
-		t.Error("a single row opens downward")
-	}
-}
-
-// Bins sit inside .bins, which is itself positioned, so each bin must position
-// itself against it; otherwise it collapses to nothing (found in a real browser).
-func TestBinsArePositionedAgainstTheirContainer(t *testing.T) {
-	h, _ := newApp(t)
-	css := get(h, "/static/app.css").Body.String()
-	for _, want := range []string{".bins { left: 0; right: 0; bottom: 16px; height: 44px; }", ".bin { position: absolute; bottom: 0;"} {
-		if !strings.Contains(css, want) {
-			t.Errorf("app.css lacks %q", want)
-		}
-	}
 }
 
 // The page is wide enough for the timeline (min 720px) and the panel (360px) to
@@ -465,7 +250,7 @@ func TestNarrowScreenRules(t *testing.T) {
 // accessibility tree and the tab order; a pointer-only overlay covers the row.
 func TestRowSelectionOverlayIsPointerOnly(t *testing.T) {
 	h, _ := newApp(t)
-	body := get(h, "/timeline").Body.String()
+	body := get(h, "/roadmap").Body.String()
 	rows := strings.Count(body, `class="tl-row act-row`)
 	if rows != 6 || strings.Count(body, `class="act-name" href="`) != rows || strings.Count(body, `class="row-link"`) != rows {
 		t.Fatalf("rows=%d names=%d overlays=%d", rows, strings.Count(body, `class="act-name" href="`), strings.Count(body, `class="row-link"`))
@@ -479,7 +264,7 @@ func TestRowSelectionOverlayIsPointerOnly(t *testing.T) {
 		t.Error("the duplicate bar link is gone")
 	}
 	css := get(h, "/static/app.css").Body.String()
-	for _, want := range []string{".row-link { position: absolute; inset: 0; z-index: 3;", ".done-dot { z-index: 4; }"} {
+	for _, want := range []string{".row-link { position: absolute; inset: 0; z-index: 3;"} {
 		if !strings.Contains(css, want) {
 			t.Errorf("app.css lacks %q", want)
 		}

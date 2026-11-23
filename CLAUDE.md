@@ -10,7 +10,7 @@ Read `SPEC.md` before any change. It is the source of truth; `docs/mockup.html` 
 ## Layout
 ```
 cmd/workline/        main: flags, subcommands (serve, seed, backup, migrate, version)
-internal/domain/     pure logic: burndown, progress, scope creep, periods. No I/O.
+internal/domain/     pure logic: progress, scope creep, periods, reports. No I/O.
 internal/store/      database/sql + SQLite, hand-written SQL, migrations
 internal/web/        handlers, view models, templates, static (all embedded)
 migrations/          0001_init.sql, 0002_….sql (embedded)
@@ -35,7 +35,7 @@ Dependency direction: `web → store → domain` and `web → domain`. `domain` 
 - Note it under Unreleased in `CHANGELOG.md` with the "run `workline migrate`" line.
 
 ## Testing
-- `internal/domain`: table-driven tests for every rule in SPEC §4 (open/scope at date, progress, bins and clipping, every scope-creep branch including after an acknowledgement). Aim for full coverage here.
+- `internal/domain`: table-driven tests for every rule in SPEC §4 (open/scope at date, progress, periods and columns, every scope-creep branch including after an acknowledgement). Aim for full coverage here.
 - `internal/store`: tests against a temp-file SQLite DB with migrations applied.
 - `internal/web`: `httptest` tests for main flows and for both full-page and `HX-Request` responses.
 - No mocks of the DB; use a real temp DB.

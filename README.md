@@ -1,8 +1,8 @@
 # Workline
 
-Local-first tracker for your work: projects, tasks, journals, and burndown timelines with scope-creep signals.
+Local-first tracker for your work: projects, tasks, journals, and a roadmap with scope-creep signals.
 
-Workline tracks everything you are asked to do, not only what lives in Jira. Activities are grouped by project, broken into tasks, documented in a dated journal, and drawn on a year or quarter timeline as burndowns of open tasks over time.
+Workline tracks everything you are asked to do, not only what lives in Jira. Activities are grouped by project, broken into tasks, documented in a dated journal, and drawn on a year or quarter roadmap as bars from start to due.
 
 It is a single Go binary with an embedded SQLite database. It works offline, listens on `127.0.0.1` only, and makes no outbound network calls.
 
@@ -11,8 +11,8 @@ It is a single Go binary with an embedded SQLite database. It works offline, lis
 - **Journal** as the home page: the entries of one day, today by default; step back and forth between days and log on any of them.
 - **Tasks page** with every task, open, closed or all, a page at a time.
 - **Fast journaling** from a bar at the bottom of every page: no activity needed (entries stay Unassigned until filed), and prefixes like `/t1 Fix the deploy` (high-priority task), `/d` decision and `/u` update.
-- **Timeline dashboard** by year or quarter, grouped by project, with filters for project, month, status and scope creep. Every view is a bookmarkable URL.
-- **Burndowns** computed from task open/close dates, never entered by hand.
+- **Roadmap** by year or quarter, grouped by project, with filters for project, month, status and scope creep. Every view is a bookmarkable URL.
+- **Progress** computed from task open/close dates, never entered by hand.
 - **Scope-creep signal** when an activity grows 75% past its baseline, or when work arrives faster than it closes over the last 30 days. Acknowledging it resets the baseline and logs the change to the journal.
 - **Journal** per activity, exportable as Markdown.
 - **Keyboard shortcuts**: `j` journal bar, `t` / `d` / `u` / `b` / `m` log a task, decision, update, blocker or meeting, `n` new activity, `/` focus filter, `Esc` close panel.
@@ -59,7 +59,7 @@ gofmt -l .
 
 ```
 cmd/workline/     subcommands: serve, seed, backup, migrate, version
-internal/domain/  pure logic: burndown, progress, scope creep, periods
+internal/domain/  pure logic: progress, scope creep, periods, reports
 internal/store/   SQLite, hand-written SQL, migrations
 internal/web/     handlers, templates, static assets (embedded)
 migrations/       numbered SQL migrations (embedded)

@@ -53,7 +53,7 @@ var periodLabels = []string{"Year", "Q1", "Q2", "Q3", "Q4"}
 func buildControls(f Filter, projects []domain.Project, counts map[domain.Status]int, creepCount int) controlsView {
 	v := controlsView{Year: f.Year, PrevYear: f.WithYear(f.Year - 1).URL(), NextYear: f.WithYear(f.Year + 1).URL()}
 	if f.Period == domain.PeriodYear {
-		v.Eyebrow = fmt.Sprintf("%d · ACTIVITY TIMELINE", f.Year)
+		v.Eyebrow = fmt.Sprintf("%d · ROADMAP", f.Year)
 	} else {
 		first := time.Month(3*(int(f.Period)-1) + 1)
 		v.Eyebrow = fmt.Sprintf("Q%d %d · %s–%s", f.Period, f.Year,

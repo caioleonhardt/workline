@@ -58,14 +58,11 @@
 </section>
 {{end}}
 {{template "controls" .Controls}}
-<div class="tiles">
-{{range .Tiles}}<div class="tile"><div class="tile-label"><span class="dot {{.Class}}" aria-hidden="true"></span>{{.Label}}</div><div class="tile-value mono">{{.Value}}</div></div>
-{{end}}</div>
 <div class="work">
 {{template "timeline" .Timeline}}
 <script src="/static/app.js"></script>
 <aside class="detail" aria-label="Activity detail">
-{{with .Panel}}{{template "panel" .}}{{else}}<section class="card"><p class="muted">Select an activity to see its burndown, scope, tasks and journal.</p></section>{{end}}
+{{with .Panel}}{{template "panel" .}}{{else}}<section class="card"><p class="muted">Select an activity to see its scope, tasks and journal.</p></section>{{end}}
 </aside>
 {{template "journal" .Journal}}
 </div>

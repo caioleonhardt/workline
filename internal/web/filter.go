@@ -127,9 +127,9 @@ func (f Filter) Values() url.Values {
 // URL returns the timeline path with the canonical query.
 func (f Filter) URL() string {
 	if enc := f.Values().Encode(); enc != "" {
-		return "/timeline?" + enc
+		return "/roadmap?" + enc
 	}
-	return "/timeline"
+	return "/roadmap"
 }
 
 // WithSel returns f with the selected activity set (0 clears it).

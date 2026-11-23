@@ -9,9 +9,9 @@ import (
 // and the stylesheet hide those buttons only when scripting is on.
 func TestAutoSubmitControlsKeepTheirButtons(t *testing.T) {
 	h, _ := newApp(t)
-	body := get(h, "/timeline?sel=1&project=1").Body.String()
+	body := get(h, "/roadmap?sel=1&project=1").Body.String()
 	for _, want := range []string{
-		`<form method="get" action="/timeline" class="inline" hx-trigger="change, submit">`,
+		`<form method="get" action="/roadmap" class="inline" hx-trigger="change, submit">`,
 		`<button class="apply">Apply</button>`,
 		`<form class="inline" method="post" action="/activities/1" hx-trigger="change, submit">`,
 		`<button class="apply">Save status</button>`,
@@ -29,7 +29,7 @@ func TestAutoSubmitControlsKeepTheirButtons(t *testing.T) {
 
 func TestTasksAreCheckboxes(t *testing.T) {
 	h, _ := newApp(t)
-	body := get(h, "/timeline?sel=2").Body.String()
+	body := get(h, "/roadmap?sel=2").Body.String()
 	// Kafka: six tasks, two closed; each is a checkbox in a form that toggles it,
 	// once in the panel and once in the feed, so a closed task can be reopened from either
 	if got := strings.Count(body, `<input type="checkbox"`); got != 12 {
@@ -65,7 +65,7 @@ func TestTasksAreCheckboxes(t *testing.T) {
 // A task is one line: one date (closed, else opened) with both in the tooltip.
 func TestTaskRowsShowOneDate(t *testing.T) {
 	h, _ := newApp(t)
-	body := get(h, "/timeline?sel=2").Body.String() // Kafka: 2 closed, 4 open
+	body := get(h, "/roadmap?sel=2").Body.String() // Kafka: 2 closed, 4 open
 	for _, want := range []string{
 		`<span class="muted mono small" title="opened 2026-09-07 · closed 2026-10-05">closed 2026-10-05</span>`,
 		`<span class="muted mono small" title="opened 2026-10-05">opened 2026-10-05</span>`,
@@ -78,5 +78,5 @@ func TestTaskRowsShowOneDate(t *testing.T) {
 		t.Error("both dates shown in the row")
 	}
 	// the opened date stays editable
-	wantBody(t, get(h, "/timeline?sel=2"), `<label>Opened<input type="date" name="date" value="2026-09-07" required></label>`)
+	wantBody(t, get(h, "/roadmap?sel=2"), `<label>Opened<input type="date" name="date" value="2026-09-07" required></label>`)
 }

@@ -67,49 +67,6 @@
       text.focus();
       text.setSelectionRange(text.value.length, text.value.length);
     }, true);
-    // Completion popups float (position: fixed) beside their dot, above it when
-    // there is room, else below, and inside the window horizontally.
-    function placePopup(dotWrap) {
-      var popup = dotWrap.querySelector('.popup');
-      if (!popup) return;
-      dotWrap.classList.add('open');
-      var r = dotWrap.querySelector('.dot').getBoundingClientRect();
-      var w = popup.offsetWidth, h = popup.offsetHeight, gap = 4, margin = 8;
-      var left = Math.min(Math.max(margin, r.left + r.width / 2 - w / 2), window.innerWidth - w - margin);
-      var top = r.top - h - gap;
-      if (top < margin) top = Math.min(r.bottom + gap, window.innerHeight - h - margin);
-      popup.style.left = left + 'px';
-      popup.style.top = top + 'px';
-    }
-    function closePopup(dotWrap) {
-      if (!dotWrap.matches(':hover') && !dotWrap.matches(':focus-within')) dotWrap.classList.remove('open');
-    }
-    function dotOf(e) {
-      return e.target.closest && e.target.closest('.done-dot');
-    }
-    document.addEventListener('mouseover', function (e) {
-      var d = dotOf(e);
-      if (d && !d.classList.contains('open')) placePopup(d);
-    });
-    document.addEventListener('focusin', function (e) {
-      var d = dotOf(e);
-      if (d) placePopup(d);
-    });
-    document.addEventListener('mouseout', function (e) {
-      var d = dotOf(e);
-      if (d && !d.contains(e.relatedTarget)) {
-        d.classList.remove('open');
-        if (d.matches(':focus-within')) placePopup(d);
-      }
-    });
-    document.addEventListener('focusout', function (e) {
-      var d = dotOf(e);
-      if (d) setTimeout(function () { closePopup(d); }, 0);
-    });
-    // A fixed popup would drift from its dot on scroll: move it along.
-    document.addEventListener('scroll', function () {
-      document.querySelectorAll('.done-dot.open').forEach(placePopup);
-    }, true);
     // Normal-mode keys (SPEC §10 item 99). Entry lists are panes ([data-pane])
     // and the focused entry ([data-entry]) is the cursor; fields keep their keys.
     function focusBar() {
@@ -433,7 +390,7 @@
       t: function () { clickFirst('a.today-link'); },
       gj: function () { clickFirst('nav a[href="/"]'); },
       gt: function () { clickFirst('nav a[href="/tasks"]'); },
-      gr: function () { clickFirst('nav a[href="/timeline"]'); },
+      gr: function () { clickFirst('nav a[href="/roadmap"]'); },
       gR: function () { clickFirst('nav a[href="/report"]'); },
       gp: function () { clickFirst('nav a[href="/projects"]'); },
       O: function () { if (!document.querySelector('a.cancel-new')) clickFirst('a.new-activity'); },

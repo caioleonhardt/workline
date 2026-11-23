@@ -19,7 +19,6 @@ type panelView struct {
 	Start, Due                           string
 	Tasks                                []taskRow
 	Scope                                scopeView
-	Chart                                chartView
 	Status                               string
 	CloseHref                            string // the dashboard without the selection
 	Progress, Closed, Total              int
@@ -46,8 +45,8 @@ func buildPanel(a domain.Activity, projects []domain.Project, subs []domain.Task
 	p := &panelView{
 		Next: next, ID: a.ID, Name: a.Name, RequestedBy: a.RequestedBy,
 		Start: a.Start.String(), Due: a.Due.String(), Tasks: taskRows(subs),
-		Scope: buildScope(a, subs, ack, today),
-		Chart: buildChart(a, subs, today), Status: string(a.Status), CloseHref: withParam(next, "sel", ""),
+		Scope:  buildScope(a, subs, ack, today),
+		Status: string(a.Status), CloseHref: withParam(next, "sel", ""),
 		Progress: domain.Progress(a.Status, subs), Total: len(subs),
 		Statuses: statusOptions(a.Status), Priorities: priorityOptions(a.Priority),
 	}

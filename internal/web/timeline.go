@@ -1,9 +1,7 @@
 package web
 
 import (
-	"cmp"
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -61,54 +59,18 @@ type rowView struct {
 	ScopeChip           string // empty unless flagged
 	OpenLabel, Dates    string
 	Tip                 string
-	SpanLeft, SpanWidth pct
+	HasBar              bool // the activity's span meets the period
+	BarLeft, BarWidth   pct
+	ClipStart, ClipEnd  bool // the span runs past the period's start or end
+	Progress            int  // % of tasks done, drawn as the bar's fill
 	PctLabel            string
-	PctLeft             pct
-	HasPlan             bool
-	PlanLeft, PlanWidth pct
-	Done                []doneDot
-	Bins                []binView
 }
-
-type binView struct{ Left, Width, Height pct }
-
-// doneDot marks a day on which an activity had tasks closed; its popup lists them.
-type doneDot struct {
-	Left  pct
-	ID    string // of the popup, for aria-describedby
-	Day   string
-	Align string // "left", "center" or "right": which way the popup opens, to stay inside the track
-	Down  bool   // the popup opens downward (first rows)
-	Label string
-	Items []doneItem
-}
-
-type doneItem struct{ Time, Text string }
-
-// Popups open upward and are capped at 150px, which fits above any row
-// (the header and a project row alone leave 200px above the first row's bottom).
-// The first popupDownRows rows open downward instead so a popup never meets the
-// header, but only when popupDownRoom more rows follow it, or it would run past
-// the bottom of the grid.
-const (
-	popupDownRows = 2
-	popupDownRoom = 2 // rows: 2 x 84px holds a 150px popup
-)
 
 // timelineData is what the dashboard hands to buildTimeline.
 type timelineData struct {
 	Groups []domain.Group
 	ItemOf map[int64]domain.ActivityWithTasks
 	Creeps map[int64]domain.Creep
-}
-
-// layout is the geometry shared by all rows of one timeline.
-type layout struct {
-	ax            axis
-	from, to      domain.Date
-	today         domain.Date
-	step, maxOpen int                    // bin size in days; the tallest drawn bin of any visible activity
-	bins          map[int64][]domain.Bin // the bins drawn per activity: clipped to the period
 }
 
 type groupView struct {
@@ -138,25 +100,17 @@ func plural(n int, one, many string) string {
 
 func capitalize(s string) string { return strings.ToUpper(s[:1]) + s[1:] }
 
-// buildTimeline lays out the visible groups on the period's track.
+// buildTimeline lays out the visible groups on the period's track: one bar
+// per activity from start to due, clipped to the period (SPEC §10 item 125).
 func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 	from, to := domain.PeriodRange(f.Year, f.Period)
 	ax := newAxis(from, to)
-	l := layout{ax: ax, from: from, to: to, today: today, step: domain.WeekStep, bins: map[int64][]domain.Bin{}}
-	if f.Period != domain.PeriodYear {
-		l.step = 2
-	}
 	var visible []domain.ActivityWithTasks
-	var drawn [][]domain.Bin
 	for _, g := range d.Groups {
 		for _, a := range g.Activities {
-			it := d.ItemOf[a.ID]
-			visible = append(visible, it)
-			l.bins[it.ID] = domain.ClipBins(domain.Burndown(it.Activity, it.Tasks, l.step, today), from, to)
-			drawn = append(drawn, l.bins[it.ID])
+			visible = append(visible, d.ItemOf[a.ID])
 		}
 	}
-	l.maxOpen = domain.GlobalMax(drawn)
 	v := timelineView{ShownLabel: plural(len(visible), "activity", "activities") + " shown"}
 
 	for _, c := range domain.Columns(f.Year, f.Period, f.Scale) {
@@ -190,7 +144,6 @@ func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 		v.BandLeft, v.BandWidth = ax.span(ms, me)
 	}
 
-	rowNo := 0
 	for _, g := range d.Groups {
 		gv := groupView{ID: g.Project.ID, Name: g.Project.Name, CountLabel: plural(len(g.Activities), "activity", "activities")}
 		var subs []domain.Task
@@ -202,9 +155,7 @@ func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 			if c.Flagged {
 				flags++
 			}
-			popupsDown := rowNo < popupDownRows && len(visible)-rowNo-1 >= popupDownRoom
-			rowNo++
-			gv.Rows = append(gv.Rows, buildRow(f, l, it, c, popupsDown))
+			gv.Rows = append(gv.Rows, buildRow(f, ax, from, to, today, it, c))
 		}
 		gv.PctLabel = strconv.Itoa(domain.ProjectProgress(subs)) + "% done"
 		if flags > 0 {
@@ -215,33 +166,22 @@ func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 	return v
 }
 
-func buildRow(f Filter, l layout, it domain.ActivityWithTasks, c domain.Creep, popupsDown bool) rowView {
-	ax, today := l.ax, l.today
+func buildRow(f Filter, ax axis, from, to, today domain.Date, it domain.ActivityWithTasks, c domain.Creep) rowView {
 	r := rowView{
 		ID: it.ID, Name: it.Name, Href: f.WithSel(it.ID).URL(), Selected: it.ID == f.Sel,
 		Status: string(it.Status), StatusLabel: capitalize(string(it.Status)),
 		OpenLabel: fmt.Sprintf("%d open / %d", domain.OpenAt(it.Tasks, today), len(it.Tasks)),
 		Dates:     fmt.Sprintf("%s → %s · %s", it.Start, it.Due, it.RequestedBy),
+		Progress:  domain.Progress(it.Status, it.Tasks),
 	}
-	progress := domain.Progress(it.Status, it.Tasks)
-	r.PctLabel = strconv.Itoa(progress) + "%"
-	r.Tip = fmt.Sprintf("%s: %s done, %d open tasks. Show details", it.Name, r.PctLabel, domain.OpenAt(it.Tasks, today))
-	r.SpanLeft, r.SpanWidth = ax.span(it.Start, it.Due)
-	r.SpanWidth = max(r.SpanWidth, 0.6)
-	r.PctLeft = min(92, ax.pos(it.Due.AddDays(1)))
-	if planFrom := max(it.Start, today); it.Status != domain.StatusDone && !planFrom.After(it.Due) {
-		r.PlanLeft, r.PlanWidth = ax.span(planFrom, it.Due)
-		r.HasPlan = r.PlanWidth > 0
+	r.PctLabel = strconv.Itoa(r.Progress) + "%"
+	r.Tip = fmt.Sprintf("%s: %s → %s, %s done, %d open tasks. Show details", it.Name, it.Start, it.Due, r.PctLabel, domain.OpenAt(it.Tasks, today))
+	r.HasBar = it.Overlaps(from, to)
+	if r.HasBar {
+		r.ClipStart, r.ClipEnd = it.Start.Before(from), it.Due.After(to)
+		r.BarLeft, r.BarWidth = ax.span(max(it.Start, from), min(it.Due, to))
+		r.BarWidth = max(r.BarWidth, 0.6)
 	}
-	for _, b := range l.bins[it.ID] {
-		left, width := ax.span(b.Start, b.End)
-		bv := binView{Left: left, Width: max(width, 0.15)}
-		if l.maxOpen > 0 {
-			bv.Height = pct(float64(b.Open) / float64(l.maxOpen) * 100)
-		}
-		r.Bins = append(r.Bins, bv)
-	}
-	r.Done = completionDots(l.ax, l.from, l.to, strconv.FormatInt(it.ID, 10), it.Tasks, popupsDown)
 	if c.Flagged {
 		r.ScopeChip = "Scope"
 		if c.Added > 0 {
@@ -249,43 +189,4 @@ func buildRow(f Filter, l layout, it domain.ActivityWithTasks, c domain.Creep, p
 		}
 	}
 	return r
-}
-
-// completionDots returns one dot per day in from..to on which one of the
-// tasks was closed. Within a day, tasks without a close time come first, then
-// by time, then by id. key makes the popups' ids unique on the page.
-func completionDots(ax axis, from, to domain.Date, key string, tasks []domain.Task, down bool) []doneDot {
-	byDay := map[domain.Date][]domain.Task{}
-	var days []domain.Date
-	for _, st := range tasks {
-		if st.ClosedOn().IsZero() || st.ClosedOn().Before(from) || st.ClosedOn().After(to) {
-			continue
-		}
-		if byDay[st.ClosedOn()] == nil {
-			days = append(days, st.ClosedOn())
-		}
-		byDay[st.ClosedOn()] = append(byDay[st.ClosedOn()], st)
-	}
-	slices.Sort(days)
-	var dots []doneDot
-	for _, day := range days {
-		subs := byDay[day]
-		slices.SortFunc(subs, func(a, b domain.Task) int {
-			return cmp.Or(strings.Compare(a.ClosedAt, b.ClosedAt), cmp.Compare(a.ID, b.ID))
-		})
-		d := doneDot{
-			Left: ax.pos(day), ID: fmt.Sprintf("done-%s-%s", key, day), Day: day.String(), Align: "center",
-			Label: plural(len(subs), "task", "tasks") + " completed on " + day.String(), Down: down,
-		}
-		if d.Left < 15 {
-			d.Align = "left"
-		} else if d.Left > 85 {
-			d.Align = "right"
-		}
-		for _, st := range subs {
-			d.Items = append(d.Items, doneItem{Time: domain.StampTime(st.ClosedAt), Text: st.Text})
-		}
-		dots = append(dots, d)
-	}
-	return dots
 }

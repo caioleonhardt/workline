@@ -30,3 +30,7 @@ func sub(t *testing.T, id int64, created, closed string) Task {
 	}
 	return s
 }
+
+func act(t *testing.T, start, due string) Activity {
+	return Activity{Name: "a", Status: StatusActive, Start: d(t, start), Due: d(t, due)}
+}

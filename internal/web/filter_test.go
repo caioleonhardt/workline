@@ -12,26 +12,26 @@ import (
 func TestParseFilterCanonicalURL(t *testing.T) {
 	today := date(t, testToday)
 	for query, want := range map[string]string{
-		"":                          "/timeline",
-		"year=2026":                 "/timeline",
-		"year=2025":                 "/timeline?year=2025",
-		"year=1999":                 "/timeline",
-		"year=abc":                  "/timeline",
-		"period=q4&month=11":        "/timeline?month=11&period=q4",
-		"period=q4&month=2":         "/timeline?period=q4",
-		"period=q9":                 "/timeline",
-		"month=13":                  "/timeline",
-		"month=2":                   "/timeline?month=2",
-		"scale=month":               "/timeline?scale=month",
-		"period=q1&scale=month":     "/timeline?period=q1",
-		"project=3&creep=1":         "/timeline?creep=1&project=3",
-		"creep=0":                   "/timeline",
-		"sel=7&new=1":               "/timeline?new=1&sel=7",
-		"sel=abc&new=0":             "/timeline",
-		"status=done&status=active": "/timeline?status=active&status=done",
-		"status=active&status=blocked&status=planned": "/timeline",
-		"status=":      "/timeline?status=",
-		"status=bogus": "/timeline?status=",
+		"":                          "/roadmap",
+		"year=2026":                 "/roadmap",
+		"year=2025":                 "/roadmap?year=2025",
+		"year=1999":                 "/roadmap",
+		"year=abc":                  "/roadmap",
+		"period=q4&month=11":        "/roadmap?month=11&period=q4",
+		"period=q4&month=2":         "/roadmap?period=q4",
+		"period=q9":                 "/roadmap",
+		"month=13":                  "/roadmap",
+		"month=2":                   "/roadmap?month=2",
+		"scale=month":               "/roadmap?scale=month",
+		"period=q1&scale=month":     "/roadmap?period=q1",
+		"project=3&creep=1":         "/roadmap?creep=1&project=3",
+		"creep=0":                   "/roadmap",
+		"sel=7&new=1":               "/roadmap?new=1&sel=7",
+		"sel=abc&new=0":             "/roadmap",
+		"status=done&status=active": "/roadmap?status=active&status=done",
+		"status=active&status=blocked&status=planned": "/roadmap",
+		"status=":      "/roadmap?status=",
+		"status=bogus": "/roadmap?status=",
 	} {
 		q, _ := url.ParseQuery(query)
 		if got := parseFilter(q, today).URL(); got != want {
@@ -47,7 +47,7 @@ func bodyOrder(body string, names ...string) bool {
 
 func TestDashboardHidesDoneByDefault(t *testing.T) {
 	h, _ := newApp(t)
-	body := get(h, "/timeline").Body.String()
+	body := get(h, "/roadmap").Body.String()
 	for _, name := range []string{"Kafka upgrade readiness", "Hire senior ML engineer", "2027 capacity"} {
 		if !strings.Contains(body, name) {
 			t.Errorf("%s missing", name)
@@ -58,8 +58,8 @@ func TestDashboardHidesDoneByDefault(t *testing.T) {
 			t.Errorf("done activity %s shown by default", name)
 		}
 	}
-	wantBody(t, get(h, "/timeline?status=done"), "Observability vendor review")
-	if strings.Contains(get(h, "/timeline?status=").Body.String(), "Kafka") {
+	wantBody(t, get(h, "/roadmap?status=done"), "Observability vendor review")
+	if strings.Contains(get(h, "/roadmap?status=").Body.String(), "Kafka") {
 		t.Error("status= shows activities")
 	}
 }
@@ -76,7 +76,7 @@ func TestDashboardOrdering(t *testing.T) {
 	if err := st.SetActivityStatus(ctx, 7, domain.StatusDone, date(t, testToday)); err != nil {
 		t.Fatal(err)
 	}
-	body := get(h, "/timeline?status=active&status=done").Body.String()
+	body := get(h, "/roadmap?status=active&status=done").Body.String()
 	// within the project: priority, and done activities last
 	if !bodyOrder(body, "Mentoring plan", "Hire senior ML", "Team onboarding guide") {
 		t.Error("activities out of order")
@@ -101,7 +101,7 @@ func TestDashboardFilters(t *testing.T) {
 		{"creep=1", []string{"Consolidate order", "Kafka upgrade"}, []string{"Hire senior", "Mentoring"}},
 		{"year=2025&" + all, nil, []string{"Consolidate", "Kafka upgrade"}},
 	} {
-		body := get(h, "/timeline?"+c.query).Body.String()
+		body := get(h, "/roadmap?"+c.query).Body.String()
 		for _, n := range c.shown {
 			if !strings.Contains(body, n) {
 				t.Errorf("%s: %q missing", c.query, n)
@@ -118,7 +118,7 @@ func TestDashboardFilters(t *testing.T) {
 func TestSelectedActivityIgnoresFiltersButNotArchive(t *testing.T) {
 	h, st := newApp(t)
 	// activity 3 is done, hidden from the list by default, but its panel shows
-	rec := get(h, "/timeline?sel=3")
+	rec := get(h, "/roadmap?sel=3")
 	wantBody(t, rec, `id="panel"`, "Move build logic")
 	if strings.Contains(rec.Body.String(), `aria-current`) {
 		t.Error("hidden activity has a row")
@@ -126,18 +126,18 @@ func TestSelectedActivityIgnoresFiltersButNotArchive(t *testing.T) {
 	if err := st.SetProjectArchived(ctx, 2, true); err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(get(h, "/timeline?sel=3&status=done").Body.String(), `id="panel"`) {
+	if strings.Contains(get(h, "/roadmap?sel=3&status=done").Body.String(), `id="panel"`) {
 		t.Error("panel of an archived project's activity shown")
 	}
 	if err := st.SetProjectArchived(ctx, 2, false); err != nil {
 		t.Fatal(err)
 	}
-	wantStatus(t, get(h, "/timeline?sel=3"), http.StatusOK)
+	wantStatus(t, get(h, "/roadmap?sel=3"), http.StatusOK)
 }
 
 func TestWithMoreFeed(t *testing.T) {
 	f := filterFor(t, "sel=2")
-	if got := f.WithMoreFeed().URL(); got != "/timeline?feed=60&sel=2" {
+	if got := f.WithMoreFeed().URL(); got != "/roadmap?feed=60&sel=2" {
 		t.Errorf("more: %q", got)
 	}
 	if got := filterFor(t, "feed=600").WithMoreFeed().Feed; got != feedMax {

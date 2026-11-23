@@ -13,17 +13,6 @@
 <div class="progress"><strong class="mono">{{.Progress}}%</strong><span class="muted small">{{.Closed}} of {{.Total}} tasks done</span></div>
 </div>
 
-<h3>Burndown</h3>
-<p class="mono small muted">peak {{.Chart.Peak}} open · weekly</p>
-<div class="chart" role="img" aria-label="{{.Chart.Summary}}">
-{{range .Chart.Bins}}<div class="cbin" title="{{.Tip}}"><span class="scope {{$.Status}}{{if .Ahead}} ahead{{end}}" style="height:{{.Scope}}%"></span><span class="open {{$.Status}}" style="height:{{.Open}}%"></span>{{if .Today}}<i class="today-mark"></i>{{end}}</div>{{end}}
-</div>
-<p class="axis mono small muted"><span>{{.Chart.StartLabel}}</span><span>{{.Chart.EndLabel}}</span></p>
-<p class="legend-inline small muted"><span><i class="swatch open-sample {{.Status}}"></i>Open</span><span><i class="swatch scope-sample {{.Status}}"></i>Scope (all tasks)</span><span><i class="swatch ahead-sample"></i>Ahead</span></p>
-<table class="sr-only"><caption>Burndown by week</caption><thead><tr><th>Week of</th><th>Open</th><th>Scope</th></tr></thead><tbody>
-{{range .Chart.Rows}}<tr><td>{{.Week}}</td>{{if .Ahead}}<td colspan="2">ahead</td>{{else}}<td>{{.Open}}</td><td>{{.Scope}}</td>{{end}}</tr>
-{{end}}</tbody></table>
-
 <h3>Scope</h3>
 <div class="stats">
 <div class="stat"><span class="small muted">{{.Scope.BaselineLabel}}</span><strong class="mono">{{.Scope.Baseline}}</strong></div>

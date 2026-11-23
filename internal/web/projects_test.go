@@ -33,14 +33,14 @@ func TestProjectRenameArchiveDelete(t *testing.T) {
 	if p, _ := st.GetProject(ctx, 2); !p.Archived {
 		t.Error("not archived")
 	}
-	if body := get(h, "/timeline?status=done").Body.String(); strings.Contains(body, "Observability vendor review") {
+	if body := get(h, "/roadmap?status=done").Body.String(); strings.Contains(body, "Observability vendor review") {
 		t.Error("archived project's activities are still on the dashboard")
 	}
 	wantStatus(t, post(h, "/projects/2", url.Values{"archived": {"0"}}), http.StatusSeeOther)
-	wantBody(t, get(h, "/timeline?status=done"), "Observability vendor review")
+	wantBody(t, get(h, "/roadmap?status=done"), "Observability vendor review")
 
 	wantStatus(t, post(h, "/projects/2/delete", url.Values{"next": {"/projects"}}), http.StatusSeeOther)
-	if body := get(h, "/timeline?status=done").Body.String(); strings.Contains(body, "Observability vendor review") {
+	if body := get(h, "/roadmap?status=done").Body.String(); strings.Contains(body, "Observability vendor review") {
 		t.Error("deleted project's activities are still listed")
 	}
 	for _, target := range []string{"/projects/99", "/projects/99/delete", "/projects/abc", "/projects/0/delete"} {

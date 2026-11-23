@@ -12,16 +12,16 @@ import (
 
 func TestFeedListsVisibleActivitiesNewestFirst(t *testing.T) {
 	h, _ := newApp(t)
-	rec := get(h, "/timeline")
+	rec := get(h, "/roadmap")
 	body := rec.Body.String()
 	wantBody(t, rec, `<h2 id="journal-title">Journal</h2>`, `<span class="chip kind-task">Task</span>`,
-		`<a class="tag small" href="/timeline?sel=1">Order platform modernisation › Consolidate order services into one Go service</a>`)
+		`<a class="tag small" href="/roadmap?sel=1">Order platform modernisation › Consolidate order services into one Go service</a>`)
 	for _, done := range []string{"Recommendation sent", "Root cause: node pool autoscaling"} {
 		if strings.Contains(body, done) {
 			t.Errorf("entry %q of a done activity is in the default feed", done)
 		}
 	}
-	wantBody(t, get(h, "/timeline?status=done"), "Recommendation sent", "Root cause: node pool autoscaling")
+	wantBody(t, get(h, "/roadmap?status=done"), "Recommendation sent", "Root cause: node pool autoscaling")
 	// newest first across activities: 2027 plan (Nov 16), Kafka (Nov 12), Consolidate (Nov 10)
 	if !bodyOrderIn(body[strings.Index(body, `id="journal"`):], "Request received in 1:1", "Client upgrades pulled into this activity", "Kafka dependencies removed") {
 		t.Error("feed is not newest first")
@@ -34,40 +34,40 @@ func TestFeedFollowsTheFilters(t *testing.T) {
 		body := get(h, target).Body.String()
 		return body[strings.Index(body, `id="journal"`):]
 	}
-	if got := feed("/timeline?project=3"); !strings.Contains(got, "Headcount approved") || strings.Contains(got, "Kick-off with manager") {
+	if got := feed("/roadmap?project=3"); !strings.Contains(got, "Headcount approved") || strings.Contains(got, "Kick-off with manager") {
 		t.Error("project filter")
 	}
-	if got := feed("/timeline?creep=1"); !strings.Contains(got, "Kick-off with manager") || strings.Contains(got, "Headcount approved") {
+	if got := feed("/roadmap?creep=1"); !strings.Contains(got, "Kick-off with manager") || strings.Contains(got, "Headcount approved") {
 		t.Error("creep filter")
 	}
 	// the period chooses activities (by overlap); their entries are not cut by date
-	if got := feed("/timeline?period=q1&status=done&status=active"); !strings.Contains(got, "Kick-off with manager") ||
+	if got := feed("/roadmap?period=q1&status=done&status=active"); !strings.Contains(got, "Kick-off with manager") ||
 		!strings.Contains(got, "Kafka dependencies removed") || strings.Contains(got, "Headcount approved") {
 		t.Error("period filter picks activities, not entry dates")
 	}
-	if got := feed("/timeline?period=q4&month=11"); !strings.Contains(got, "Request received in 1:1") || !strings.Contains(got, "Client upgrades pulled into this activity") {
+	if got := feed("/roadmap?period=q4&month=11"); !strings.Contains(got, "Request received in 1:1") || !strings.Contains(got, "Client upgrades pulled into this activity") {
 		t.Error("month filter")
 	}
 	if err := st.SetProjectArchived(ctx, 3, true); err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(feed("/timeline"), "Headcount approved") {
+	if strings.Contains(feed("/roadmap"), "Headcount approved") {
 		t.Error("archived project in the feed")
 	}
 }
 
 func TestSelectionNarrowsTheFeed(t *testing.T) {
 	h, _ := newApp(t)
-	rec := get(h, "/timeline?sel=2&period=q4")
+	rec := get(h, "/roadmap?sel=2&period=q4")
 	body := rec.Body.String()
 	feed := body[strings.Index(body, `id="journal"`):]
-	wantBody(t, rec, `<h2 id="journal-title">Journal · Kafka upgrade readiness <a class="small" href="/timeline?period=q4">Show all</a></h2>`)
+	wantBody(t, rec, `<h2 id="journal-title">Journal · Kafka upgrade readiness <a class="small" href="/roadmap?period=q4">Show all</a></h2>`)
 	if !strings.Contains(feed, "Waiting on platform team for a maintenance window") ||
 		strings.Contains(feed, "Kick-off with manager") || strings.Contains(feed, `class="tag small"`) {
 		t.Error("narrowed feed shows other activities or tags")
 	}
 	// even an activity the filters hide narrows the feed
-	body = get(h, "/timeline?sel=3").Body.String()
+	body = get(h, "/roadmap?sel=3").Body.String()
 	feed = body[strings.Index(body, `id="journal"`):]
 	if !strings.Contains(feed, "Last pipeline migrated") || strings.Contains(feed, "Kick-off with manager") {
 		t.Error("hidden selected activity")
@@ -82,33 +82,33 @@ func TestFeedLimitAndShowMore(t *testing.T) {
 		}
 	}
 	count := func(body string) int { return strings.Count(body, `class="feed-text"`) }
-	rec := get(h, "/timeline?sel=2")
+	rec := get(h, "/roadmap?sel=2")
 	if n := count(rec.Body.String()); n != 30 {
 		t.Errorf("first page has %d entries, want 30", n)
 	}
-	wantBody(t, rec, `<a href="/timeline?feed=60&amp;sel=2">Show 30 more</a>`, "note 35") // newest first: the latest note leads
-	if strings.Contains(rec.Body.String(), "Waiting on platform team") {                  // an older seeded entry is on the second page
+	wantBody(t, rec, `<a href="/roadmap?feed=60&amp;sel=2">Show 30 more</a>`, "note 35") // newest first: the latest note leads
+	if strings.Contains(rec.Body.String(), "Waiting on platform team") {                 // an older seeded entry is on the second page
 		t.Error("entry beyond the limit shown")
 	}
-	rec = get(h, "/timeline?sel=2&feed=60")
+	rec = get(h, "/roadmap?sel=2&feed=60")
 	if n := count(rec.Body.String()); n != 43 || strings.Contains(rec.Body.String(), "Show 30 more") {
 		t.Errorf("second page: %d entries, more link present: %v", n, strings.Contains(rec.Body.String(), "Show 30 more"))
 	}
 	// the limit also applies to the unnarrowed feed
-	if n := count(get(h, "/timeline").Body.String()); n != 30 {
+	if n := count(get(h, "/roadmap").Body.String()); n != 30 {
 		t.Errorf("all-activities feed has %d entries", n)
 	}
 }
 
 func TestFeedEntriesCanBeEditedExceptAcknowledgements(t *testing.T) {
 	h, st := newApp(t)
-	wantBody(t, get(h, "/timeline?sel=2"), `<form class="editor-form" method="post" action="/journal/`, `Confirm delete`)
+	wantBody(t, get(h, "/roadmap?sel=2"), `<form class="editor-form" method="post" action="/journal/`, `Confirm delete`)
 	if _, err := st.AckScope(ctx, 1, domain.FixedClock{D: date(t, testToday)}); err != nil {
 		t.Fatal(err)
 	}
 	list, _ := st.ListJournal(ctx, 1)
 	ack := fmt.Sprintf(`action="/journal/%d"`, list[0].ID)
-	rec := get(h, "/timeline?sel=1")
+	rec := get(h, "/roadmap?sel=1")
 	wantBody(t, rec, `<span class="chip kind-scope_ack">Scope acknowledged</span>`)
 	if strings.Contains(rec.Body.String(), ack) {
 		t.Error("an acknowledgement entry has edit controls")
@@ -117,7 +117,7 @@ func TestFeedEntriesCanBeEditedExceptAcknowledgements(t *testing.T) {
 
 func TestJournalLeftThePanel(t *testing.T) {
 	h, _ := newApp(t)
-	body := get(h, "/timeline?sel=2").Body.String()
+	body := get(h, "/roadmap?sel=2").Body.String()
 	panel := body[strings.Index(body, `id="panel"`):strings.Index(body, `id="journal"`)]
 	if strings.Contains(panel, "<h3>Journal</h3>") || strings.Contains(panel, `class="chip kind-`) {
 		t.Error("the panel still has a journal")
@@ -125,14 +125,14 @@ func TestJournalLeftThePanel(t *testing.T) {
 	if n := strings.Count(body, `action="/journal"`); n != 1 { // only the quick-add bar logs entries
 		t.Errorf("forms posting to /journal = %d", n)
 	}
-	wantStatus(t, hxPost(h, "/journal/1", url.Values{"kind": {"task"}, "text": {"edited"}, "date": {"2026-03-02"}, "next": {"/timeline?sel=1"}}), http.StatusOK)
+	wantStatus(t, hxPost(h, "/journal/1", url.Values{"kind": {"task"}, "text": {"edited"}, "date": {"2026-03-02"}, "next": {"/roadmap?sel=1"}}), http.StatusOK)
 }
 
 // The journal sits in the timeline's column, below it; the panel is beside both
 // (and, on narrow screens, comes between them). Rects are checked in Firefox.
 func TestJournalIsPartOfTheWorkGrid(t *testing.T) {
 	h, _ := newApp(t)
-	body := get(h, "/timeline?sel=2").Body.String()
+	body := get(h, "/roadmap?sel=2").Body.String()
 	work := body[strings.Index(body, `<div class="work">`):]
 	if !bodyOrderIn(work, `<section class="card timeline"`, `<aside class="detail"`, `</aside>`, `<section class="card" id="journal"`) {
 		t.Error("work grid order: timeline, panel, journal")
@@ -150,8 +150,8 @@ func TestJournalIsPartOfTheWorkGrid(t *testing.T) {
 
 func TestEmptyFeedText(t *testing.T) {
 	h, _ := newApp(t)
-	wantBody(t, get(h, "/timeline?status="), `<li class="muted">No journal entries for these filters.</li>`)
-	if strings.Contains(get(h, "/timeline").Body.String(), "No journal entries for these filters.") {
+	wantBody(t, get(h, "/roadmap?status="), `<li class="muted">No journal entries for these filters.</li>`)
+	if strings.Contains(get(h, "/roadmap").Body.String(), "No journal entries for these filters.") {
 		t.Error("empty text shown for a non-empty feed")
 	}
 }

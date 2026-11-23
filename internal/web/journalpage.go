@@ -50,10 +50,10 @@ func isJournalPage(u *url.URL) bool {
 	return true
 }
 
-// home serves the journal page, or sends an old timeline address on / to /timeline.
+// home serves the journal page, or sends an old timeline address on / to /roadmap.
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 	if !isJournalPage(r.URL) {
-		http.Redirect(w, r, timelineAddress(r.URL.RequestURI()), http.StatusFound)
+		http.Redirect(w, r, roadmapAddress(r.URL.RequestURI()), http.StatusFound)
 		return
 	}
 	s.renderJournalPage(w, r, r.URL.RequestURI())
@@ -131,7 +131,7 @@ func pageFeedRows(entries []domain.JournalEntry, projectName map[int64]string, a
 		if fr.Unassigned {
 			fr.FileTo = fileChoices(filing, 0)
 		} else {
-			fr.ActivityHref = "/timeline?sel=" + strconv.FormatInt(a.ID, 10)
+			fr.ActivityHref = "/roadmap?sel=" + strconv.FormatInt(a.ID, 10)
 		}
 		out = append(out, fr)
 	}

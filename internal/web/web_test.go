@@ -79,7 +79,7 @@ func wantBody(t *testing.T, rec *httptest.ResponseRecorder, parts ...string) {
 
 func TestDashboardListsSeededData(t *testing.T) {
 	h, _ := newApp(t)
-	rec := get(h, "/timeline?status=active&status=blocked")
+	rec := get(h, "/roadmap?status=active&status=blocked")
 	wantStatus(t, rec, http.StatusOK)
 	wantBody(t, rec, "Order platform modernisation", "Kafka upgrade readiness", "3 open / 8")
 	// links keep the rest of the query (repeated status included) and set sel
@@ -99,17 +99,17 @@ func TestStaticAndUnknownPaths(t *testing.T) {
 
 func TestNextURL(t *testing.T) {
 	for next, want := range map[string]string{
-		"/":                                 "/",
-		"/timeline?status=a&status=b&sel=3": "/timeline?status=a&status=b&sel=3",
-		"/projects":                         "/projects",
-		"":                                  "/",
-		"//evil.com":                        "/",
-		"//evil.com/x":                      "/",
-		"https://evil.com/":                 "/",
-		"evil.com":                          "/",
-		`/\evil.com`:                        "/",
-		"javascript:alert(1)":               "/",
-		"/%zz":                              "/",
+		"/":                                "/",
+		"/roadmap?status=a&status=b&sel=3": "/roadmap?status=a&status=b&sel=3",
+		"/projects":                        "/projects",
+		"":                                 "/",
+		"//evil.com":                       "/",
+		"//evil.com/x":                     "/",
+		"https://evil.com/":                "/",
+		"evil.com":                         "/",
+		`/\evil.com`:                       "/",
+		"javascript:alert(1)":              "/",
+		"/%zz":                             "/",
 	} {
 		r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(url.Values{"next": {next}}.Encode()))
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -122,9 +122,9 @@ func TestNextURL(t *testing.T) {
 func TestWithParam(t *testing.T) {
 	for _, c := range []struct{ in, key, val, want string }{
 		{"/", "sel", "3", "/?sel=3"},
-		{"/timeline?status=a&status=b", "sel", "3", "/timeline?sel=3&status=a&status=b"},
-		{"/timeline?sel=1&new=1", "sel", "", "/timeline?new=1"},
-		{"/timeline?sel=1", "sel", "", "/timeline"},
+		{"/roadmap?status=a&status=b", "sel", "3", "/roadmap?sel=3&status=a&status=b"},
+		{"/roadmap?sel=1&new=1", "sel", "", "/roadmap?new=1"},
+		{"/roadmap?sel=1", "sel", "", "/roadmap"},
 	} {
 		if got := withParam(c.in, c.key, c.val); got != c.want {
 			t.Errorf("withParam(%q) = %q, want %q", c.in, got, c.want)
@@ -166,12 +166,15 @@ func TestStatusFor(t *testing.T) {
 	}
 }
 
-// The timeline lives at /timeline; old addresses on / keep working (SPEC §10 item 94).
-func TestTimelineMovedFromRoot(t *testing.T) {
+// The roadmap lives at /roadmap; old timeline addresses, on / or /timeline,
+// keep working (SPEC §10 items 94, 125).
+func TestTimelineMovedToRoadmap(t *testing.T) {
 	h, _ := newApp(t)
 	for target, want := range map[string]string{
-		"/?sel=2&status=done": "/timeline?sel=2&status=done",
-		"/?new=1":             "/timeline?new=1",
+		"/?sel=2&status=done": "/roadmap?sel=2&status=done",
+		"/?new=1":             "/roadmap?new=1",
+		"/timeline":           "/roadmap",
+		"/timeline?period=q4": "/roadmap?period=q4",
 	} {
 		rec := get(h, target)
 		wantStatus(t, rec, http.StatusFound)
@@ -180,9 +183,11 @@ func TestTimelineMovedFromRoot(t *testing.T) {
 		}
 	}
 	// a mutation whose `next` is an old address lands on the timeline
-	rec := hxPost(h, "/tasks/1/toggle", url.Values{"next": {"/?sel=1"}})
-	if rec.Code != http.StatusOK || rec.Header().Get("HX-Push-Url") != "/timeline?sel=1" {
-		t.Errorf("old next: %d %q", rec.Code, rec.Header().Get("HX-Push-Url"))
+	for _, next := range []string{"/?sel=1", "/timeline?sel=1"} {
+		rec := hxPost(h, "/tasks/1/toggle", url.Values{"next": {next}})
+		if rec.Code != http.StatusOK || rec.Header().Get("HX-Push-Url") != "/roadmap?sel=1" {
+			t.Errorf("old next %s: %d %q", next, rec.Code, rec.Header().Get("HX-Push-Url"))
+		}
 	}
-	wantBody(t, get(h, "/projects"), `<a href="/">Journal</a> <a href="/tasks">Tasks</a> <a href="/timeline">Timeline</a> <a href="/report">Report</a> <a href="/projects">Projects</a>`)
+	wantBody(t, get(h, "/projects"), `<a href="/">Journal</a> <a href="/tasks">Tasks</a> <a href="/roadmap">Roadmap</a> <a href="/report">Report</a> <a href="/projects">Projects</a>`)
 }

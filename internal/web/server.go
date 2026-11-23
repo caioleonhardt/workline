@@ -37,7 +37,8 @@ func New(st *store.Store, clock domain.Clock) (http.Handler, error) {
 	s := &Server{store: st, clock: clock, tmpl: tmpl}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.home)
-	mux.HandleFunc("GET /timeline", s.dashboard)
+	mux.HandleFunc("GET /roadmap", s.dashboard)
+	mux.HandleFunc("GET /timeline", s.oldTimeline)
 	mux.HandleFunc("GET /tasks", s.tasksPage)
 	mux.HandleFunc("POST /activities", s.createActivity)
 	mux.HandleFunc("POST /activities/{id}", s.updateActivity)
@@ -156,23 +157,28 @@ func localPath(s string) string {
 // fromQuickAdd reports whether htmx sent the request from the quick-add bar.
 func fromQuickAdd(r *http.Request) bool { return r.Header.Get("HX-Trigger") == "quickadd" }
 
-// timelineAddress maps an address on / that carries timeline state (any query
-// key but the journal page's `week`) to the same state on /timeline, so links
-// and `next` fields from before the timeline moved keep working (SPEC §10 item 94).
-func timelineAddress(to string) string {
+// roadmapAddress maps an old timeline address, /timeline or / with timeline
+// state (any query key but the journal page's), to the same state on
+// /roadmap, so bookmarks and `next` fields keep working (SPEC §10 items 94, 125).
+func roadmapAddress(to string) string {
 	u, err := url.Parse(to)
-	if err != nil || u.Path != "/" || isJournalPage(u) {
+	if err != nil || !(u.Path == "/timeline" || u.Path == "/" && !isJournalPage(u)) {
 		return to
 	}
-	u.Path = "/timeline"
+	u.Path = "/roadmap"
 	return u.String()
+}
+
+// oldTimeline sends /timeline, which became /roadmap, there.
+func (s *Server) oldTimeline(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, roadmapAddress(r.URL.RequestURI()), http.StatusFound)
 }
 
 // done answers a successful mutation. An htmx request gets the fragment of the
 // page at `to` and the address to show in the URL bar; any other request is
 // redirected there with 303 See Other.
 func (s *Server) done(w http.ResponseWriter, r *http.Request, to string, mods ...func(*quickBar)) {
-	to = timelineAddress(to)
+	to = roadmapAddress(to)
 	if !isHX(r) {
 		redirect(w, r, to)
 		return

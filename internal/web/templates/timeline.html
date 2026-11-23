@@ -1,5 +1,5 @@
 {{define "timeline"}}
-<section class="card timeline" aria-label="Timeline">
+<section class="card timeline" aria-label="Roadmap">
 <div class="tl-scroll"><div class="tl">
 <div class="tl-row tl-head">
 <div class="tl-label"><strong>Project · activity</strong><span class="muted small">{{.ShownLabel}}</span></div>
@@ -19,7 +19,7 @@
 {{range .Groups}}
 <div class="grp" data-project="{{.ID}}">
 <button type="button" class="proj-row proj-toggle" aria-expanded="true"><svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg><span class="proj-name">{{.Name}}</span><span class="small">· {{.CountLabel}}</span><span class="mono small">· {{.PctLabel}}</span>{{if .FlagLabel}}<span class="creep-text small">· {{.FlagLabel}}</span>{{end}}</button>
-{{range .Rows}}{{$st := .Status}}
+{{range .Rows}}
 <div class="tl-row act-row{{if .Selected}} sel{{end}}">
 <div class="tl-label act-label">
 <a class="act-name" href="{{.Href}}"{{if .Selected}} aria-current="true"{{end}}>{{.Name}}</a>
@@ -27,11 +27,7 @@
 <span class="muted small">{{.Dates}}</span>
 </div>
 <div class="tl-track">
-<span class="span-line {{.Status}}" aria-hidden="true" style="left:{{.SpanLeft}}%;width:{{.SpanWidth}}%"></span>
-{{if .HasPlan}}<span class="plan {{.Status}}" aria-hidden="true" style="left:{{.PlanLeft}}%;width:{{.PlanWidth}}%"></span>{{end}}
-<span class="bins" aria-hidden="true">{{range .Bins}}<span class="bin {{$st}}" style="left:{{.Left}}%;width:{{.Width}}%;height:{{.Height}}%"></span>{{end}}</span>
-{{range .Done}}<span class="done-dot {{.Align}}{{if .Down}} down{{end}}" style="left:{{.Left}}%"><button type="button" class="dot" aria-label="{{.Label}}" aria-describedby="{{.ID}}"></button><span class="popup" id="{{.ID}}"><strong>{{.Day}}</strong><ul>{{range .Items}}<li>{{if .Time}}<span class="mono">{{.Time}}</span> {{end}}{{.Text}}</li>{{end}}</ul></span></span>{{end}}
-<span class="pct mono small" aria-hidden="true" style="left:{{.PctLeft}}%">{{.PctLabel}}</span>
+{{if .HasBar}}<span class="bar {{.Status}}{{if .ClipStart}} clip-start{{end}}{{if .ClipEnd}} clip-end{{end}}" aria-hidden="true" style="left:{{.BarLeft}}%;width:{{.BarWidth}}%"><span class="bar-fill" style="width:{{.Progress}}%"></span><span class="bar-text">{{.Name}} · {{.PctLabel}}</span></span>{{end}}
 </div>
 <a class="row-link" href="{{.Href}}" title="{{.Tip}}" tabindex="-1" aria-hidden="true"></a>
 </div>
@@ -43,9 +39,7 @@
 </div>
 </div></div>
 <div class="legend small">
-<span><i class="swatch bin-sample"></i>Activity: open tasks (taller = more open)</span>
-<span><i class="swatch plan-sample"></i>Until due date</span>
-<span><i class="swatch dot-sample"></i>Tasks completed</span>
+<span><i class="swatch bar-sample"></i>Activity: start to due, filled by tasks done</span>
 <span><i class="swatch today-sample"></i>Today</span>
 </div>
 </section>

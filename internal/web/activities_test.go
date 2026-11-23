@@ -12,7 +12,7 @@ import (
 
 func newForm(over url.Values) url.Values {
 	f := url.Values{
-		"next": {"/timeline?new=1&status=active&status=blocked"}, "project": {"1"}, "name": {"Pilot"},
+		"next": {"/roadmap?new=1&status=active&status=blocked"}, "project": {"1"}, "name": {"Pilot"},
 		"requested_by": {"Manager"}, "priority": {"high"}, "start": {"2026-11-01"}, "due": {"2026-12-01"},
 		"tasks": {"first\n\n  second  \n"},
 	}
@@ -24,13 +24,13 @@ func newForm(over url.Values) url.Values {
 
 func TestNewActivityFormShownOnlyWithNew(t *testing.T) {
 	h, _ := newApp(t)
-	wantBody(t, get(h, "/timeline?new=1"), `action="/activities"`, "+ New project…", "First tasks")
-	rec := get(h, "/timeline")
+	wantBody(t, get(h, "/roadmap?new=1"), `action="/activities"`, "+ New project…", "First tasks")
+	rec := get(h, "/roadmap")
 	wantStatus(t, rec, http.StatusOK)
 	if body := rec.Body.String(); strings.Contains(body, `action="/activities"`) {
 		t.Error("form shown without new=1")
 	}
-	wantBody(t, rec, `href="/timeline?new=1"`)
+	wantBody(t, rec, `href="/roadmap?new=1"`)
 }
 
 func TestCreateActivity(t *testing.T) {
@@ -103,11 +103,11 @@ func TestCreateActivityRejections(t *testing.T) {
 
 func TestPanelShownForSel(t *testing.T) {
 	h, _ := newApp(t)
-	rec := get(h, "/timeline?sel=2")
+	rec := get(h, "/roadmap?sel=2")
 	wantStatus(t, rec, http.StatusOK)
 	wantBody(t, rec, `id="panel"`, "Kafka upgrade readiness", "2 of 6 tasks done", "33%", `aria-current="true"`)
-	wantBody(t, get(h, "/timeline"), `<aside class="detail" aria-label="Activity detail">`, "Select an activity to see its burndown, scope, tasks and journal.")
-	for _, target := range []string{"/timeline?sel=999", "/timeline?sel=abc", "/timeline?sel="} {
+	wantBody(t, get(h, "/roadmap"), `<aside class="detail" aria-label="Activity detail">`, "Select an activity to see its scope, tasks and journal.")
+	for _, target := range []string{"/roadmap?sel=999", "/roadmap?sel=abc", "/roadmap?sel="} {
 		if body := get(h, target).Body.String(); strings.Contains(body, `id="panel"`) {
 			t.Errorf("%s shows a panel", target)
 		}
@@ -117,12 +117,12 @@ func TestPanelShownForSel(t *testing.T) {
 func TestUpdateActivityFields(t *testing.T) {
 	h, st := newApp(t)
 	f := url.Values{
-		"next": {"/timeline?sel=2&status=blocked&status=done"}, "project": {"3"}, "name": {"Kafka 4 readiness"},
+		"next": {"/roadmap?sel=2&status=blocked&status=done"}, "project": {"3"}, "name": {"Kafka 4 readiness"},
 		"requested_by": {"CTO"}, "priority": {"low"}, "start": {"2026-09-01"}, "due": {"2026-12-15"},
 	}
 	rec := post(h, "/activities/2", f)
 	wantStatus(t, rec, http.StatusSeeOther)
-	if loc := rec.Header().Get("Location"); loc != "/timeline?sel=2&status=blocked&status=done" {
+	if loc := rec.Header().Get("Location"); loc != "/roadmap?sel=2&status=blocked&status=done" {
 		t.Errorf("Location = %q", loc)
 	}
 	a, _ := st.GetActivity(ctx, 2)
@@ -149,7 +149,7 @@ func TestUpdateActivityStatusSetsDoneDate(t *testing.T) {
 		t.Errorf("done: %+v", a)
 	}
 	// a done activity with open tasks shows its task ratio
-	wantBody(t, get(h, "/timeline?sel=2"), "33%", "2 of 6 tasks done")
+	wantBody(t, get(h, "/roadmap?sel=2"), "33%", "2 of 6 tasks done")
 	wantStatus(t, post(h, "/activities/2", url.Values{"status": {"active"}}), http.StatusSeeOther)
 	if a, _ := st.GetActivity(ctx, 2); !a.DoneOn.IsZero() {
 		t.Errorf("reopened: %+v", a)
@@ -159,9 +159,9 @@ func TestUpdateActivityStatusSetsDoneDate(t *testing.T) {
 
 func TestDeleteActivity(t *testing.T) {
 	h, st := newApp(t)
-	rec := post(h, "/activities/2/delete", url.Values{"next": {"/timeline?sel=2&new=1"}})
+	rec := post(h, "/activities/2/delete", url.Values{"next": {"/roadmap?sel=2&new=1"}})
 	wantStatus(t, rec, http.StatusSeeOther)
-	if loc := rec.Header().Get("Location"); loc != "/timeline?new=1" {
+	if loc := rec.Header().Get("Location"); loc != "/roadmap?new=1" {
 		t.Errorf("Location = %q", loc)
 	}
 	if _, err := st.GetActivity(ctx, 2); err == nil {

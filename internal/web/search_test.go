@@ -23,11 +23,11 @@ func TestSearchPage(t *testing.T) {
 	wantStatus(t, post(h, "/journal", url.Values{"activity": {"2"}, "kind": {"decision"}, "text": {"Zebra goes first"}}), 303)
 	wantStatus(t, post(h, "/journal", url.Values{"kind": {"meeting"}, "text": {"Zebra sync"}}), 303) // Unassigned
 
-	rec := get(h, searchURL("zebra", "from", "/timeline?sel=2"))
+	rec := get(h, searchURL("zebra", "from", "/roadmap?sel=2"))
 	wantStatus(t, rec, 200)
 	wantBody(t, rec, `<div id="dash" class="search-page"`, `data-search="zebra" data-count="3"`, "3 results",
-		"Zebra rollout plan", "Zebra goes first", "Zebra sync", `<a class="btn secondary clear-search" href="/timeline?sel=2"`,
-		`<input type="hidden" name="next" value="/search?from=%2Ftimeline%3Fsel%3D2&amp;q=zebra">`, `id="quickadd"`, `<div class="status mono">`)
+		"Zebra rollout plan", "Zebra goes first", "Zebra sync", `<a class="btn secondary clear-search" href="/roadmap?sel=2"`,
+		`<input type="hidden" name="next" value="/search?from=%2Froadmap%3Fsel%3D2&amp;q=zebra">`, `id="quickadd"`, `<div class="status mono">`)
 	if strings.Index(rec.Body.String(), "Zebra sync") > strings.Index(rec.Body.String(), "Zebra rollout plan") {
 		t.Error("results must be newest first")
 	}

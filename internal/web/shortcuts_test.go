@@ -9,12 +9,12 @@ import (
 // assistive technology about them (SPEC §10 item 68).
 func TestShortcutTargetsAndHints(t *testing.T) {
 	h, _ := newApp(t)
-	body := get(h, "/timeline?period=q4&sel=2&new=1").Body.String()
+	body := get(h, "/roadmap?period=q4&sel=2&new=1").Body.String()
 	for _, want := range []string{
-		`<a class="btn new-activity" href="/timeline?new=1&amp;period=q4&amp;sel=2" aria-keyshortcuts="O">New activity</a>`,
+		`<a class="btn new-activity" href="/roadmap?new=1&amp;period=q4&amp;sel=2" aria-keyshortcuts="O">New activity</a>`,
 		`<select name="project" id="filter-project" aria-keyshortcuts="f">`,
-		`<a class="panel-close" href="/timeline?new=1&amp;period=q4" aria-label="Close panel" aria-keyshortcuts="Escape">×</a>`,
-		`<a class="cancel-new" href="/timeline?period=q4&amp;sel=2">Cancel</a>`,
+		`<a class="panel-close" href="/roadmap?new=1&amp;period=q4" aria-label="Close panel" aria-keyshortcuts="Escape">×</a>`,
+		`<a class="cancel-new" href="/roadmap?period=q4&amp;sel=2">Cancel</a>`,
 		`<p class="hint js-only small muted">Press <kbd>?</kbd> for keys</p>`,
 		`<dialog id="keys" aria-labelledby="keys-title">`,
 		`<div class="status mono">` + "\n" + `<span class="mode" id="status-mode">NORMAL</span>`,
@@ -93,23 +93,5 @@ func TestShortcutScriptRules(t *testing.T) {
 	}
 	if strings.Count(js, "addEventListener('keydown'") != 1 || strings.Count(js, "addEventListener('click'") != 2 || strings.Count(js, "addEventListener('submit'") != 1 {
 		t.Error("document listeners: one keydown, one submit, one click here and one for the project toggles")
-	}
-}
-
-// Completion popups float above the page when scripting is on, so a scrolling
-// timeline cannot clip them (SPEC §10 item 96).
-func TestCompletionPopupsFloat(t *testing.T) {
-	h, _ := newApp(t)
-	css := get(h, "/static/app.css").Body.String()
-	js := get(h, "/static/app.js").Body.String()
-	for _, want := range []string{"html.js .done-dot .popup,", "position: fixed;", "html.js .done-dot.open .popup { display: block; }"} {
-		if !strings.Contains(css, want) {
-			t.Errorf("app.css lacks %q", want)
-		}
-	}
-	for _, want := range []string{"function placePopup(dotWrap)", "getBoundingClientRect()", "window.innerWidth - w - margin", "addEventListener('scroll'"} {
-		if !strings.Contains(js, want) {
-			t.Errorf("app.js lacks %q", want)
-		}
 	}
 }
