@@ -388,8 +388,10 @@
         if (form) form.requestSubmit();
       },
       o: focusBar,
-      '[': function () { clickFirst('a[aria-label="Previous day"], a[aria-label="Previous page"]'); },
-      ']': function () { clickFirst('a[aria-label="Next day"], a[aria-label="Next page"]'); },
+      '[': function () { clickFirst('a[aria-label="Previous day"], a[aria-label="Previous week"], a[aria-label="Previous page"]'); },
+      ']': function () { clickFirst('a[aria-label="Next day"], a[aria-label="Next week"], a[aria-label="Next page"]'); },
+      vd: function () { clickFirst('a.view-day'); },
+      vw: function () { clickFirst('a.view-week'); },
       t: function () { clickFirst('a.today-link'); },
       gj: function () { clickFirst('nav a[href="/"]'); },
       gt: function () { clickFirst('nav a[href="/tasks"]'); },
@@ -484,10 +486,10 @@
         }
         return;
       }
-      // g and d wait up to a second for the second key of gg, gj, gt, gr, gR, gp and dd.
+      // g and d wait up to a second for the second key of gg, gj, gt, gr, gR, gp, dd, vd and vw.
       var key = (Date.now() - pendingAt < 1000 ? pending : '') + (esc ? 'Escape' : e.key);
       pending = '';
-      if (key === 'g' || key === 'd') {
+      if (key === 'g' || key === 'd' || key === 'v') {
         pending = key;
         pendingAt = Date.now();
         showcmd(key);

@@ -147,7 +147,7 @@ Reason texts (shown in the detail panel):
 ## 5. Features
 
 ### 5.0 Journal page (`GET /`)
-The home page and the entry point: the journal of one day, today by default (§10 item 124). ‹ › move a day, Today comes back, and the bar logs to the day shown. Only journal entries; open tasks live on `/tasks`. No detail panel.
+The home page and the entry point: the journal of one day, today by default (§10 item 124), or of the week up to it (§10 item 127). ‹ › move a day (a week), Today comes back, entries sit under day headings, and the bar logs to the day shown. Only journal entries; open tasks live on `/tasks`. No detail panel.
 
 ### 5.1 Roadmap (`GET /roadmap`)
 Header with the app name and period eyebrow (e.g. `2026 · ROADMAP` or `Q4 2026 · OCT–DEC`) and a **New activity** button.
@@ -237,7 +237,7 @@ Accessibility: real `<button>`, `<a>`, `<label>`+`<input>`; touch targets ≥ 44
 Pages return full HTML. When `HX-Request` is set, return the fragment being swapped (timeline, panel, or both via `hx-swap-oob`). Every mutation also works without JS (POST then redirect back to the referring dashboard URL).
 
 ```
-GET    /                                   journal page of `date` (§10 item 124); any query key but `date` (or an old `week`) redirects to /timeline
+GET    /                                   journal page of `date`, `view=week` for the week (§10 items 124, 127); any other key (but an old `week`) redirects to /roadmap
 GET    /roadmap                            roadmap (§10 item 125); /timeline redirects here
 GET    /projects                           projects page
 POST   /projects                           create
@@ -494,3 +494,4 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 124. **Journal is home.** `GET /?date=YYYY-MM-DD` shows the journal of that day; no `date`, or a bad one, is today, and future days are allowed. Entries are picked by log date (item 109), newest first, from live projects and Unassigned. ‹ › go to the previous and next day (the URL of today is `/`), and a Today link shows on any other day. The bar carries the day shown in a hidden `date` field, so entries are logged on it; the Edit form still moves an entry to another day. Keys: `[`/`]` previous/next day, `t` today. Tiles, the burndown strip and open tasks leave the page. An old `?week=` is ignored. Export links the day; Report links the default report. This replaces item 95.
 125. **Roadmap.** The timeline becomes the roadmap at `/roadmap`: quarter columns (or months, or one quarter's months), one lane per project, one bar per activity from start to due (§4.3). Filters, the detail panel and the journal feed stay. The burndown bins, the dashed today-to-due box, completion dots and their popups, the summary tiles and the panel's burndown chart are removed, with their domain code (`Burndown`, `BurndownRange`, `BurndownDetail`, `ClipBins`, `GlobalMax`, `ComputeTiles`). `/timeline`, and `/` with timeline state, redirect (302) to `/roadmap` with the same query; a mutation whose `next` is such an address answers with the roadmap one. Nav: Journal · Tasks · Roadmap · Report · Projects. No milestone markers, plan-vs-actual or health yet (item 119). This supersedes items 2, 15, 45, 48, 52, 55, 62 and 96 and the tiles of §5.1.
 126. **Roadmap lanes.** Activities have no rows of their own: each project is one lane and its activities are bars in it, as in a roadmap tool (`domain.Lanes` packs them by start into lines of 34px). The per-activity labels (status chip, scope chip, `open / total`, dates) move into the bar's tooltip, and the bar itself is the link. Collapsing projects is dropped with the rows. Supersedes item 80 (whole-row selection).
+127. **Day and week views.** The journal page has two views: day (default) and week, `GET /?view=week&date=`, the 7 days ending on `date` (today by default). A Day · Week switch in the header (links, `aria-current`) keeps the date; `vd` and `vw` follow them. In the week view ‹ › move 7 days (`[`/`]`, labels Previous/Next week), Today keeps the view, Export covers the 7 days and Report links the same range up to today. In both views the feed is grouped by log date, newest first: a heading `<h2>DD/MM/YYYY</h2>` (e.g. 23/11/2026) as a non-entry row before each day's first entry, and rows show only their log time; days without entries get no heading. The rows stay one list, so `j`/`k` walk across days. The bar still logs to the date in the URL. Other feeds (roadmap, search) keep the date on each row.

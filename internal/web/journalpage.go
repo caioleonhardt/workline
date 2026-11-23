@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"slices"
@@ -13,7 +14,9 @@ import (
 type journalPageView struct {
 	quickBar
 	Title, Next                   string
-	Day                           string
+	RangeLabel                    string // the day shown, or the week's first and last day
+	Week                          bool   // the week view: the 7 days up to the date
+	DayHref, WeekHref             string // the same date in each view
 	PrevHref, NextHref, TodayHref string // TodayHref is empty when today is shown
 	ExportHref, ReportHref        string
 	Journal                       journalView
@@ -27,23 +30,38 @@ func journalDay(q url.Values, today domain.Date) domain.Date {
 	return today
 }
 
-// journalDayURL is the journal page of day.
-func journalDayURL(day, today domain.Date) string {
-	if day == today {
+// journalWeekDays is how many days the week view shows, ending on its date.
+const journalWeekDays = 7
+
+// journalURL is the journal page of day, in the week view when week is set.
+func journalURL(day, today domain.Date, week bool) string {
+	q := url.Values{}
+	if day != today {
+		q.Set("date", day.String())
+	}
+	if week {
+		q.Set("view", "week")
+	}
+	if len(q) == 0 {
 		return "/"
 	}
-	return "/?date=" + day.String()
+	return "/?" + q.Encode()
+}
+
+// dayHeading is how a day section is titled: 23/11/2026.
+func dayHeading(d domain.Date) string {
+	return fmt.Sprintf("%02d/%02d/%d", d.Day(), int(d.Month()), d.Year())
 }
 
 // isJournalPage reports whether the address is the journal page: / with at
-// most a `date` parameter (or an old `week`, which is ignored). Any other
-// query on / is timeline state.
+// most `date` and `view` parameters (or an old `week`, which is ignored). Any
+// other query on / is timeline state.
 func isJournalPage(u *url.URL) bool {
 	if u.Path != "/" {
 		return false
 	}
 	for k := range u.Query() {
-		if k != "date" && k != "week" {
+		if k != "date" && k != "view" && k != "week" {
 			return false
 		}
 	}
@@ -77,7 +95,8 @@ func (s *Server) renderJournalPage(w http.ResponseWriter, r *http.Request, uri s
 	s.render(w, http.StatusOK, name, v)
 }
 
-// buildJournalPage builds the home page: the journal of one day (SPEC §10 item 124).
+// buildJournalPage builds the home page: the journal of one day, or of the
+// week up to it, in day sections (SPEC §10 items 124 and 127).
 func (s *Server) buildJournalPage(ctx context.Context, uri string) (journalPageView, error) {
 	u, err := url.Parse(uri)
 	if err != nil {
@@ -85,6 +104,11 @@ func (s *Server) buildJournalPage(ctx context.Context, uri string) (journalPageV
 	}
 	today := s.clock.Today()
 	day := journalDay(u.Query(), today)
+	week := u.Query().Get("view") == "week"
+	from, step := day, 1
+	if week {
+		from, step = day.AddDays(-(journalWeekDays - 1)), journalWeekDays
+	}
 	projects, err := s.store.ListProjects(ctx, false)
 	if err != nil {
 		return journalPageView{}, err
@@ -93,32 +117,43 @@ func (s *Server) buildJournalPage(ctx context.Context, uri string) (journalPageV
 	if err != nil {
 		return journalPageView{}, err
 	}
-	entries, err := s.store.ListJournalBetween(ctx, day, day)
+	entries, err := s.store.ListJournalBetween(ctx, from, day)
 	if err != nil {
 		return journalPageView{}, err
 	}
 	projectName, actOf, filing := liveIndex(projects, acts)
 	v := journalPageView{
-		Title: "Journal · Workline", Next: uri, Day: day.String(),
-		ExportHref: "/export/journal.md?" + url.Values{"from": {day.String()}, "to": {day.String()}}.Encode(),
+		Title: "Journal · Workline", Next: uri, RangeLabel: day.String(), Week: week,
+		DayHref: journalURL(day, today, false), WeekHref: journalURL(day, today, true),
+		ExportHref: "/export/journal.md?" + url.Values{"from": {from.String()}, "to": {day.String()}}.Encode(),
 		ReportHref: "/report",
-		PrevHref:   journalDayURL(day.AddDays(-1), today),
-		NextHref:   journalDayURL(day.AddDays(1), today),
+		PrevHref:   journalURL(day.AddDays(-step), today, week),
+		NextHref:   journalURL(day.AddDays(step), today, week),
 		quickBar:   newQuickBar(quickAddView{Pick: true, Next: uri}),
 	}
+	if week {
+		v.RangeLabel = from.String() + " – " + day.String()
+		v.ReportHref = "/report?" + url.Values{"from": {from.String()}, "to": {min(day, today).String()}}.Encode()
+	}
 	if day != today {
-		v.TodayHref = "/"
+		v.TodayHref = journalURL(today, today, week)
 		v.QuickAdd.Date = day.String()
 	}
 	v.QuickFile = fileChoices(filing, "")
 
-	// The feed: the day's entries of live projects and Unassigned ones, newest first.
+	// The feed: the entries of live projects and Unassigned ones, newest first, by day.
 	entries = slices.DeleteFunc(entries, func(j domain.JournalEntry) bool {
 		_, _, live := where(projectName, actOf, j.ActivityID, j.ProjectID)
 		return !live
 	})
 	slices.Reverse(entries)
-	v.Journal = journalView{Next: uri, Title: "Journal", FullLoadLinks: true, Entries: pageFeedRows(entries, projectName, actOf, filing)}
+	v.Journal = journalView{Next: uri, Title: "Journal", FullLoadLinks: true, DaySections: true, Entries: pageFeedRows(entries, projectName, actOf, filing)}
+	for i, e := range entries {
+		if i == 0 || e.LogDate() != entries[i-1].LogDate() {
+			v.Journal.Entries[i].DayHeading = dayHeading(e.LogDate())
+		}
+		v.Journal.Entries[i].Logged = e.LogTime() // the day is in the section heading
+	}
 	return v, nil
 }
 

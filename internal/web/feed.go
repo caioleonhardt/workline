@@ -15,6 +15,7 @@ type feedRow struct {
 	ActivityHref      string     // its activity or project on the roadmap; empty when the feed is narrowed to it
 	Unassigned        bool       // the entry has neither activity nor project
 	FileTo            []optGroup // an entry outside any activity can be filed under these
+	DayHeading        string     // with DaySections, set on the first row of each day
 }
 
 // optGroup is a labelled group of select options.
@@ -69,6 +70,7 @@ func parseLink(v string) (activityID, projectID int64, err error) {
 type journalView struct {
 	Next          string
 	FullLoadLinks bool // activity links lead to another page, so htmx must not boost them
+	DaySections   bool // rows are grouped under day headings and show only their time
 	Narrowed      bool // only the selected activity's entries
 	Title         string
 	ShowAllHref   string

@@ -5,6 +5,11 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
+### Added
+- A week view of the journal (`vw`, or Week in the header): the 7 days up to
+  the date, like a feed; `vd` goes back to the day. Entries sit under a
+  heading per day (23/11/2026) and rows show only their time.
+
 ## [0.11.0] — 2026-11-23
 
 Upgrading from 0.10.0: run `workline migrate` once before `serve`.

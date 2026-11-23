@@ -99,7 +99,7 @@ func TestJournalPageFeedShowsClosedTasks(t *testing.T) {
 	for name, rec := range map[string]*httptest.ResponseRecorder{"page": get(h, "/?date=2026-11-12"), "fragment": hxGet(h, "/?date=2026-11-12")} {
 		body := rec.Body.String()
 		feed := body[strings.Index(body, `id="journal"`):]
-		if !bodyOrderIn(feed, `<span class="muted mono">2026-11-12 16:30</span>`, "Closed later", "opened 2026-10-01") {
+		if !bodyOrderIn(feed, `<li class="day-head"><h2>12/11/2026</h2></li>`, `<span class="muted mono">16:30</span>`, "Closed later", "opened 2026-10-01") {
 			t.Errorf("%s: closed task not in the feed at its close", name)
 		}
 	}
@@ -116,4 +116,34 @@ func TestJournalPageHidesArchivedProjects(t *testing.T) {
 	if strings.Contains(get(h, "/?date=2026-11-16").Body.String(), "Request received in 1:1") {
 		t.Error("archived project's entry on the journal page")
 	}
+}
+
+// The week view shows the 7 days up to the date, newest first, under day
+// headings; rows show only their time (SPEC §10 item 127). testToday is
+// Wednesday 2026-11-18.
+func TestJournalPageWeek(t *testing.T) {
+	h, st := newApp(t)
+	if _, err := st.AddJournal(ctx, domain.JournalEntry{Date: date(t, testToday), Kind: domain.KindUpdate, Text: "Today's update", LoggedAt: testToday + " 09:15"}); err != nil {
+		t.Fatal(err)
+	}
+	rec := get(h, "/?view=week")
+	wantStatus(t, rec, http.StatusOK)
+	wantBody(t, rec, `<strong class="mono">2026-11-12 – 2026-11-18</strong>`,
+		`<a href="/?date=2026-11-11&amp;view=week" aria-label="Previous week">‹</a>`, `<a href="/?date=2026-11-25&amp;view=week" aria-label="Next week">›</a>`,
+		`<a class="pill view-day" href="/">Day</a><a class="pill view-week" href="/?view=week" aria-current="page">Week</a>`,
+		`href="/export/journal.md?from=2026-11-12&amp;to=2026-11-18"`, `href="/report?from=2026-11-12&amp;to=2026-11-18"`)
+	body := rec.Body.String()
+	feed := body[strings.Index(body, `id="journal"`):]
+	if !bodyOrderIn(feed, "<h2>18/11/2026</h2>", `<span class="muted mono">09:15</span>`, "Today&#39;s update", "<h2>16/11/2026</h2>", "Request received in 1:1") {
+		t.Error("week feed is not in day sections, newest first")
+	}
+	if strings.Count(feed, `class="day-head"`) != 3 || !strings.Contains(feed, "<h2>12/11/2026</h2>") || strings.Contains(feed, "Kafka dependencies removed") {
+		t.Error("a section per day with entries, nothing older than the week")
+	}
+	// the day view of another date keeps the view's links; Today keeps the week
+	wantBody(t, get(h, "/?date=2026-11-16&view=week"), `<a class="small today-link" href="/?view=week">Today</a>`)
+	wantBody(t, get(h, "/?date=2026-11-16"), `<a class="pill view-week" href="/?date=2026-11-16&amp;view=week">Week</a>`,
+		`<a class="pill view-day" href="/?date=2026-11-16" aria-current="page">Day</a>`, "<h2>16/11/2026</h2>")
+	// view is journal state, not roadmap state
+	wantStatus(t, get(h, "/?view=week&date=2026-11-02"), http.StatusOK)
 }

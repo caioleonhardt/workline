@@ -3,6 +3,7 @@
 <h2 id="journal-title">Journal{{if .Narrowed}} · {{.Title}} <a class="small" href="{{.ShowAllHref}}">Show all</a>{{end}}</h2>
 <ul class="rows feed" data-pane="Journal">
 {{range .Entries}}
+{{if .DayHeading}}<li class="day-head"><h2>{{.DayHeading}}</h2></li>{{end}}
 <li tabindex="-1" data-entry data-id="{{.ID}}">
 {{if .IsTask}}<form class="inline sub-toggle feed-toggle" method="post" action="/tasks/{{.ID}}/toggle" hx-trigger="change, submit">
 <input type="hidden" name="next" value="{{$.Next}}">
