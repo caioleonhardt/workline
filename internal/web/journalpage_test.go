@@ -25,6 +25,10 @@ func TestJournalPage(t *testing.T) {
 		`href="/export/journal.md?from=2026-11-18&amp;to=2026-11-18" hx-boost="false"`, `href="/report" hx-boost="false"`,
 		"Loose urgent task")
 	body := rec.Body.String()
+	// projects are choices themselves, their activities indented under them
+	if strings.Contains(body, "<optgroup") || strings.Contains(body, "(project)") || !strings.Contains(body, "<option value=\"p1\">Order platform modernisation</option><option value=\"1\">\u00a0\u00a0\u00a0Consolidate order services") {
+		t.Error("the Log to select is not a flat, indented list of projects and activities")
+	}
 	if strings.Contains(body, "today-link") || strings.Contains(body, "tile") || strings.Contains(body, "open-tasks") {
 		t.Error("today offers a Today link, or home still shows tiles or open tasks")
 	}
@@ -34,7 +38,7 @@ func TestJournalPage(t *testing.T) {
 	}
 	// the bar picks the activity itself, starting at Unassigned, and logs to today
 	wantBody(t, rec, `<span id="quickadd-target"><span class="target"><label for="quickadd-activity">Log to</label></span><input type="hidden" name="next" value="/"></span>`,
-		`<select id="quickadd-activity" name="activity"><option value="" selected>Unassigned</option><optgroup label=`)
+		`<select id="quickadd-activity" name="activity"><option value="" selected>Unassigned</option><option value="p`)
 }
 
 func TestJournalPageDays(t *testing.T) {

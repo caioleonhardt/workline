@@ -30,7 +30,7 @@ func TestProjectNotes(t *testing.T) {
 	home := get(h, "/")
 	wantBody(t, home, `<span class="chip kind-note">Note</span>`,
 		`<a class="tag small" href="/roadmap?project=1" hx-boost="false">Order platform modernisation</a>`,
-		`<option value="p1" selected>Order platform modernisation (project)</option>`)
+		`<option value="p1" selected>Order platform modernisation</option>`)
 
 	// roadmap: shown for all projects and for its own, not for another or under a selection
 	for target, want := range map[string]bool{"/roadmap": true, "/roadmap?project=1": true, "/roadmap?project=2": false, "/roadmap?sel=1": false} {

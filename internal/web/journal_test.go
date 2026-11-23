@@ -162,7 +162,7 @@ func TestUnassignedEntries(t *testing.T) {
 
 	// the feed shows it, with a filing select, unless a project or selection narrows it
 	body := get(h, "/roadmap").Body.String()
-	for _, want := range []string{`<span class="tag small unassigned">Unassigned</span>`, `<select name="activity"><option value="" selected>Unassigned</option><optgroup label=`, `<option value="2">Kafka upgrade readiness</option>`} {
+	for _, want := range []string{`<span class="tag small unassigned">Unassigned</span>`, `<select name="activity"><option value="" selected>Unassigned</option><option value="p`, "<option value=\"2\">\u00a0\u00a0\u00a0Kafka upgrade readiness</option>"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("feed lacks %q", want)
 		}

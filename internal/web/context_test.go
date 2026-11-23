@@ -83,7 +83,7 @@ func TestContextIsTheBarDefault(t *testing.T) {
 	h, st := newApp(t)
 	// pages with a select preselect it
 	rec := withCookie(h, http.MethodGet, "/", nil, "p1")
-	wantBody(t, rec, `<option value="p1" selected>Order platform modernisation (project)</option>`,
+	wantBody(t, rec, `<option value="p1" selected>Order platform modernisation</option>`,
 		`<span class="status-ctx" title="New entries go to Order platform modernisation; :p or :a alone clears it">[Order platform modernisation]</span>`)
 	// the roadmap targets it when nothing is selected, the selection wins
 	wantBody(t, withCookie(h, http.MethodGet, "/roadmap", nil, "2"), `Journal for <strong>Kafka upgrade readiness</strong> · Order platform modernisation`, `<input type="hidden" name="activity" value="2">`,

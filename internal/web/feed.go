@@ -25,20 +25,25 @@ type optGroup struct {
 }
 
 // fileChoices lists where an entry can be filed: Unassigned, then each live
-// project, itself and then its activities, with cur (an entryLink) selected.
+// project followed by its activities, indented under it, with cur (an
+// entryLink) selected. A project is itself a choice, so the list has no
+// optgroups: their labels cannot be picked (SPEC §10 item 120).
 func fileChoices(groups []domain.Group, cur string) []optGroup {
-	out := []optGroup{{Options: []option{{"", "Unassigned", cur == ""}}}}
+	opts := []option{{"", "Unassigned", cur == ""}}
 	for _, g := range groups {
 		p := entryLink(0, g.Project.ID)
-		og := optGroup{Label: g.Project.Name, Options: []option{{p, g.Project.Name + " (project)", p == cur}}}
+		opts = append(opts, option{p, g.Project.Name, p == cur})
 		for _, a := range g.Activities {
 			v := entryLink(a.ID, 0)
-			og.Options = append(og.Options, option{v, a.Name, v == cur})
+			opts = append(opts, option{v, activityIndent + a.Name, v == cur})
 		}
-		out = append(out, og)
 	}
-	return out
+	return []optGroup{{Options: opts}}
 }
+
+// activityIndent sets an activity under its project in a select; options
+// cannot be styled, so it is non-breaking spaces.
+const activityIndent = "\u00a0\u00a0\u00a0"
 
 // entryLink is the form value naming where an entry belongs: an activity's
 // id, "p" and a project's id, or "" for Unassigned (SPEC §10 item 120).

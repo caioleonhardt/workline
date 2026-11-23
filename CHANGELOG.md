@@ -5,6 +5,10 @@ each release is tagged `vX.Y.Z` in git.
 
 ## [Unreleased]
 
+### Fixed
+- The "Log to" and "File under" selects list each project once, as a choice,
+  with its activities indented under it (no more "Name (project)").
+
 ### Added
 - A week view of the journal (`vw`, or Week in the header): the 7 days up to
   the date, like a feed; `vd` goes back to the day. Entries sit under a
