@@ -300,6 +300,14 @@ GET    /static/*                           embedded assets
 12. **Vim keys.** Normal-mode keys move a cursor over entries, search the page and act on the focused entry (§10 items 99–100).
 13. **Search with filters.** A query syntax with terms, exclusions and qualifiers, run by the server over the whole journal (§10 items 102–103).
 14. **1:1 report.** Starred entries and a report of a chosen range, as a page and as Markdown for email (§10 items 110–114; see `docs/product-review.md`).
+15. **Neutral wording.** No "1:1" or "tech lead" in the app: the report is "Report", its Markdown title `Update · {from} to {to}`, its download `workline-report-{to}.md`; README and SPEC follow. History (CHANGELOG, migrations, `docs/product-review.md`) stays as written (§10 item 116).
+16. **Keys rename.** `gr` goes to the roadmap (the timeline until 20), the report moves to `gR`, and `gt` is freed (§10 item 117).
+17. **Tasks page.** `GET /tasks?page=&state=open|closed|all&project=`, paginated, reached by `gt` and a Tasks nav link; `[`/`]` move between pages.
+18. **Journal is home.** `/` shows only journal entries of one day; open tasks, tiles and the burndown strip leave home; `?week=` is dropped.
+19. **Day navigation.** `/?date=YYYY-MM-DD`, default today; view, add and edit entries on any day; `[`/`]` previous/next day, `t` today (§10 item 118).
+20. **Roadmap.** Replaces the timeline and its burndown: Q1–Q4 columns, one swimlane per project, activities as bars from start to due, coloured by status. The burndown code, tiles and the detail chart go with it (§10 item 119).
+21. **Project notes.** A `note` kind (`/n`, `n`) and a nullable `project_id` on entries, so an entry belongs to a project, an activity, or nothing (§10 item 120).
+22. **Context command.** `:p name|id` and `:a name|id` set the project or activity new entries are linked to; it persists in a cookie and shows in the statusline (§10 item 121).
 
 Each milestone ends with `go vet ./...` and `go test ./...` green.
 
@@ -482,3 +490,12 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
     `only=starred` keeps Highlights alone. The page has the date form (GET, works without scripting), the sections, **Download .md** and, with scripting, **Copy Markdown**. Its root is `#dash`, with the bar and the statusline. `gr` goes to it; the top navigation reads Journal · Timeline · Report · Projects; the journal page links to the report of its range, up to today. Download .md carries the page's resolved range, so it matches what is shown.
 113. **Report Markdown** `GET /report.md` with the same parameters, downloaded as `workline-1on1-{to}.md`. It must read well as plain text in an email: a `#` title, `##` sections, `-` bullets with two-space indented sub-bullets, no tables or bold. The title line is `1:1 update · {from} to {to}`, followed by the project name when narrowed.
 114. Progress in the report is by task count, like everywhere else; weighting tasks is out of scope.
+
+### Decisions (milestones 15–22, 2026-11-23)
+115. **Alpha.** Before 1.0.0, breaking changes are allowed to keep the design clean, provided `workline migrate` brings existing data to the new model (CLAUDE.md, Alpha).
+116. **Neutral wording.** The app does not assume who uses it or for whom. `docs/product-review.md` is kept as a dated note; its persona is not the product's.
+117. **Go keys.** `gj` journal, `gt` tasks, `gr` roadmap, `gp` projects, `gR` report.
+118. **Day keys.** `[`/`]` previous/next day and `t` today, not `Ctrl+I`/`Ctrl+O`: the browser owns `Ctrl+O`, the key layer leaves Ctrl keys alone (item 99), and in Vim they walk the jump list. Future days are allowed.
+119. **Roadmap scope.** Bars by project only: no milestone markers, plan-vs-actual or health indicator for now.
+120. **Notes.** `note` is a journal kind like the others. An entry has at most one of `activity_id` and `project_id`; an activity implies its project. Project notes show on the project page and in the feed under the project.
+121. **Context.** `:` outside a field opens a command line. `:p` matches a project by id or by case-insensitive name prefix, then substring; several matches are listed and nothing is set; `:a` does the same for live activities. `:p` or `:a` alone clears it. The context is a cookie the server reads as the bar's default link, so it works without scripting. A kind prefix (`/t` …) sets only the kind. An unknown or archived target is an error and the context is kept.
