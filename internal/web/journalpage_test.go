@@ -11,126 +11,100 @@ import (
 	"workline/internal/domain"
 )
 
-// The journal page shows the last two weeks: tiles, one burndown row for all
-// tasks, open tasks by priority and the entries dated in the range
-// (SPEC §10 item 95). testToday is Wednesday 2026-11-18.
+// Home is the journal of one day, today by default (SPEC §10 item 124).
+// testToday is Wednesday 2026-11-18.
 func TestJournalPage(t *testing.T) {
 	h, st := newApp(t)
-	if _, err := st.AddJournal(ctx, domain.JournalEntry{Date: date(t, "2026-11-17"), Kind: domain.KindTask, Text: "Loose urgent task", Priority: domain.PriorityHigh}); err != nil {
+	if _, err := st.AddJournal(ctx, domain.JournalEntry{Date: date(t, "2026-11-18"), Kind: domain.KindTask, Text: "Loose urgent task", Priority: domain.PriorityHigh}); err != nil {
 		t.Fatal(err)
 	}
 	rec := get(h, "/")
 	wantStatus(t, rec, http.StatusOK)
+	wantBody(t, rec, `<strong class="mono">2026-11-18</strong>`,
+		`<a href="/?date=2026-11-17" aria-label="Previous day">‹</a>`, `<a href="/?date=2026-11-19" aria-label="Next day">›</a>`,
+		`href="/export/journal.md?from=2026-11-18&amp;to=2026-11-18" hx-boost="false"`, `href="/report" hx-boost="false"`,
+		"Loose urgent task")
 	body := rec.Body.String()
-	wantBody(t, rec, "2026-11-09 – 2026-11-22", `<a href="/?week=2026-11-09" aria-label="Previous week">‹</a>`,
-		`<a href="/?week=2026-11-23" aria-label="Next week">›</a>`, `href="/export/journal.md?from=2026-11-09&amp;to=2026-11-22" hx-boost="false"`,
-		`<div class="col now" style="left:64.29%;width:7.14%"><span class="col-title">Wed <span class="muted">18</span>`,
-		`<span class="today-flag" style="left:67.86%">Today</span>`,
-		`<span class="done-dot left" style="left:10.71%"><button type="button" class="dot" aria-label="1 task completed on 2026-11-10" aria-describedby="done-all-2026-11-10">`,
-		"Remove Kafka topic dependencies")
-	if strings.Contains(body, "This week</a>") {
-		t.Error("this week offers a This week link")
+	if strings.Contains(body, "today-link") || strings.Contains(body, "tile") || strings.Contains(body, "open-tasks") {
+		t.Error("today offers a Today link, or home still shows tiles or open tasks")
 	}
-	// tiles count tasks of the range (Unassigned too); bins stop at today
-	for label, want := range map[string]int{"Tasks opened": 6, "Tasks closed": 1, "Open tasks now": 18, "High priority open": 1} {
-		if got := tileValue(t, body, label); got != want {
-			t.Errorf("tile %s = %d, want %d", label, got, want)
-		}
+	// only the day's entries
+	if strings.Contains(body, "Request received in 1:1") || strings.Contains(body, "Kafka dependencies removed") {
+		t.Error("home lists entries of other days")
 	}
-	if n := strings.Count(body, `<span class="bin active"`); n != 10 {
-		t.Errorf("%d daily bins, want 10 (Nov 9 to today)", n)
-	}
-	// open tasks: high priority first, with its Unassigned tag; activity links load the timeline
-	tasks := body[strings.Index(body, `id="open-tasks-title"`):strings.Index(body, `id="journal"`)]
-	if !bodyOrderIn(tasks, "Loose urgent task", "Unassigned", "Kafka") || strings.Contains(tasks, "Remove Kafka topic dependencies") {
-		t.Error("open tasks are not by priority, or include closed ones")
-	}
-	wantBody(t, rec, `<a class="tag small" href="/timeline?sel=2" hx-boost="false">`)
-	// the feed holds only entries dated in the range, newest first
-	feed := body[strings.Index(body, `id="journal"`):]
-	if !bodyOrderIn(feed, "Loose urgent task", "Request received in 1:1", "Client upgrades pulled into this activity", "Kafka dependencies removed") ||
-		strings.Contains(feed, "Waiting on platform team") {
-		t.Error("feed range or order")
-	}
-	// the bar picks the activity itself, starting at Unassigned
+	// the bar picks the activity itself, starting at Unassigned, and logs to today
 	wantBody(t, rec, `<span id="quickadd-target"><span class="target"><label for="quickadd-activity">Log to</label></span><input type="hidden" name="next" value="/"></span>`,
 		`<select id="quickadd-activity" name="activity"><option value="" selected>Unassigned</option><optgroup label=`)
 }
 
-func TestJournalPageWeeks(t *testing.T) {
+func TestJournalPageDays(t *testing.T) {
 	h, _ := newApp(t)
-	for target, want := range map[string]string{
-		"/?week=2026-11-04": "2026-10-26 – 2026-11-08", // any day names its week
-		"/?week=bogus":      "2026-11-09 – 2026-11-22",
-	} {
-		wantBody(t, get(h, target), want)
-	}
-	wantBody(t, get(h, "/?week=2026-11-09"), `<a class="small" href="/">This week</a>`, `<a href="/" aria-label="Next week">›</a>`)
-	rec := get(h, "/?week=2026-11-02")
-	if strings.Contains(rec.Body.String(), "today-flag") || strings.Contains(rec.Body.String(), "Request received in 1:1") {
-		t.Error("a past range shows today or later entries")
-	}
-	// a future range has no bins yet
-	if strings.Contains(get(h, "/?week=2026-12-07").Body.String(), `<span class="bin active"`) {
-		t.Error("bins drawn after today")
-	}
-	// any other key on / is timeline state
-	wantStatus(t, get(h, "/?week=2026-11-02&sel=2"), http.StatusFound)
+	rec := get(h, "/?date=2026-11-16")
+	wantBody(t, rec, `<strong class="mono">2026-11-16</strong>`, "Request received in 1:1",
+		`<a href="/?date=2026-11-17" aria-label="Next day">›</a>`, `<a class="small today-link" href="/">Today</a>`,
+		// the bar logs to the day shown
+		`<input type="hidden" name="date" value="2026-11-16"><input type="hidden" name="next" value="/?date=2026-11-16">`)
+	wantBody(t, get(h, "/?date=2026-11-17"), `<a href="/" aria-label="Next day">›</a>`)
+	// future days are allowed; a bad date is today
+	wantBody(t, get(h, "/?date=2026-12-01"), `<strong class="mono">2026-12-01</strong>`)
+	wantBody(t, get(h, "/?date=bogus"), `<strong class="mono">2026-11-18</strong>`)
+	// old week links land on today; any other key on / is timeline state
+	wantStatus(t, get(h, "/?week=2026-11-02"), http.StatusOK)
+	wantStatus(t, get(h, "/?date=2026-11-02&sel=2"), http.StatusFound)
 }
 
 // The page swaps like the timeline: htmx gets its fragment, and mutations sent
-// from it answer with it (SPEC §10 item 95).
+// from it answer with it. Logging from a past day logs on that day.
 func TestJournalPageMutations(t *testing.T) {
 	h, st := newApp(t)
-	frag := hxGet(h, "/?week=2026-11-02")
+	frag := hxGet(h, "/?date=2026-11-02")
 	if !strings.HasPrefix(strings.TrimSpace(frag.Body.String()), `<div id="dash" class="journal-page"`) || strings.Contains(frag.Body.String(), "<html") {
 		t.Error("not a journal fragment")
 	}
-	wantBody(t, frag, `<span id="quickadd-target" hx-swap-oob="innerHTML">`)
+	wantBody(t, frag, `<span id="quickadd-target" hx-swap-oob="innerHTML">`, `<input type="hidden" name="date" value="2026-11-02">`)
 
-	rec := hxPostFrom(h, "/journal", url.Values{"activity": {"2"}, "kind": {"update"}, "text": {"/t1 From the 1:1"}, "next": {"/"}}, "quickadd")
-	if rec.Code != http.StatusOK || rec.Header().Get("HX-Push-Url") != "/" || !strings.Contains(rec.Body.String(), `class="journal-page"`) {
+	rec := hxPostFrom(h, "/journal", url.Values{"activity": {"2"}, "kind": {"update"}, "date": {"2026-11-02"}, "text": {"/t1 Back-filled"}, "next": {"/?date=2026-11-02"}}, "quickadd")
+	if rec.Code != http.StatusOK || rec.Header().Get("HX-Push-Url") != "/?date=2026-11-02" || !strings.Contains(rec.Body.String(), `class="journal-page"`) {
 		t.Fatalf("log from the page: %d %q", rec.Code, rec.Header().Get("HX-Push-Url"))
 	}
-	wantBody(t, rec, `<textarea id="quickadd-text"`, `<span class="chip prio-high">High</span>`)
+	wantBody(t, rec, `<textarea id="quickadd-text"`, `<span class="chip prio-high">High</span>`, "Back-filled")
 	ts, _ := st.ListTasks(ctx, 2)
 	added := ts[len(ts)-1]
-	if added.Text != "From the 1:1" || added.Priority != domain.PriorityHigh {
+	if added.Text != "Back-filled" || added.Priority != domain.PriorityHigh || added.CreatedOn != date(t, "2026-11-02") {
 		t.Fatalf("logged: %+v", added)
 	}
-	before := tileValue(t, get(h, "/").Body.String(), "Tasks closed")
+	// closing it today moves it to today's page (item 109)
 	rec = hxPost(h, "/tasks/"+strconv.FormatInt(added.ID, 10)+"/toggle", url.Values{"next": {"/"}})
-	if rec.Code != http.StatusOK || tileValue(t, rec.Body.String(), "Tasks closed") != before+1 {
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Back-filled") {
 		t.Errorf("toggle from the page: %d", rec.Code)
 	}
 	// without JS it is a redirect back to the page
-	plain := post(h, "/tasks/"+strconv.FormatInt(added.ID, 10)+"/toggle", url.Values{"next": {"/?week=2026-11-02"}})
-	if loc := plain.Header().Get("Location"); plain.Code != http.StatusSeeOther || loc != "/?week=2026-11-02" {
+	plain := post(h, "/tasks/"+strconv.FormatInt(added.ID, 10)+"/toggle", url.Values{"next": {"/?date=2026-11-02"}})
+	if loc := plain.Header().Get("Location"); plain.Code != http.StatusSeeOther || loc != "/?date=2026-11-02" {
 		t.Errorf("without JS: %d %q", plain.Code, loc)
 	}
 }
 
-// A task opened before the weeks shown and closed in them is in the feed, at
-// its close (SPEC §10 item 109).
+// A task opened earlier and closed on a day is in that day's feed, at its
+// close, and not in the feed of the day it was opened (SPEC §10 item 109).
 func TestJournalPageFeedShowsClosedTasks(t *testing.T) {
 	h, st := newApp(t)
-	task, err := st.AddTask(ctx, 2, "Closed for the 1:1", date(t, "2026-10-01"))
+	task, err := st.AddTask(ctx, 2, "Closed later", date(t, "2026-10-01"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := st.ToggleTask(ctx, task.ID, domain.FixedClock{D: date(t, "2026-11-12"), Hour: 16, Minute: 30}); err != nil {
 		t.Fatal(err)
 	}
-	for name, rec := range map[string]*httptest.ResponseRecorder{"page": get(h, "/"), "fragment": hxGet(h, "/")} {
+	for name, rec := range map[string]*httptest.ResponseRecorder{"page": get(h, "/?date=2026-11-12"), "fragment": hxGet(h, "/?date=2026-11-12")} {
 		body := rec.Body.String()
 		feed := body[strings.Index(body, `id="journal"`):]
-		if !bodyOrderIn(feed, "Request received in 1:1", `<span class="muted mono">2026-11-12 16:30</span>`, "Closed for the 1:1", "opened 2026-10-01", "Kafka dependencies removed") {
+		if !bodyOrderIn(feed, `<span class="muted mono">2026-11-12 16:30</span>`, "Closed later", "opened 2026-10-01") {
 			t.Errorf("%s: closed task not in the feed at its close", name)
 		}
 	}
-	// the week it was opened in no longer lists it
-	if body := get(h, "/?week=2026-10-05").Body.String(); strings.Contains(body[strings.Index(body, `id="journal"`):], "Closed for the 1:1") {
-		t.Error("closed task still in the feed of its opening week")
+	if body := get(h, "/?date=2026-10-01").Body.String(); strings.Contains(body[strings.Index(body, `id="journal"`):], "Closed later") {
+		t.Error("closed task still in the feed of its opening day")
 	}
 }
 
@@ -139,7 +113,7 @@ func TestJournalPageHidesArchivedProjects(t *testing.T) {
 	if err := st.SetProjectArchived(ctx, 4, true); err != nil { // holds "Request received in 1:1"
 		t.Fatal(err)
 	}
-	if strings.Contains(get(h, "/").Body.String(), "Request received in 1:1") {
+	if strings.Contains(get(h, "/?date=2026-11-16").Body.String(), "Request received in 1:1") {
 		t.Error("archived project's entry on the journal page")
 	}
 }

@@ -11,65 +11,13 @@
 <div id="dash" class="journal-page" hx-boost="true" hx-target="#dash" hx-swap="outerHTML">
 <header class="dash">
 <div>
-<div class="eyebrow mono">Journal · last two weeks</div>
-<div class="year"><a href="{{.PrevHref}}" aria-label="Previous week">‹</a> <strong class="mono">{{.RangeLabel}}</strong> <a href="{{.NextHref}}" aria-label="Next week">›</a>{{if .ThisWeekHref}} <a class="small" href="{{.ThisWeekHref}}">This week</a>{{end}}</div>
+<div class="eyebrow mono">Journal</div>
+<div class="year"><a href="{{.PrevHref}}" aria-label="Previous day">‹</a> <strong class="mono">{{.Day}}</strong> <a href="{{.NextHref}}" aria-label="Next day">›</a>{{if .TodayHref}} <a class="small today-link" href="{{.TodayHref}}">Today</a>{{end}}</div>
 </div>
 <div class="actions"><a class="btn secondary" href="{{.ReportHref}}" hx-boost="false">Report</a> <a class="btn secondary" href="{{.ExportHref}}" hx-boost="false">Export journal</a></div>
 </header>
 <p class="hint js-only small muted">Press <kbd>?</kbd> for keys</p>
-<div class="tiles">
-{{range .Tiles}}<div class="tile"><div class="tile-label"><span class="dot {{.Class}}" aria-hidden="true"></span>{{.Label}}</div><div class="tile-value mono">{{.Value}}</div></div>
-{{end}}</div>
-{{with .Strip}}
-<section class="card timeline strip" aria-label="Burndown of all tasks">
-<div class="tl-scroll"><div class="tl">
-<div class="tl-row tl-head">
-<div class="tl-label"><strong>All tasks</strong><span class="muted small">daily, open tasks</span></div>
-<div class="tl-track head-track">
-{{range .Columns}}<div class="col {{.Class}}" style="left:{{.Left}}%;width:{{.Width}}%"><span class="col-title">{{.Label}} <span class="muted">{{.Sub}}</span></span></div>
-{{end}}
-{{if .ShowToday}}<span class="today-flag" style="left:{{.TodayLeft}}%">Today</span>{{end}}
-</div>
-</div>
-<div class="tl-body">
-<div class="overlay" aria-hidden="true">
-{{range .Lines}}<div class="gl{{if .Strong}} strong{{end}}" style="left:{{.Left}}%"></div>{{end}}
-{{if .ShowToday}}<div class="today-line" style="left:{{.TodayLeft}}%"></div>{{end}}
-</div>
-<div class="tl-row act-row">
-<div class="tl-label act-label"><span class="act-name">Open tasks</span><span class="act-meta"><span class="mono small">{{.OpenLabel}}</span></span></div>
-<div class="tl-track">
-<span class="bins" aria-hidden="true">{{range .Bins}}<span class="bin active" style="left:{{.Left}}%;width:{{.Width}}%;height:{{.Height}}%"></span>{{end}}</span>
-{{range .Done}}<span class="done-dot {{.Align}}{{if .Down}} down{{end}}" style="left:{{.Left}}%"><button type="button" class="dot" aria-label="{{.Label}}" aria-describedby="{{.ID}}"></button><span class="popup" id="{{.ID}}"><strong>{{.Day}}</strong><ul>{{range .Items}}<li>{{if .Time}}<span class="mono">{{.Time}}</span> {{end}}{{.Text}}</li>{{end}}</ul></span></span>{{end}}
-</div>
-</div>
-</div>
-</div></div>
-<div class="legend small">
-<span><i class="swatch bin-sample"></i>Open tasks (taller = more open)</span>
-<span><i class="swatch dot-sample"></i>Tasks completed</span>
-<span><i class="swatch today-sample"></i>Today</span>
-</div>
-</section>
-{{end}}
-<div class="jwork">
-<section class="card open-tasks" aria-labelledby="open-tasks-title">
-<h2 id="open-tasks-title">Open tasks by priority</h2>
-<ul class="rows" data-pane="Open tasks">
-{{range .Tasks}}
-<li class="sub" tabindex="-1" data-entry data-id="{{.ID}}">
-<form class="inline sub-toggle" method="post" action="/tasks/{{.ID}}/toggle" hx-trigger="change, submit">
-<input type="hidden" name="next" value="{{$.Next}}">
-<label class="check"><input type="checkbox"><span>{{.Text}}</span></label>
-<button class="apply">Close</button>
-</form>
-<span class="task-meta">{{if .Priority}}<span class="chip prio-{{.Priority}}">{{.PriorityLabel}}</span> {{end}}{{if .ActivityHref}}<a class="tag small" href="{{.ActivityHref}}" hx-boost="false">{{.Project}} › {{.Activity}}</a>{{else}}<span class="tag small unassigned">Unassigned</span>{{end}} <span class="muted mono small">opened {{.Created}}</span></span>
-</li>
-{{else}}<li class="muted">No open tasks.</li>{{end}}
-</ul>
-</section>
 {{template "journal" .Journal}}
-</div>
 <script src="/static/app.js"></script>
 </div>
 {{end}}

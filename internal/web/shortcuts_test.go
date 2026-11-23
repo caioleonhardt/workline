@@ -29,10 +29,10 @@ func TestShortcutTargetsAndHints(t *testing.T) {
 			t.Errorf("missing %q", want)
 		}
 	}
-	page := get(h, "/").Body.String()
+	page := get(h, "/?date=2026-11-16").Body.String()
 	for _, want := range []string{
 		`<p class="hint js-only small muted">Press <kbd>?</kbd> for keys</p>`,
-		`<h2 id="open-tasks-title">Open tasks by priority</h2>` + "\n" + `<ul class="rows" data-pane="Open tasks">`,
+		`<a class="small today-link" href="/">Today</a>`,
 		`<dialog id="keys" aria-labelledby="keys-title">`,
 	} {
 		if !strings.Contains(page, want) {
@@ -69,7 +69,7 @@ func TestShortcutScriptRules(t *testing.T) {
 		"var dialog = document.querySelector('dialog[open]');",             // the keys dialog keeps its keys
 		"t.matches('[data-entry]') && t.querySelector('a.tag')",            // Enter on a link or button stays theirs
 		"if (key === 'g' || key === 'd')", "Date.now() - pendingAt < 1000", // gg, gj, gr, gR, gp, dd
-		"gg:", "G:", "h:", "l:", "i:", "dd:", "x:", "o: focusBar", "'[':", "']':", "gj:", "gt:", "gr:", "gR:", "gp:", "O:", "f:", "'?':", "Escape:",
+		"gg:", "G:", "h:", "l:", "i:", "dd:", "x:", "o: focusBar", "'[':", "']':", "t: function () { clickFirst('a.today-link'); }", "gj:", "gt:", "gr:", "gR:", "gp:", "O:", "f:", "'?':", "Escape:",
 		"d.querySelector('details.confirm').open = true", // dd only opens the confirm step
 		"'/': openSearch", "n: function () { search(1); }", "N: function () { search(-1); }",
 		"t.id === 'vsearch-text'", // Enter in the search line searches instead of submitting the form

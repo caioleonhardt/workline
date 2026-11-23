@@ -152,7 +152,7 @@ Reason texts (shown in the detail panel):
 ## 5. Features
 
 ### 5.0 Journal page (`GET /`)
-The home page, for the present rather than the year (§10 item 95): the last two weeks (Monday to Sunday), ‹ › to move a week, tiles, one burndown row for all tasks with completion dots, open tasks by priority, and the journal entries dated in those weeks. No detail panel.
+The home page and the entry point: the journal of one day, today by default (§10 item 124). ‹ › move a day, Today comes back, and the bar logs to the day shown. Only journal entries; open tasks live on `/tasks`. No detail panel.
 
 ### 5.1 Dashboard (`GET /timeline`)
 Header with the app name and period eyebrow (e.g. `2026 · ACTIVITY TIMELINE` or `Q4 2026 · OCT–DEC`) and a **New activity** button.
@@ -249,7 +249,7 @@ Accessibility: real `<button>`, `<a>`, `<label>`+`<input>`; touch targets ≥ 44
 Pages return full HTML. When `HX-Request` is set, return the fragment being swapped (timeline, panel, or both via `hx-swap-oob`). Every mutation also works without JS (POST then redirect back to the referring dashboard URL).
 
 ```
-GET    /                                   journal page (§10 item 95); any query key but `week` redirects to /timeline
+GET    /                                   journal page of `date` (§10 item 124); any query key but `date` (or an old `week`) redirects to /timeline
 GET    /timeline                           dashboard (timeline)
 GET    /projects                           projects page
 POST   /projects                           create
@@ -445,7 +445,7 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
     - `i` opens the focused entry's editor; Esc or Cancel returns the cursor to the entry. `x` closes or reopens a task that has a toggle. `dd` opens the editor at the Delete… confirm step with Confirm focused; nothing is deleted without it. `Enter` follows the entry's activity link.
     - `o` focuses the bar keeping its kind (the `/t`… prefixes of item 93 choose another).
     - `/` opens a search line; Enter moves to the first entry after the cursor whose text contains the query (case-insensitive) and marks all matches; `n`/`N` move to the next/previous match, wrapping, re-read from the page so they survive swaps. Esc in Normal mode clears the marks first.
-    - `[`/`]` previous/next week on the journal page; `gj`/`gr`/`gR`/`gp` go to Journal, Timeline (the roadmap from milestone 20), Report, Projects (item 117); on the timeline `O` opens New activity and `f` focuses the Project filter. `Esc` otherwise cancels the new-activity form, else closes the panel (item 68).
+    - `[`/`]` previous/next day on the journal page (`t` back to today, item 124), previous/next page on the tasks page; `gj`/`gr`/`gR`/`gp` go to Journal, Timeline (the roadmap from milestone 20), Report, Projects (item 117); on the timeline `O` opens New activity and `f` focuses the Project filter. `Esc` otherwise cancels the new-activity form, else closes the panel (item 68).
     - `?` opens a dialog listing the keys; the pages' hint lines say "Press ? for keys".
     This replaces the keys of items 68, 76 and 97 (`n`, `/` as filter or bar, `j`, `t d u b m`). Without scripting nothing changes. No counts, Visual mode, registers or `:` commands.
 100. **Server-side search** over the whole journal is left for later; `/` searches only the entries on the page. (Superseded by item 103.)
@@ -502,3 +502,4 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 121. **Context.** `:` outside a field opens a command line. `:p` matches a project by id or by case-insensitive name prefix, then substring; several matches are listed and nothing is set; `:a` does the same for live activities. `:p` or `:a` alone clears it. The context is a cookie the server reads as the bar's default link, so it works without scripting. A kind prefix (`/t` …) sets only the kind. An unknown or archived target is an error and the context is kept.
 122. **Ctrl+[ is Esc.** Everywhere Esc acts (entry editor, search line, quick-add bar, Normal mode, the keys dialog), `Ctrl+[` does the same, as in Vim. It is the one Ctrl key the key layer takes (amends item 99).
 123. **Tasks page** `GET /tasks?state=open|closed|all&project=&page=`. Every task of live projects (item 33), Unassigned ones only with all projects (item 91), 50 a page. Open and all are ordered like the panel (`domain.SortTasks`), closed by newest close. A bad `page` is 1, one past the end the last page. Each row has the close/reopen checkbox, priority, activity tag and dates; ‹ Previous / Next › links, and `[`/`]` follow them. Tasks are few enough to filter and page in Go after one query. The nav reads Journal · Tasks · Timeline · Report · Projects; `gt` opens it.
+124. **Journal is home.** `GET /?date=YYYY-MM-DD` shows the journal of that day; no `date`, or a bad one, is today, and future days are allowed. Entries are picked by log date (item 109), newest first, from live projects and Unassigned. ‹ › go to the previous and next day (the URL of today is `/`), and a Today link shows on any other day. The bar carries the day shown in a hidden `date` field, so entries are logged on it; the Edit form still moves an entry to another day. Keys: `[`/`]` previous/next day, `t` today. Tiles, the burndown strip and open tasks leave the page. An old `?week=` is ignored. Export links the day; Report links the default report. This replaces item 95.

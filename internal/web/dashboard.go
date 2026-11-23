@@ -17,6 +17,7 @@ type quickAddView struct {
 	Next          string
 	ClearHref     string // the same page without the selection; empty for Unassigned
 	Pick          bool
+	Date          string // the day the bar logs to; empty for today
 }
 
 // quickBar is the journal bar's state, shared by the pages that show it.

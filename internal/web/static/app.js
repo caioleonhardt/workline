@@ -428,8 +428,9 @@
         if (form) form.requestSubmit();
       },
       o: focusBar,
-      '[': function () { clickFirst('a[aria-label="Previous week"], a[aria-label="Previous page"]'); },
-      ']': function () { clickFirst('a[aria-label="Next week"], a[aria-label="Next page"]'); },
+      '[': function () { clickFirst('a[aria-label="Previous day"], a[aria-label="Previous page"]'); },
+      ']': function () { clickFirst('a[aria-label="Next day"], a[aria-label="Next page"]'); },
+      t: function () { clickFirst('a.today-link'); },
       gj: function () { clickFirst('nav a[href="/"]'); },
       gt: function () { clickFirst('nav a[href="/tasks"]'); },
       gr: function () { clickFirst('nav a[href="/timeline"]'); },

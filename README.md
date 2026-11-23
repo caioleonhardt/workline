@@ -8,7 +8,8 @@ It is a single Go binary with an embedded SQLite database. It works offline, lis
 
 ## Features
 
-- **Journal page** (the home page) for the last two weeks: one burndown of all tasks with completion dots, open tasks by priority, and the entries of those weeks.
+- **Journal** as the home page: the entries of one day, today by default; step back and forth between days and log on any of them.
+- **Tasks page** with every task, open, closed or all, a page at a time.
 - **Fast journaling** from a bar at the bottom of every page: no activity needed (entries stay Unassigned until filed), and prefixes like `/t1 Fix the deploy` (high-priority task), `/d` decision and `/u` update.
 - **Timeline dashboard** by year or quarter, grouped by project, with filters for project, month, status and scope creep. Every view is a bookmarkable URL.
 - **Burndowns** computed from task open/close dates, never entered by hand.

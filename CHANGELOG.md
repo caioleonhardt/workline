@@ -8,6 +8,8 @@ each release is tagged `vX.Y.Z` in git.
 Upgrading from 0.10.0: run `workline migrate` once before `serve`.
 
 ### Added
+- Home is the journal of one day, today by default. ‹ › (or `[` `]`) move a
+  day, `t` comes back to today, and entries are logged on the day shown.
 - A Tasks page (`/tasks`, `gt`): all tasks, open by default, with closed and
   all, a project filter and pages of 50 (`[` and `]` move between them).
 - `Ctrl+[` works as `Esc` everywhere, as in Vim.
@@ -29,6 +31,8 @@ Upgrading from 0.10.0: run `workline migrate` once before `serve`.
 - A task's close is one date and time. Tasks closed before close times were
   recorded show `00:00`.
 - `gr` goes to the timeline (was `gt`).
+- Home shows only journal entries: the two weeks, tiles, burndown strip and
+  open tasks are gone (open tasks are on `/tasks`).
 
 ## [0.10.0] — 2026-11-19
 

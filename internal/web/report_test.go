@@ -99,7 +99,7 @@ func TestReportPage(t *testing.T) {
 			t.Errorf("%s: %d, want %d", target, rec.Code, status)
 		}
 	}
-	wantBody(t, get(h, "/"), `href="/report?from=2026-11-09&amp;to=2026-11-18"`)
+	wantBody(t, get(h, "/"), `href="/report" hx-boost="false"`)
 }
 
 // The app's own wording does not assume a 1:1 or a tech lead (SPEC §10 item 116);

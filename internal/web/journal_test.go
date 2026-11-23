@@ -295,7 +295,7 @@ func TestStarEntry(t *testing.T) {
 	}
 	id := strconv.FormatInt(all[0].ID, 10)
 	button := `<button class="star" aria-pressed="false"`
-	wantBody(t, get(h, "/"), button)
+	wantBody(t, get(h, "/?date="+all[0].Date.String()), button)
 
 	rec := post(h, "/journal/"+id+"/star", url.Values{"next": {"/search?q=is%3Astarred"}})
 	wantStatus(t, rec, http.StatusSeeOther)
