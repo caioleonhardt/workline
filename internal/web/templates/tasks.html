@@ -1,0 +1,41 @@
+{{template "head" .}}
+<div id="errors" aria-live="polite"></div>
+{{template "tdash" .}}
+{{template "quickadd" .}}
+{{template "keys"}}
+{{template "foot" .}}
+
+{{define "tdash-fragment"}}{{template "tdash" .}}{{template "bar-oob" .}}{{end}}
+
+{{define "tdash"}}
+<div id="dash" class="tasks-page" hx-boost="true" hx-target="#dash" hx-swap="outerHTML">
+<header class="dash">
+<div>
+<div class="eyebrow mono">Tasks</div>
+<form class="report-form" method="get" action="/tasks">
+<label>Show<select name="state">{{range .States}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+<label>Project<select name="project">{{range .Projects}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+<button>Show</button>
+</form>
+</div>
+</header>
+<p class="hint js-only small muted">Press <kbd>?</kbd> for keys</p>
+<section class="card open-tasks" aria-labelledby="tasks-title">
+<h2 id="tasks-title">{{.Count}}</h2>
+<ul class="rows" data-pane="Tasks">
+{{range .Tasks}}
+<li class="sub" tabindex="-1" data-entry data-id="{{.ID}}">
+<form class="inline sub-toggle" method="post" action="/tasks/{{.ID}}/toggle" hx-trigger="change, submit">
+<input type="hidden" name="next" value="{{$.Next}}">
+<label class="check"><input type="checkbox"{{if .Closed}} checked{{end}}><span{{if .Closed}} class="done-text"{{end}}>{{.Text}}</span></label>
+<button class="apply">{{if .Closed}}Reopen{{else}}Close{{end}}</button>
+</form>
+<span class="task-meta">{{if .Priority}}<span class="chip prio-{{.Priority}}">{{.PriorityLabel}}</span> {{end}}{{if .ActivityHref}}<a class="tag small" href="{{.ActivityHref}}" hx-boost="false">{{.Project}} › {{.Activity}}</a>{{else}}<span class="tag small unassigned">Unassigned</span>{{end}} <span class="muted mono small">{{if .Closed}}closed {{.Closed}} · {{end}}opened {{.Created}}</span></span>
+</li>
+{{else}}<li class="muted">No tasks.</li>{{end}}
+</ul>
+<nav class="pager small" aria-label="Pages">{{if .PrevHref}}<a href="{{.PrevHref}}" aria-label="Previous page">‹ Previous</a>{{end}} {{if .NextHref}}<a href="{{.NextHref}}" aria-label="Next page">Next ›</a>{{end}}</nav>
+</section>
+<script src="/static/app.js"></script>
+</div>
+{{end}}

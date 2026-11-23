@@ -133,6 +133,8 @@ html.js .done-dot.open .popup { display: block; }
 .detail { grid-area: panel; align-self: start; min-width: 0; }
 .jwork { display: grid; gap: 20px; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); grid-template-areas: "tasks journal"; align-items: start; }
 .jwork > .open-tasks { grid-area: tasks; margin: 0; }
+.pager { display: flex; justify-content: space-between; padding: 8px 8px 0; }
+.tasks-page li.sub { display: flex; align-items: center; flex-wrap: wrap; gap: 0 8px; padding: 0 8px; min-height: 44px; }
 .task-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .strip .act-row .tl-track { height: 120px; } /* with the header, room for a completion popup above the single row */
 .strip .col { padding: 6px 4px; }

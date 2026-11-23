@@ -265,6 +265,7 @@ POST   /journal/{id}/delete                (tasks too)
 POST   /journal/{id}/star                  star or unstar an entry
 POST   /activities/{id}/scope-ack
 GET    /export/journal.md
+GET    /tasks                              tasks page (`state`, `project`, `page`)
 GET    /report                             report page
 GET    /report.md                          report as Markdown
 GET    /static/*                           embedded assets
@@ -500,3 +501,4 @@ Each milestone ends with `go vet ./...` and `go test ./...` green.
 120. **Notes.** `note` is a journal kind like the others. An entry has at most one of `activity_id` and `project_id`; an activity implies its project. Project notes show on the project page and in the feed under the project.
 121. **Context.** `:` outside a field opens a command line. `:p` matches a project by id or by case-insensitive name prefix, then substring; several matches are listed and nothing is set; `:a` does the same for live activities. `:p` or `:a` alone clears it. The context is a cookie the server reads as the bar's default link, so it works without scripting. A kind prefix (`/t` …) sets only the kind. An unknown or archived target is an error and the context is kept.
 122. **Ctrl+[ is Esc.** Everywhere Esc acts (entry editor, search line, quick-add bar, Normal mode, the keys dialog), `Ctrl+[` does the same, as in Vim. It is the one Ctrl key the key layer takes (amends item 99).
+123. **Tasks page** `GET /tasks?state=open|closed|all&project=&page=`. Every task of live projects (item 33), Unassigned ones only with all projects (item 91), 50 a page. Open and all are ordered like the panel (`domain.SortTasks`), closed by newest close. A bad `page` is 1, one past the end the last page. Each row has the close/reopen checkbox, priority, activity tag and dates; ‹ Previous / Next › links, and `[`/`]` follow them. Tasks are few enough to filter and page in Go after one query. The nav reads Journal · Tasks · Timeline · Report · Projects; `gt` opens it.

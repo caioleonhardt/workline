@@ -38,6 +38,7 @@ func New(st *store.Store, clock domain.Clock) (http.Handler, error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.home)
 	mux.HandleFunc("GET /timeline", s.dashboard)
+	mux.HandleFunc("GET /tasks", s.tasksPage)
 	mux.HandleFunc("POST /activities", s.createActivity)
 	mux.HandleFunc("POST /activities/{id}", s.updateActivity)
 	mux.HandleFunc("POST /activities/{id}/delete", s.deleteActivity)
@@ -183,6 +184,10 @@ func (s *Server) done(w http.ResponseWriter, r *http.Request, to string, mods ..
 	}
 	if u, err := url.Parse(to); err == nil && u.Path == "/search" {
 		s.renderSearch(w, r, to, mods...)
+		return
+	}
+	if u, err := url.Parse(to); err == nil && u.Path == "/tasks" {
+		s.renderTasks(w, r, to, mods...)
 		return
 	}
 	if u, err := url.Parse(to); err == nil && u.Path == "/report" {

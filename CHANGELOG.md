@@ -8,6 +8,8 @@ each release is tagged `vX.Y.Z` in git.
 Upgrading from 0.10.0: run `workline migrate` once before `serve`.
 
 ### Added
+- A Tasks page (`/tasks`, `gt`): all tasks, open by default, with closed and
+  all, a project filter and pages of 50 (`[` and `]` move between them).
 - `Ctrl+[` works as `Esc` everywhere, as in Vim.
 - A report at `/report` (Report in the top bar, `gR`, or "Report" on
   the journal page). Pick From and To (the last 7 days by default) and

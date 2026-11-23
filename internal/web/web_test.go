@@ -184,5 +184,5 @@ func TestTimelineMovedFromRoot(t *testing.T) {
 	if rec.Code != http.StatusOK || rec.Header().Get("HX-Push-Url") != "/timeline?sel=1" {
 		t.Errorf("old next: %d %q", rec.Code, rec.Header().Get("HX-Push-Url"))
 	}
-	wantBody(t, get(h, "/projects"), `<a href="/">Journal</a> <a href="/timeline">Timeline</a> <a href="/report">Report</a> <a href="/projects">Projects</a>`)
+	wantBody(t, get(h, "/projects"), `<a href="/">Journal</a> <a href="/tasks">Tasks</a> <a href="/timeline">Timeline</a> <a href="/report">Report</a> <a href="/projects">Projects</a>`)
 }

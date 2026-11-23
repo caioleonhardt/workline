@@ -428,9 +428,10 @@
         if (form) form.requestSubmit();
       },
       o: focusBar,
-      '[': function () { clickFirst('a[aria-label="Previous week"]'); },
-      ']': function () { clickFirst('a[aria-label="Next week"]'); },
+      '[': function () { clickFirst('a[aria-label="Previous week"], a[aria-label="Previous page"]'); },
+      ']': function () { clickFirst('a[aria-label="Next week"], a[aria-label="Next page"]'); },
       gj: function () { clickFirst('nav a[href="/"]'); },
+      gt: function () { clickFirst('nav a[href="/tasks"]'); },
       gr: function () { clickFirst('nav a[href="/timeline"]'); },
       gR: function () { clickFirst('nav a[href="/report"]'); },
       gp: function () { clickFirst('nav a[href="/projects"]'); },
@@ -514,7 +515,7 @@
         }
         return;
       }
-      // g and d wait up to a second for the second key of gg, gj, gr, gR, gp and dd.
+      // g and d wait up to a second for the second key of gg, gj, gt, gr, gR, gp and dd.
       var key = (Date.now() - pendingAt < 1000 ? pending : '') + (esc ? 'Escape' : e.key);
       pending = '';
       if (key === 'g' || key === 'd') {
