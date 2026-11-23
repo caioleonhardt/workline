@@ -91,7 +91,7 @@ func TestShortcutScriptRules(t *testing.T) {
 			t.Errorf("app.js lacks %q", want)
 		}
 	}
-	if strings.Count(js, "addEventListener('keydown'") != 1 || strings.Count(js, "addEventListener('click'") != 2 || strings.Count(js, "addEventListener('submit'") != 1 {
-		t.Error("document listeners: one keydown, one submit, one click here and one for the project toggles")
+	if strings.Count(js, "addEventListener('keydown'") != 1 || strings.Count(js, "addEventListener('click'") != 1 || strings.Count(js, "addEventListener('submit'") != 1 {
+		t.Error("document listeners: one keydown, one submit, one click")
 	}
 }

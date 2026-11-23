@@ -17,21 +17,11 @@
 {{if .ShowToday}}<div class="today-line" style="left:{{.TodayLeft}}%"></div>{{end}}
 </div>
 {{range .Groups}}
-<div class="grp" data-project="{{.ID}}">
-<button type="button" class="proj-row proj-toggle" aria-expanded="true"><svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg><span class="proj-name">{{.Name}}</span><span class="small">· {{.CountLabel}}</span><span class="mono small">· {{.PctLabel}}</span>{{if .FlagLabel}}<span class="creep-text small">· {{.FlagLabel}}</span>{{end}}</button>
-{{range .Rows}}
-<div class="tl-row act-row{{if .Selected}} sel{{end}}">
-<div class="tl-label act-label">
-<a class="act-name" href="{{.Href}}"{{if .Selected}} aria-current="true"{{end}}>{{.Name}}</a>
-<span class="act-meta"><span class="chip {{.Status}}">{{.StatusLabel}}</span>{{if .ScopeChip}}<span class="chip creep">{{.ScopeChip}}</span>{{end}}<span class="mono small">{{.OpenLabel}}</span></span>
-<span class="muted small">{{.Dates}}</span>
-</div>
-<div class="tl-track">
-{{if .HasBar}}<span class="bar {{.Status}}{{if .ClipStart}} clip-start{{end}}{{if .ClipEnd}} clip-end{{end}}" aria-hidden="true" style="left:{{.BarLeft}}%;width:{{.BarWidth}}%"><span class="bar-fill" style="width:{{.Progress}}%"></span><span class="bar-text">{{.Name}} · {{.PctLabel}}</span></span>{{end}}
-</div>
-<a class="row-link" href="{{.Href}}" title="{{.Tip}}" tabindex="-1" aria-hidden="true"></a>
-</div>
-{{end}}
+<div class="tl-row lane" data-project="{{.ID}}">
+<div class="tl-label lane-label"><span class="proj-name">{{.Name}}</span><span class="small muted">{{.CountLabel}} · <span class="mono">{{.PctLabel}}</span></span>{{if .FlagLabel}}<span class="creep-text small">{{.FlagLabel}}</span>{{end}}</div>
+<div class="tl-track" style="height:{{.Height}}px">
+{{range .Bars}}<a class="bar {{.Status}}{{if .ClipStart}} clip-start{{end}}{{if .ClipEnd}} clip-end{{end}}{{if .ScopeChip}} creep{{end}}{{if .Selected}} sel{{end}}" href="{{.Href}}" title="{{.Tip}}"{{if .Selected}} aria-current="true"{{end}} style="left:{{.Left}}%;width:{{.Width}}%;top:{{.Top}}px"><span class="bar-fill" style="width:{{.Progress}}%"></span><span class="bar-text">{{.Name}} · {{.PctLabel}}</span></a>
+{{end}}</div>
 </div>
 {{else}}
 <div class="empty">No activities match these filters.</div>

@@ -60,7 +60,7 @@ func TestDashboardFullPageWithoutHXAndOnHistoryRestore(t *testing.T) {
 func TestDashboardControlsStayPlainLinksAndForms(t *testing.T) {
 	h, _ := newApp(t)
 	body := get(h, "/roadmap?sel=2").Body.String()
-	for _, want := range []string{`<form method="get" action="/roadmap" class="toggle">`, `<a class="btn new-activity" href="/roadmap?new=1&amp;sel=2"`, `<a class="act-name" href="`, `<form method="post" action="/activities/2"`} {
+	for _, want := range []string{`<form method="get" action="/roadmap" class="toggle">`, `<a class="btn new-activity" href="/roadmap?new=1&amp;sel=2"`, `<a class="bar `, `<form method="post" action="/activities/2"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
@@ -139,7 +139,7 @@ func TestHXToggleUpdatesPanelAndRoadmap(t *testing.T) {
 	rec := hxGet(h, "/roadmap?sel=1")
 	body := rec.Body.String()
 	if !strings.Contains(before, "5 of 8 tasks done") || !strings.Contains(body, "4 of 8 tasks done") ||
-		!strings.Contains(body, "4 open / 8") {
+		!strings.Contains(body, "4 open of 8 tasks") {
 		t.Error("toggle did not reach the panel and the roadmap")
 	}
 }

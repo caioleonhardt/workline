@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -74,32 +75,55 @@ func TestTimelineHeaderAndOverlay(t *testing.T) {
 	}
 }
 
-func TestTimelineGroupsAndRows(t *testing.T) {
-	h, _ := newApp(t)
+// Each project is one lane, its activities bars in it (SPEC §10 item 126).
+func TestRoadmapLanes(t *testing.T) {
+	h, st := newApp(t)
 	body := get(h, "/roadmap?status=active&status=blocked&sel=1").Body.String()
-	// project row: count, progress over the visible activities, scope flags
+	// lane label: count, progress over the visible activities, scope flags
 	for _, want := range []string{
-		"Order platform modernisation", "· 2 activities", "· 50% done", "· 2 scope flags",
-		"· 3 activities", "· 60% done", // Team and people
+		`<div class="tl-row lane" data-project="1">`, `<span class="proj-name">Order platform modernisation</span>`,
+		"2 activities · <span class=\"mono\">50% done</span>", "2 scope flags",
+		"3 activities · <span class=\"mono\">60% done</span>", // Team and people
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
 	}
-	// the selected row's link carries aria-current; the scope chip names the added tasks
-	row := regexp.MustCompile(`(?s)<div class="tl-label act-label">\s*<a class="act-name" href="[^"]*" aria-current="true">.*?</div>`).FindString(body)
-	for _, want := range []string{"Consolidate order services", "Active", "Scope &#43;4", "3 open / 8", "2026-03-02 → 2026-12-18 · Manager"} {
-		if !strings.Contains(row, want) {
-			t.Errorf("selected row lacks %q: %s", want, row)
+	if strings.Contains(body, "act-row") || strings.Contains(body, "act-name") {
+		t.Error("activities still have rows of their own")
+	}
+	// the selected bar is current; its tooltip says what the row used to
+	bar := barOf(t, body, "Consolidate order services into one Go service")
+	for _, want := range []string{`aria-current="true"`, " sel", " creep", "Active", "Scope &#43;4", "3 open of 8 tasks", "2026-03-02 → 2026-12-18", "requested by Manager"} {
+		if !strings.Contains(bar, want) {
+			t.Errorf("selected bar lacks %q: %s", want, bar)
 		}
 	}
 	if strings.Count(body, `aria-current`) != 1 {
-		t.Error("exactly one row is current")
+		t.Error("exactly one bar is current")
+	}
+	// bars share a line unless they overlap: Jan–Mar and May–Jun on line 1, Feb–Apr on line 2
+	p, err := st.CreateProject(ctx, "Lanes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, a := range [][3]string{{"A", "2026-01-05", "2026-03-31"}, {"B", "2026-02-02", "2026-04-30"}, {"C", "2026-05-04", "2026-06-30"}} {
+		if _, err := st.CreateActivity(ctx, store.NewActivity{ProjectID: p.ID, Name: a[0], Start: date(t, a[1]), Due: date(t, a[2]), Tasks: []string{"x"}}, domain.FixedClock{D: date(t, testToday)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	lane := get(h, "/roadmap?status=active&status=done&status=planned&project="+strconv.FormatInt(p.ID, 10)).Body.String()
+	if !strings.Contains(lane, `<div class="tl-track" style="height:84px">`) {
+		t.Error("lane is not two lines high")
+	}
+	for name, top := range map[string]string{"A": "top:8px", "B": "top:42px", "C": "top:8px"} {
+		if b := barOf(t, lane, name); !strings.Contains(b, top) {
+			t.Errorf("bar %s not at %s: %s", name, top, b)
+		}
 	}
 	// no activities: the empty state
 	wantBody(t, get(h, "/roadmap?status="), "No activities match these filters.")
 }
-
 func TestTimelineColumnLoadFuture(t *testing.T) {
 	h, st := newApp(t)
 	if _, err := st.CreateActivity(ctx, store.NewActivity{ProjectID: 1, Name: "Next year", Start: date(t, "2027-02-01"), Due: date(t, "2027-03-01"), Tasks: []string{"x"}}, domain.FixedClock{D: date(t, testToday)}); err != nil {
@@ -108,43 +132,42 @@ func TestTimelineColumnLoadFuture(t *testing.T) {
 	wantBody(t, get(h, "/roadmap?year=2027"), "1 planned")
 }
 
-// rowTrack returns the markup of an activity's track, from its name to its bar link.
-func rowTrack(t *testing.T, body, name string) string {
+// barOf returns an activity's bar link, from its opening tag to its end.
+func barOf(t *testing.T, body, name string) string {
 	t.Helper()
-	i := strings.Index(body, `>`+name+`</a>`)
-	if i < 0 {
-		t.Fatalf("row %q not found", name)
+	m := regexp.MustCompile(`<a class="bar [^>]*><span class="bar-fill"[^>]*></span><span class="bar-text">` + regexp.QuoteMeta(name) + ` · [^<]*</span></a>`).FindString(body)
+	if m == "" {
+		t.Fatalf("bar %q not found", name)
 	}
-	j := strings.Index(body[i:], `class="row-link"`)
-	return body[i : i+j+250]
+	return m
 }
 
 // One bar per activity from start to due, clipped to the period, filled by
 // the share of tasks done (SPEC §10 item 125).
 func TestRoadmapBars(t *testing.T) {
 	h, _ := newApp(t)
-	row := rowTrack(t, get(h, "/roadmap").Body.String(), "Consolidate order services into one Go service")
+	row := barOf(t, get(h, "/roadmap").Body.String(), "Consolidate order services into one Go service")
 	for _, want := range []string{
-		`<span class="bar active" aria-hidden="true" style="left:16.44%;width:80.00%"><span class="bar-fill" style="width:63%"></span><span class="bar-text">Consolidate order services into one Go service · 63%</span></span>`,
-		`title="Consolidate order services into one Go service: 2026-03-02 → 2026-12-18, 63% done, 3 open tasks. Show details" tabindex="-1" aria-hidden="true"`,
+		`href="/roadmap?sel=1"`, `style="left:16.44%;width:80.00%;top:`,
+		`<span class="bar-fill" style="width:63%"></span><span class="bar-text">Consolidate order services into one Go service · 63%</span></a>`,
 	} {
 		if !strings.Contains(row, want) {
 			t.Errorf("year row lacks %q:\n%s", want, row)
 		}
 	}
 	// a planned activity's bar starts at its start date
-	row = rowTrack(t, get(h, "/roadmap").Body.String(), "2027 capacity and budget plan")
+	row = barOf(t, get(h, "/roadmap").Body.String(), "2027 capacity and budget plan")
 	if !strings.Contains(row, `class="bar planned"`) || !strings.Contains(row, "left:89.32%") {
 		t.Errorf("planned row: %s", row)
 	}
 	// quarter view: a bar that started earlier is clipped at the quarter's start
-	row = rowTrack(t, get(h, "/roadmap?period=q4").Body.String(), "Consolidate order services into one Go service")
-	if !strings.Contains(row, `<span class="bar active clip-start" aria-hidden="true" style="left:0.00%;width:85.87%">`) {
+	row = barOf(t, get(h, "/roadmap?period=q4").Body.String(), "Consolidate order services into one Go service")
+	if !strings.Contains(row, `<a class="bar active clip-start creep"`) || !strings.Contains(row, `style="left:0.00%;width:85.87%;`) {
 		t.Errorf("q4 row: %s", row)
 	}
 	// one running through the whole quarter is clipped at both ends
-	row = rowTrack(t, get(h, "/roadmap?period=q3").Body.String(), "Consolidate order services into one Go service")
-	if !strings.Contains(row, `<span class="bar active clip-start clip-end" aria-hidden="true" style="left:0.00%;width:100.00%">`) {
+	row = barOf(t, get(h, "/roadmap?period=q3").Body.String(), "Consolidate order services into one Go service")
+	if !strings.Contains(row, `<a class="bar active clip-start clip-end creep"`) || !strings.Contains(row, `style="left:0.00%;width:100.00%;`) {
 		t.Errorf("q3 row: %s", row)
 	}
 	// an activity wholly outside the period is not listed
@@ -158,21 +181,12 @@ func TestRoadmapBars(t *testing.T) {
 	wantBody(t, get(h, "/roadmap"), "Activity: start to due, filled by tasks done")
 }
 
-func TestProjectRowIsAnExpandedToggle(t *testing.T) {
+func TestRoadmapScriptAndStorage(t *testing.T) {
 	h, _ := newApp(t)
 	body := get(h, "/roadmap").Body.String()
-	for _, want := range []string{
-		`<div class="grp" data-project="1">`,
-		`<button type="button" class="proj-row proj-toggle" aria-expanded="true">`,
-	} {
-		if !strings.Contains(body, want) {
-			t.Errorf("missing %q", want)
-		}
-	}
-	// the script follows the timeline so the stored state applies before first paint
 	script := strings.Index(body, `<script src="/static/app.js"></script>`)
 	if script < strings.Index(body, `class="legend`) || strings.Count(body, `<script src="/static/app.js">`) != 1 {
-		t.Error("app.js must load once, right after the timeline")
+		t.Error("app.js must load once, right after the roadmap")
 	}
 	js := get(h, "/static/app.js")
 	wantStatus(t, js, http.StatusOK)
@@ -187,7 +201,7 @@ func TestProjectRowIsAnExpandedToggle(t *testing.T) {
 		}
 	}
 	if uses == 0 {
-		t.Error("project collapse state is not stored")
+		t.Error("search history is not stored")
 	}
 }
 
@@ -246,27 +260,17 @@ func TestNarrowScreenRules(t *testing.T) {
 	}
 }
 
-// Whole-row selection (SPEC §10 item 80): the name is the one link in the
-// accessibility tree and the tab order; a pointer-only overlay covers the row.
-func TestRowSelectionOverlayIsPointerOnly(t *testing.T) {
+// Every bar is a real link naming its activity, so it is in the tab order and
+// the accessibility tree (SPEC §10 item 126).
+func TestBarsAreLinks(t *testing.T) {
 	h, _ := newApp(t)
 	body := get(h, "/roadmap").Body.String()
-	rows := strings.Count(body, `class="tl-row act-row`)
-	if rows != 6 || strings.Count(body, `class="act-name" href="`) != rows || strings.Count(body, `class="row-link"`) != rows {
-		t.Fatalf("rows=%d names=%d overlays=%d", rows, strings.Count(body, `class="act-name" href="`), strings.Count(body, `class="row-link"`))
+	if n := strings.Count(body, `<a class="bar `); n != 6 {
+		t.Fatalf("bars = %d, want 6", n)
 	}
-	for _, m := range regexp.MustCompile(`<a class="row-link"[^>]*>`).FindAllString(body, -1) {
-		if !strings.Contains(m, `tabindex="-1"`) || !strings.Contains(m, `aria-hidden="true"`) {
-			t.Errorf("overlay is reachable by keyboard or assistive technology: %s", m)
-		}
-	}
-	if strings.Contains(body, "bar-link") {
-		t.Error("the duplicate bar link is gone")
-	}
-	css := get(h, "/static/app.css").Body.String()
-	for _, want := range []string{".row-link { position: absolute; inset: 0; z-index: 3;"} {
-		if !strings.Contains(css, want) {
-			t.Errorf("app.css lacks %q", want)
+	for _, m := range regexp.MustCompile(`<a class="bar [^>]*>`).FindAllString(body, -1) {
+		if strings.Contains(m, `tabindex="-1"`) || strings.Contains(m, `aria-hidden`) || !strings.Contains(m, `href="/roadmap?sel=`) {
+			t.Errorf("bar is not a plain link: %s", m)
 		}
 	}
 }

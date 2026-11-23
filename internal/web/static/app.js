@@ -1,31 +1,8 @@
-// Marks the page as scripted (hiding buttons that htmx replaces), floats the completion popups, handles the
-// Vim-style keys and statusline (a cursor over journal entries; Enter logs from the journal bar), the entry editors' keys and the error bar's Dismiss, and collapses project groups on the timeline; the state lives in the browser's local storage.
-// Without this script every group stays expanded and every button shows.
+// Marks the page as scripted (hiding buttons that htmx replaces), handles the Vim-style keys, the command
+// line and statusline (a cursor over journal entries; Enter logs from the journal bar), the entry editors'
+// keys and the error bar's Dismiss. Without this script every button shows.
 (function () {
   document.documentElement.classList.add('js');
-  var KEY = 'workline.collapsed';
-
-  function load() {
-    try {
-      return JSON.parse(localStorage.getItem(KEY)) || {};
-    } catch (e) {
-      return {};
-    }
-  }
-
-  function save(state) {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(state));
-    } catch (e) {}
-  }
-
-  function apply(group, collapsed) {
-    group.querySelector('.proj-toggle').setAttribute('aria-expanded', String(!collapsed));
-    group.querySelectorAll('.act-row').forEach(function (row) {
-      row.hidden = collapsed;
-    });
-  }
-
   // Document-level handlers. app.js runs again inside every swapped fragment, so
   // they are registered once. The shortcuts only click real links and focus a
   // select, so htmx's own handling of those links applies.
@@ -524,22 +501,4 @@
       }
     });
   }
-
-  var state = load();
-  document.querySelectorAll('.grp[data-project]').forEach(function (group) {
-    var id = group.dataset.project;
-    var toggle = group.querySelector('.proj-toggle');
-    apply(group, !!state[id]);
-    toggle.addEventListener('click', function () {
-      var collapse = toggle.getAttribute('aria-expanded') === 'true';
-      apply(group, collapse);
-      state = load();
-      if (collapse) {
-        state[id] = true;
-      } else {
-        delete state[id];
-      }
-      save(state);
-    });
-  });
 })();

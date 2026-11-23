@@ -81,7 +81,7 @@ func TestDashboardListsSeededData(t *testing.T) {
 	h, _ := newApp(t)
 	rec := get(h, "/roadmap?status=active&status=blocked")
 	wantStatus(t, rec, http.StatusOK)
-	wantBody(t, rec, "Order platform modernisation", "Kafka upgrade readiness", "3 open / 8")
+	wantBody(t, rec, "Order platform modernisation", "Kafka upgrade readiness", "3 open of 8 tasks")
 	// links keep the rest of the query (repeated status included) and set sel
 	wantBody(t, rec, "sel=1&amp;status=active&amp;status=blocked")
 }

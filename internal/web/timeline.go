@@ -1,7 +1,9 @@
 package web
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -51,20 +53,26 @@ type tickView struct {
 	Label string
 }
 
-type rowView struct {
+// barView is an activity on the roadmap: a bar in its project's lane.
+type barView struct {
 	ID                  int64
 	Name, Href          string
 	Selected            bool
 	Status, StatusLabel string
 	ScopeChip           string // empty unless flagged
-	OpenLabel, Dates    string
 	Tip                 string
-	HasBar              bool // the activity's span meets the period
-	BarLeft, BarWidth   pct
+	Left, Width         pct
+	Top                 int  // px from the top of the lane
 	ClipStart, ClipEnd  bool // the span runs past the period's start or end
 	Progress            int  // % of tasks done, drawn as the bar's fill
 	PctLabel            string
 }
+
+// The bars of a project are packed into as few lines as they fit in.
+const (
+	barLine = 34 // px per line of bars
+	barPad  = 8  // px above the first line and below the last
+)
 
 // timelineData is what the dashboard hands to buildTimeline.
 type timelineData struct {
@@ -76,7 +84,8 @@ type timelineData struct {
 type groupView struct {
 	ID                                    int64
 	Name, CountLabel, PctLabel, FlagLabel string
-	Rows                                  []rowView
+	Height                                int // px: all its lines of bars
+	Bars                                  []barView
 }
 
 type timelineView struct {
@@ -146,16 +155,27 @@ func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 
 	for _, g := range d.Groups {
 		gv := groupView{ID: g.Project.ID, Name: g.Project.Name, CountLabel: plural(len(g.Activities), "activity", "activities")}
+		// Bars are packed by start, so the lane needs as few lines as possible.
+		acts := slices.Clone(g.Activities)
+		slices.SortStableFunc(acts, func(a, b domain.Activity) int { return cmp.Compare(max(a.Start, from), max(b.Start, from)) })
+		spans := make([]domain.Span, len(acts))
+		for i, a := range acts {
+			spans[i] = domain.Span{From: max(a.Start, from), To: min(a.Due, to)}
+		}
+		lanes, n := domain.Lanes(spans)
+		gv.Height = max(n, 1)*barLine + 2*barPad
 		var subs []domain.Task
 		flags := 0
-		for _, a := range g.Activities {
+		for i, a := range acts {
 			it := d.ItemOf[a.ID]
 			subs = append(subs, it.Tasks...)
 			c := d.Creeps[a.ID]
 			if c.Flagged {
 				flags++
 			}
-			gv.Rows = append(gv.Rows, buildRow(f, ax, from, to, today, it, c))
+			b := buildBar(f, ax, from, to, today, it, c)
+			b.Top = barPad + lanes[i]*barLine
+			gv.Bars = append(gv.Bars, b)
 		}
 		gv.PctLabel = strconv.Itoa(domain.ProjectProgress(subs)) + "% done"
 		if flags > 0 {
@@ -166,27 +186,29 @@ func buildTimeline(f Filter, today domain.Date, d timelineData) timelineView {
 	return v
 }
 
-func buildRow(f Filter, ax axis, from, to, today domain.Date, it domain.ActivityWithTasks, c domain.Creep) rowView {
-	r := rowView{
+func buildBar(f Filter, ax axis, from, to, today domain.Date, it domain.ActivityWithTasks, c domain.Creep) barView {
+	b := barView{
 		ID: it.ID, Name: it.Name, Href: f.WithSel(it.ID).URL(), Selected: it.ID == f.Sel,
 		Status: string(it.Status), StatusLabel: capitalize(string(it.Status)),
-		OpenLabel: fmt.Sprintf("%d open / %d", domain.OpenAt(it.Tasks, today), len(it.Tasks)),
-		Dates:     fmt.Sprintf("%s → %s · %s", it.Start, it.Due, it.RequestedBy),
 		Progress:  domain.Progress(it.Status, it.Tasks),
+		ClipStart: it.Start.Before(from), ClipEnd: it.Due.After(to),
 	}
-	r.PctLabel = strconv.Itoa(r.Progress) + "%"
-	r.Tip = fmt.Sprintf("%s: %s → %s, %s done, %d open tasks. Show details", it.Name, it.Start, it.Due, r.PctLabel, domain.OpenAt(it.Tasks, today))
-	r.HasBar = it.Overlaps(from, to)
-	if r.HasBar {
-		r.ClipStart, r.ClipEnd = it.Start.Before(from), it.Due.After(to)
-		r.BarLeft, r.BarWidth = ax.span(max(it.Start, from), min(it.Due, to))
-		r.BarWidth = max(r.BarWidth, 0.6)
-	}
+	b.PctLabel = strconv.Itoa(b.Progress) + "%"
+	b.Left, b.Width = ax.span(max(it.Start, from), min(it.Due, to))
+	b.Width = max(b.Width, 0.6)
 	if c.Flagged {
-		r.ScopeChip = "Scope"
+		b.ScopeChip = "Scope"
 		if c.Added > 0 {
-			r.ScopeChip = fmt.Sprintf("Scope +%d", c.Added)
+			b.ScopeChip = fmt.Sprintf("Scope +%d", c.Added)
 		}
 	}
-	return r
+	b.Tip = fmt.Sprintf("%s · %s · %s → %s", it.Name, b.StatusLabel, it.Start, it.Due)
+	if it.RequestedBy != "" {
+		b.Tip += " · requested by " + it.RequestedBy
+	}
+	b.Tip += fmt.Sprintf(" · %s done, %d open of %d tasks", b.PctLabel, domain.OpenAt(it.Tasks, today), len(it.Tasks))
+	if b.ScopeChip != "" {
+		b.Tip += " · " + b.ScopeChip
+	}
+	return b
 }
