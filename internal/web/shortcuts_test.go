@@ -71,7 +71,7 @@ func TestShortcutScriptRules(t *testing.T) {
 		"if (key === 'g' || key === 'd')", "Date.now() - pendingAt < 1000", // gg, gj, gr, gR, gp, dd
 		"gg:", "G:", "h:", "l:", "i:", "dd:", "x:", "o: focusBar", "'[':", "']':", "t: function () { clickFirst('a.today-link'); }", "gj:", "gt:", "gr:", "gR:", "gp:", "O:", "f:", "'?':", "Escape:",
 		"d.querySelector('details.confirm').open = true", // dd only opens the confirm step
-		"'/': openSearch", "n: function () { search(1); }", "N: function () { search(-1); }",
+		"'/': openSearch", "':': openCommand", "t.id === 'vcmd-text'", "fetch('/context'", "n: function () { search(1); }", "N: function () { search(-1); }",
 		"t.id === 'vsearch-text'", // Enter in the search line searches instead of submitting the form
 		"entry.classList.toggle('match', hit)",
 		"fetch('/search/ids?'", "location.assign('/search?'", "e.ctrlKey || e.metaKey ? 'filter' : 'mark'", // Enter marks, Ctrl+Enter filters

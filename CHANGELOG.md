@@ -8,6 +8,8 @@ each release is tagged `vX.Y.Z` in git.
 Upgrading from 0.10.0: run `workline migrate` once before `serve`.
 
 ### Added
+- `:p name` and `:a name` (or an id) pick the project or activity new entries
+  go to until changed; `:p` alone stops. The statusline shows it.
 - Notes: a `note` kind (`/n` in the bar), and entries can belong to a project
   as well as to an activity or to nothing. Pick the project in "File under".
   Needs `workline migrate`.

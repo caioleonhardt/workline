@@ -352,6 +352,7 @@ func (s *Server) renderReport(w http.ResponseWriter, r *http.Request, uri string
 	}
 	v.Markdown = reportMarkdown(v.Heading, v.Sections)
 	v.QuickFile = fileChoices(d.Filing, "")
+	s.applyContext(r, &v.quickBar)
 	for _, mod := range mods {
 		mod(&v.quickBar)
 	}

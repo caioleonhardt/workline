@@ -52,6 +52,7 @@ func New(st *store.Store, clock domain.Clock) (http.Handler, error) {
 	mux.HandleFunc("GET /export/journal.md", s.exportJournal)
 	mux.HandleFunc("GET /report", s.report)
 	mux.HandleFunc("GET /report.md", s.reportMD)
+	mux.HandleFunc("POST /context", s.setContext)
 	mux.HandleFunc("GET /search", s.search)
 	mux.HandleFunc("GET /search/ids", s.searchIDs)
 	mux.HandleFunc("GET /search/words", s.searchWords)

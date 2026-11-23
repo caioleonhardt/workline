@@ -168,7 +168,7 @@
       var mode = document.getElementById('status-mode');
       if (!mode) return;
       var a = document.activeElement, name = 'NORMAL';
-      if (a && a.id === 'vsearch-text') {
+      if (a && (a.id === 'vsearch-text' || a.id === 'vcmd-text')) {
         name = 'COMMAND';
       } else if (a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.closest('.editor'))) {
         name = 'INSERT';
@@ -274,6 +274,31 @@
       form.hidden = false;
       form.querySelector('input').value = '';
       form.querySelector('input').focus();
+    }
+    // The command line (SPEC §10 item 121): `:p name` or `:a name` sets where
+    // new entries go, `:p` or `:a` alone clears it. The server resolves the
+    // name and keeps the choice in a cookie; the page reloads to show it.
+    function openCommand() {
+      var form = document.querySelector('.vcmd');
+      if (!form) return;
+      searchFrom = cursor();
+      say('');
+      form.hidden = false;
+      form.querySelector('input').value = '';
+      form.querySelector('input').focus();
+    }
+    function closeCommand(run) {
+      var input = document.getElementById('vcmd-text');
+      var typed = input.value.trim();
+      input.closest('.vcmd').hidden = true;
+      if (searchFrom && searchFrom.isConnected) searchFrom.focus();
+      else input.blur();
+      if (!run || !typed) return say('');
+      var body = new URLSearchParams({ q: typed, next: location.pathname + location.search });
+      fetch('/context', { method: 'POST', body: body }).then(function (res) {
+        if (res.ok) return location.reload();
+        return res.text().then(function (text) { say(text.trim(), true); });
+      }).catch(function () { say('Command failed', true); });
     }
     // closeSearch leaves the search line: how is 'cancel', 'mark' (Enter) or
     // 'filter' (Ctrl+Enter). An empty line repeats the last pattern, as in Vim.
@@ -399,6 +424,7 @@
         if (filter) filter.focus();
       },
       '/': openSearch,
+      ':': openCommand,
       n: function () { search(1); },
       N: function () { search(-1); },
       '?': function () {
@@ -428,6 +454,13 @@
         }
       }
       if (editor) return; // the editor is Insert mode, its buttons included
+      if (t && t.id === 'vcmd-text' && !e.isComposing) {
+        if (e.key === 'Enter' || esc) {
+          e.preventDefault();
+          closeCommand(!esc);
+        }
+        return;
+      }
       // The search line: Enter marks, Ctrl+Enter filters, Esc goes back to the cursor, Tab completes.
       if (t && t.id === 'vsearch-text' && !e.isComposing) {
         if (e.key === 'Tab') {

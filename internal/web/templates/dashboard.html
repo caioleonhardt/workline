@@ -2,10 +2,10 @@
 <div id="errors" aria-live="polite"></div>
 {{template "dash" .}}
 {{template "quickadd" .}}
-{{template "keys"}}
+{{template "keys" .}}
 {{template "foot" .}}
 
-{{define "quickadd-target"}}{{if .Pick}}<span class="target"><label for="quickadd-activity">Log to</label></span>{{else}}<span class="target">Journal for <strong>{{.Name}}</strong>{{if .Project}} · {{.Project}}{{end}}{{if .ClearHref}} <a class="clear-target" href="{{.ClearHref}}" hx-get="{{.ClearHref}}" hx-target="#dash" hx-swap="outerHTML" hx-push-url="true" aria-label="Log to Unassigned instead">×</a>{{end}}</span>{{if .ID}}<input type="hidden" name="activity" value="{{.ID}}">{{end}}{{end}}{{if .Date}}<input type="hidden" name="date" value="{{.Date}}">{{end}}<input type="hidden" name="next" value="{{.Next}}">{{end}}
+{{define "quickadd-target"}}{{if .Pick}}<span class="target"><label for="quickadd-activity">Log to</label></span>{{else}}<span class="target">Journal for <strong>{{.Name}}</strong>{{if .Project}} · {{.Project}}{{end}}{{if .ClearHref}} <a class="clear-target" href="{{.ClearHref}}" hx-get="{{.ClearHref}}" hx-target="#dash" hx-swap="outerHTML" hx-push-url="true" aria-label="Log to Unassigned instead">×</a>{{end}}</span>{{if .ID}}<input type="hidden" name="activity" value="{{.ID}}">{{else if .Link}}<input type="hidden" name="activity" value="{{.Link}}">{{end}}{{end}}{{if .Date}}<input type="hidden" name="date" value="{{.Date}}">{{end}}<input type="hidden" name="next" value="{{.Next}}">{{end}}
 
 {{define "quickadd-input"}}<textarea id="quickadd-text" name="text" rows="1" aria-label="Journal entry" placeholder="Log… /t task · /t1 high-priority task · /d decision · /u update (Shift+Enter: new line)" autocomplete="off" aria-keyshortcuts="o" required{{if .}} hx-swap-oob="true"{{end}}></textarea>{{end}}
 

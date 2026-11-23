@@ -22,8 +22,10 @@
 {{define "keys"}}<div class="status mono">
 <span class="mode" id="status-mode">NORMAL</span>
 <form class="vsearch" role="search" hidden><label class="sr-only" for="vsearch-text">Search entries</label><span aria-hidden="true">/</span><input id="vsearch-text" type="search" autocomplete="off"></form>
+<form class="vcmd" method="post" action="/context" hidden><label class="sr-only" for="vcmd-text">Command</label><span aria-hidden="true">:</span><input id="vcmd-text" name="q" autocomplete="off"></form>
 <span class="status-msg" id="status-msg"></span>
 <span class="status-cmd" id="status-cmd"></span>
+{{with .Context}}<span class="status-ctx" title="New entries go to {{.}}; :p or :a alone clears it">[{{.}}]</span>{{end}}
 <span class="status-pos" id="status-pos"></span>
 </div>
 <dialog id="keys" aria-labelledby="keys-title">
@@ -39,6 +41,7 @@
 <tr><th scope="row"><kbd>Enter</kbd></th><td>open the entry's activity</td></tr>
 <tr><th scope="row"><kbd>o</kbd></th><td>log an entry (in the bar, <kbd>/t</kbd> <kbd>/t1</kbd>…<kbd>/t3</kbd> <kbd>/d</kbd> <kbd>/u</kbd> <kbd>/b</kbd> <kbd>/m</kbd> <kbd>/n</kbd> choose the kind)</td></tr>
 <tr><th scope="row"><kbd>/</kbd> <kbd>n</kbd> <kbd>N</kbd></th><td>search, mark matches on the page, next / previous match</td></tr>
+<tr><th scope="row"><kbd>:p</kbd> <kbd>:a</kbd></th><td>log new entries to a project or activity by name or id (<code>:p CLM</code>, <code>:a 12</code>); alone, stop</td></tr>
 <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></th><td>in the search line: show only the matches, from the whole journal</td></tr>
 <tr><th scope="row"><kbd>Tab</kbd></th><td>in the search line: complete a filter or name</td></tr>
 <tr><th scope="row">filters</th><td class="mono"><code>word</code> <code>"a phrase"</code> <code>!not</code> <code>p:1</code> <code>k:d</code> <code>proj:name</code> <code>act:name</code> <code>is:open</code> <code>is:closed</code> <code>is:unassigned</code> <code>is:starred</code></td></tr>

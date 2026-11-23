@@ -12,7 +12,8 @@ import (
 // activity, or Unassigned (ID 0). On the journal page the bar has an
 // Activity select instead (Pick).
 type quickAddView struct {
-	ID            int64
+	ID            int64  // the selected activity, 0 for none
+	Link          string // the target as an entryLink, when it is not the selected activity
 	Name, Project string
 	Next          string
 	ClearHref     string // the same page without the selection; empty for Unassigned
@@ -27,6 +28,7 @@ type quickBar struct {
 	QuickPrios []option   // the bar's task priority
 	QuickFile  []optGroup // the journal page's Activity select; nil on the timeline
 	ClearQuick bool       // a successful quick add also replaces the text field with an empty one
+	Context    string     // the `:p`/`:a` context's label, for the statusline; empty for none
 }
 
 func newQuickBar(target quickAddView) quickBar {
@@ -59,6 +61,7 @@ func (s *Server) renderDashboard(w http.ResponseWriter, r *http.Request, uri str
 		s.fail(w, r, err)
 		return
 	}
+	s.applyContext(r, &v.quickBar)
 	for _, mod := range mods {
 		mod(&v.quickBar)
 	}

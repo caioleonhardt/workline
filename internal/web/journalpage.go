@@ -65,6 +65,7 @@ func (s *Server) renderJournalPage(w http.ResponseWriter, r *http.Request, uri s
 		s.fail(w, r, err)
 		return
 	}
+	s.applyContext(r, &v.quickBar)
 	for _, mod := range mods {
 		mod(&v.quickBar)
 	}

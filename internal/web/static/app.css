@@ -210,7 +210,10 @@ html.js body:has(.quick) { padding-bottom: 120px; }
 .status .mode.insert { background: var(--done-bg); color: var(--done-fg); }
 .status .mode.command { background: var(--blocked-bg); color: var(--blocked-fg); }
 .vsearch { display: flex; flex: 1; align-items: center; }
-.vsearch[hidden] { display: none; }
+.vsearch[hidden], .vcmd[hidden] { display: none; }
+.vcmd { display: flex; flex: 1; align-items: center; }
+.vcmd input, .vcmd input:focus { flex: 1; min-width: 0; min-height: 0; padding: 0; border: 0; box-shadow: none; background: transparent; font: inherit; color: inherit; }
+.status-ctx { white-space: nowrap; font-weight: 600; }
 .vsearch input, .vsearch input:focus { flex: 1; min-width: 0; min-height: 0; padding: 0; border: 0; box-shadow: none; background: transparent; font: inherit; color: inherit; }
 .status-msg { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .status-msg.error { color: var(--today); }
